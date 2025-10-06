@@ -1,4 +1,9 @@
 # RO-Crate Analysis and Visualisation Tools
+
+[![Test](https://github.com/unimelbmdap/cdl2-rocrates/actions/workflows/test.yml/badge.svg)](https://github.com/unimelbmdap/cdl2-rocrates/actions/workflows/test.yml)
+![Python Version](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+
 ## ARDC Community Data Lab Phase 2: Work Package 2
 
 Tools for analysing and visualising research data collections stored in RO-Crates.
