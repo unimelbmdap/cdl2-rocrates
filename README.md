@@ -3,6 +3,7 @@
 [![Tests](https://github.com/unimelbmdap/cdl2-rocrates/actions/workflows/test.yml/badge.svg)](https://github.com/unimelbmdap/cdl2-rocrates/actions/workflows/test.yml)
 ![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://unimelbmdap.github.io/cdl2-rocrates/)
 
 ## ARDC Community Data Lab Phase 2: Work Package 2
