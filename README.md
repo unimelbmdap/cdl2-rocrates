@@ -30,3 +30,41 @@ The project focuses on use-case driven development, prioritising specific resear
 ## Background
 
 This work builds on existing University of Melbourne projects and external collaborations that have developed specialised RO-Crate tools and workflows, including work derived from former Online Heritage Resource Manager projects.
+
+## Development Setup
+
+### Prerequisites
+
+- Python 3.11 or later
+- [uv](https://docs.astral.sh/uv/) package manager
+
+### Installation
+
+```bash
+# Install dependencies
+uv sync
+
+# Install pre-commit hooks
+uv run pre-commit install
+```
+
+### Running Tests
+
+```bash
+uv run pytest
+```
+
+### Code Quality
+
+This project uses [Ruff](https://docs.astral.sh/ruff/) for linting and formatting, enforced via pre-commit hooks.
+
+```bash
+# Run pre-commit checks manually
+uv run pre-commit run --all-files
+
+# Run linter
+uv run ruff check .
+
+# Run formatter
+uv run ruff format .
+```
