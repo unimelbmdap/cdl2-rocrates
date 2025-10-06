@@ -1,4 +1,4 @@
-# RO-Crate Research Tools
+# RO-Crate Research Tools (CDL 2 Work Package 2)
 
 Tools for analysing and visualising research data collections stored in RO-Crates.
 
