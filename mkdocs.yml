@@ -1,0 +1,41 @@
+site_name: RO-Crate Analysis and Visualisation Tools
+site_description: Tools for analysing and visualising research data collections stored in RO-Crates
+site_url: https://unimelbmdap.github.io/cdl2-rocrates/
+repo_url: https://github.com/unimelbmdap/cdl2-rocrates
+repo_name: unimelbmdap/cdl2-rocrates
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - tables
+
+nav:
+  - Home: index.md
