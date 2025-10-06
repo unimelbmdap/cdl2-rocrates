@@ -1,4 +1,5 @@
-# RO-Crate Research Tools (CDL 2 Work Package 2)
+# Research Data RO-Crate Tools
+## ARDC Community Data Lab Phase 2: Work Package 2
 
 Tools for analysing and visualising research data collections stored in RO-Crates.
 
