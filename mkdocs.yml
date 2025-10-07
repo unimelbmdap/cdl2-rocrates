@@ -37,5 +37,18 @@ markdown_extensions:
   - pymdownx.snippets
   - tables
 
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+
 nav:
   - Home: index.md
+  - API Reference: api.md
