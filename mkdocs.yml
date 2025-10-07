@@ -51,5 +51,6 @@ plugins:
 
 nav:
   - Home: index.md
+  - Getting Started: getting-started.md
   - API Reference: api.md
   - Acknowledgements: acknowledgements.md
