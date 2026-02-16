@@ -5,6 +5,7 @@
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://unimelbmdap.github.io/cdl2-rocrates/)
+[![Milestones](https://img.shields.io/badge/milestones-view%20all-orange)](https://github.com/unimelbmdap/cdl2-rocrates/milestones)
 
 ## ARDC Community Data Lab Phase 2: Work Package 2
 
