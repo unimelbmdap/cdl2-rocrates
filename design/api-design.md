@@ -14,14 +14,35 @@ Early design thinking for the `cdl2-rocrates` Python package API. This document 
 
 ## Backend Architecture
 
-- **RDFLib** for parsing JSON-LD to ensure RO-Crate compliance.
-- **NetworkX** (or potentially an alternative graph engine) for internal representation, querying, and analysis.
-- The public API abstracts away the underlying representation — users don't need to know what's underneath.
+The public API abstracts away the underlying representation — users don't need to know what's underneath. This means the backend can evolve without breaking user-facing code.
 
-### Open Questions
+### Option A: RDFLib as primary, NetworkX for analysis
 
-- Whether to keep RDFLib as the primary representation with NetworkX for analysis, or parse via RDFLib and convert to NetworkX as the primary store.
-- Whether declarative query languages (Cypher / GQL) add value over Pythonic filtering, given the target audience.
+- **Parsing**: RDFLib natively parses JSON-LD (the RO-Crate format), ensuring RDF compliance.
+- **Querying**: SPARQL is powerful for subgraph extraction and comes free with RDFLib.
+- **Scaling**: RDFLib supports pluggable store backends (Oxigraph, Neo4j, Fuseki), providing a path to external graph databases for large collections without changing the API.
+- **Concern**: RDFLib is strict about well-formed RDF. Malformed or messy crates (common with legacy cultural databases) may fail at parse time, before the user can even see the data. This is a problem if a key use case is surfacing data quality issues visually.
+
+### Option B: NetworkX as primary, RDFLib for validation/export
+
+- **Parsing**: Parse JSON-LD directly as JSON (it's just JSON with conventions), extract entities and relationships into NetworkX without going through RDF. This means the tool works with messy or non-compliant crates.
+- **Querying**: Pythonic filtering via NetworkX. Less powerful than SPARQL for complex graph patterns, but more intuitive for the target audience.
+- **Validation**: RDFLib used as an optional, separate step — validate against RDF/schema.org and report issues, but don't block usage. This supports the use case of visualising crates to identify data quality issues.
+- **Scaling**: NetworkX is purely in-memory. Handles tens of thousands of nodes/edges comfortably, but has no path to external graph databases. If scale becomes an issue, igraph is a faster in-memory alternative, or the backend would need a larger architectural shift.
+- **Dependencies**: RDFLib becomes optional (only needed for validation and RDF export), keeping the core package lightweight.
+
+### Option C: Hybrid approaches
+
+- Parse via RDFLib where possible, fall back to direct JSON-LD parsing for non-compliant crates.
+- Use RDFLib for initial parsing but convert immediately to NetworkX, discarding the RDF representation. Keeps RDFLib's parsing capability but avoids its strictness for downstream operations.
+
+### Key Considerations
+
+- **Data quality**: Cultural collections are often converted from legacy databases and may not be fully RDF-compliant. The tool should work with imperfect data, not just valid data.
+- **Scale**: How large are the biggest crate collections likely to be? This determines whether the in-memory constraint of NetworkX is a practical limitation.
+- **Community expectations**: The RO-Crate community values RDF compliance. Using RDFLib signals alignment with standards.
+- **Query complexity**: Whether researchers need SPARQL-level query power, or whether Pythonic filtering with a good API is sufficient.
+- **Declarative query languages**: Whether Cypher / GQL add value over Pythonic filtering, given the target audience. Note that Kuzu (an embedded Cypher-compatible graph DB) was archived in October 2025, limiting lightweight options in this space.
 
 ## Core API
 
