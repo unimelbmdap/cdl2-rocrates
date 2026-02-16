@@ -9,6 +9,7 @@ Early design thinking for the `cdl2-rocrates` Python package API. This document 
 - **Consistent types**: `select()` on a crate returns the same type as the crate, so users learn one set of methods.
 - **Researcher-friendly vocabulary**: Avoid graph theory jargon (no "subgraph", "ego network", etc. in the public API).
 - **Smart defaults**: Visualisations should be readable out of the box, with parameters to adjust.
+- **Discoverable vocabulary**: Entity and relationship types are exposed as attributes for IDE autocomplete, with fuzzy validation on string inputs as a safety net.
 - **Escape hatches**: Drop down to NetworkX or export to JSON-LD when needed.
 
 ## Backend Architecture
@@ -54,6 +55,44 @@ crate.summary()
 #   attendedEvent     198
 #
 # Time range: 1832–1901
+```
+
+### Type and Relationship Discovery
+
+Entity types and relationship types are exposed as attributes on the crate, enabling IDE autocomplete and reducing typos.
+
+```python
+# Attribute access — autocomplete works in notebooks and IDEs
+crate.types.Person
+crate.types.Organisation
+crate.relationships.memberOf
+
+# Assign to short variables for convenience
+t = crate.types
+r = crate.relationships
+
+result = crate.select(entity_types=[t.Person, t.Organisation])
+result = crate.select(relationship_types=[r.memberOf])
+```
+
+String inputs are also accepted, with fuzzy validation:
+
+```python
+# Strings still work
+crate.select(entity_types=["Person"])
+
+# Typos produce helpful errors
+crate.select(entity_types=["Persom"])
+# ValueError: Unknown entity type "Persom". Did you mean "Person"?
+# Available types: Person, Place, Organisation, Event
+```
+
+Attributes are generated dynamically from the crate contents, so they always reflect the actual data. Results also expose types and relationships for their subset:
+
+```python
+result = crate.select(entity_types=[t.Person, t.Organisation])
+result.types            # only types present in this result
+result.relationships    # only relationships present in this result
 ```
 
 ### Selecting — Narrowing Down
