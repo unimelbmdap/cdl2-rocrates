@@ -302,6 +302,172 @@ graph.validate(validator=ROCrateValidator)
 - **Visualisation engines**: one default (TBD — evaluating gravis, pyvis, and others)
 - **Validators**: RO-Crate (RDF/schema.org compliance)
 
+### Plugin Interfaces
+
+Plugin contracts are defined using abstract base classes. Third-party implementations inherit from these and implement the required methods.
+
+```python
+from abc import ABC, abstractmethod
+from typing import Any
+
+
+class Reader(ABC):
+    """Interface for loading graph data from a source."""
+
+    @abstractmethod
+    def can_read(self, path: str) -> bool:
+        """Whether this reader can handle the given path/format."""
+        ...
+
+    @abstractmethod
+    def read(self, path: str) -> "Graph":
+        """Load data from path and return a Graph object."""
+        ...
+
+
+class Writer(ABC):
+    """Interface for exporting graph data to a target format."""
+
+    @abstractmethod
+    def write(self, graph: "Graph", path: str, **kwargs) -> None:
+        """Write graph data to the given path."""
+        ...
+
+
+class Viewer(ABC):
+    """Interface for rendering a graph visualisation."""
+
+    @abstractmethod
+    def render(self, graph: "Graph", **kwargs) -> Any:
+        """Render the graph and return the visualisation object."""
+        ...
+
+
+class Validator(ABC):
+    """Interface for validating graph data against a schema."""
+
+    @abstractmethod
+    def validate(self, graph: "Graph") -> "ValidationReport":
+        """Validate the graph and return a report. Does not raise on failure."""
+        ...
+```
+
+#### ABCs vs Protocols
+
+An alternative to ABCs is Python's `Protocol` (structural typing). With protocols, a class doesn't need to explicitly inherit from the interface — it just needs to implement the right methods:
+
+```python
+from typing import Protocol
+
+class Reader(Protocol):
+    def can_read(self, path: str) -> bool: ...
+    def read(self, path: str) -> "Graph": ...
+```
+
+Protocols are more Pythonic and friendlier for third-party plugins (contributors don't need to import base classes). ABCs are better for enforcing contracts and providing helpful error messages when methods are missing. For the MVP, ABCs are simpler and more explicit. Protocols can be adopted later if there's community demand for third-party plugins.
+
+#### Plugin Registration
+
+Built-in readers register themselves at import time. Auto-detection loops through registered readers:
+
+```python
+# Registration
+Graph.register_reader(ROCrateReader)
+Graph.register_reader(GEXFReader)
+
+# Auto-detection: finds first reader where can_read() returns True
+graph = Graph.load("path/to/something")
+```
+
+For installable third-party plugins, Python entry points could be supported later:
+
+```toml
+# In a third-party package's pyproject.toml
+[project.entry-points."graph_explore.readers"]
+my_format = "my_package:MyFormatReader"
+```
+
+This would let users `pip install graph-explore-myformat` and have it automatically available. Not needed for the MVP.
+
+## Data Models
+
+### Pydantic vs dataclasses
+
+There are two main options for structured data within the package:
+
+**dataclasses (stdlib):**
+- No additional dependency
+- Lightweight, sufficient for simple structured data
+- No built-in validation beyond type hints
+
+**Pydantic:**
+- Automatic validation, type coercion, and helpful error messages
+- Trivial serialisation to/from JSON (useful for caching, web interface, exports)
+- Richer feature set (computed fields, custom validators, nested models)
+- Adds a dependency (~2MB, well-maintained, widely used)
+
+Recommendation: use **dataclasses for internal models** that are simple containers, and **Pydantic for user-facing models** where validation and serialisation matter (configuration, validation reports, exported results). Pydantic could be an optional dependency if keeping the core lightweight is a priority.
+
+### Core Data Models
+
+```python
+from dataclasses import dataclass, field
+from typing import Any
+
+
+@dataclass(frozen=True)
+class Entity:
+    """A node in the graph."""
+    id: str
+    type: str
+    properties: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class Relationship:
+    """An edge in the graph."""
+    source: str
+    target: str
+    type: str
+    properties: dict[str, Any] = field(default_factory=dict)
+```
+
+Note: `frozen=True` makes these immutable, consistent with the overall design principle.
+
+### User-facing Models (Pydantic)
+
+```python
+from pydantic import BaseModel
+from typing import Literal
+
+
+class SelectOptions(BaseModel):
+    """Validated parameters for select() calls."""
+    entity_types: list[str] | None = None
+    relationship_types: list[str] | None = None
+    time_range: tuple[int, int] | None = None
+    include_neighbours: bool = False
+    neighbour_types: list[str] | None = None
+
+
+class ValidationIssue(BaseModel):
+    """A single issue found during validation."""
+    severity: Literal["error", "warning", "info"]
+    entity_id: str | None = None
+    message: str
+
+
+class ValidationReport(BaseModel):
+    """Results of a validation run."""
+    issues: list[ValidationIssue]
+
+    @property
+    def is_valid(self) -> bool:
+        return not any(i.severity == "error" for i in self.issues)
+```
+
+The `ValidationReport` is what `Validator.validate()` returns — structured, serialisable, and easy to filter by severity.
+
 ### Why This Matters
 
 The core API (`select`, `summary`, `visualise`, type discovery, fuzzy validation) is useful to anyone working with attributed graphs — digital humanities, social network analysis, biological networks, etc. The RO-Crate layer is the first domain-specific implementation, but the plugin architecture means others can add support for their own formats without modifying the core.
