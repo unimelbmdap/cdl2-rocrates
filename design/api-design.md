@@ -10,6 +10,7 @@ Early design thinking for the `cdl2-rocrates` Python package API. This document 
 - **Researcher-friendly vocabulary**: Avoid graph theory jargon (no "subgraph", "ego network", etc. in the public API).
 - **Smart defaults**: Visualisations should be readable out of the box, with parameters to adjust.
 - **Discoverable vocabulary**: Entity and relationship types are exposed as attributes for IDE autocomplete, with fuzzy validation on string inputs as a safety net.
+- **Pluggable architecture**: Readers, writers, visualisation engines, and validators are extensible. RO-Crate support ships built-in but the core is format-agnostic.
 - **Escape hatches**: Drop down to NetworkX or export to JSON-LD when needed.
 
 ## Backend Architecture
@@ -190,6 +191,8 @@ result.most_connected(n=10, metric="betweenness")
 
 ## Visualisation
 
+> **Note on method naming**: `visualise()` is used throughout this document for clarity. The final method name may differ (candidates include `view()`, `plot()`, `show()`) to avoid spelling ambiguity between British/Australian and American English.
+
 ### Basic Visualisation
 
 ```python
@@ -249,6 +252,62 @@ result = (
 result.visualise()
 ```
 
+## Plugin Architecture
+
+The package is designed with a pluggable architecture so that the core graph exploration API is format-agnostic. RO-Crate is the first and default implementation, but others can be added through the same interfaces.
+
+### Extension Points
+
+- **Readers** — how to get data in. Each reader converts a source format into the internal graph representation.
+- **Writers** — how to get data out. Each writer serialises the graph to a target format.
+- **Visualisation engines** — rendering backends. Each engine takes a graph and produces an interactive or static visualisation.
+- **Validators** — optional format-specific checks. Each validator reports issues without blocking usage.
+
+### Usage
+
+```python
+from graph_explore import Graph
+from graph_explore.readers import ROCrateReader, GEXFReader, CSVReader
+
+# Load via a reader (RO-Crate is the default)
+graph = Graph.load("path/to/ro-crate", reader=ROCrateReader)
+graph = Graph.load("path/to/file.gexf", reader=GEXFReader)
+
+# Or auto-detect from file format
+graph = Graph.load("path/to/ro-crate")
+
+# Core API works the same regardless of source
+graph.summary()
+graph.select(entity_types=[graph.types.Person])
+graph.visualise()
+
+# Export via a writer
+graph.save("output.json", writer=JSONLDWriter)
+graph.save("output.gexf", writer=GEXFWriter)
+
+# Choose a visualisation engine
+graph.visualise(engine="gravis")
+graph.visualise(engine="pyvis")
+graph.visualise(engine="plotly")
+
+# Validate against a format-specific schema
+graph.validate(validator=ROCrateValidator)
+# Reports issues but does not block usage
+```
+
+### Shipped Built-in
+
+- **Readers**: RO-Crate (JSON-LD), GEXF, NetworkX graph objects
+- **Writers**: JSON-LD, GEXF, GEFX (Gephi with pre-computed layout)
+- **Visualisation engines**: one default (TBD — evaluating gravis, pyvis, and others)
+- **Validators**: RO-Crate (RDF/schema.org compliance)
+
+### Why This Matters
+
+The core API (`select`, `summary`, `visualise`, type discovery, fuzzy validation) is useful to anyone working with attributed graphs — digital humanities, social network analysis, biological networks, etc. The RO-Crate layer is the first domain-specific implementation, but the plugin architecture means others can add support for their own formats without modifying the core.
+
+This also makes the project more publishable as a research output: it's a researcher-friendly graph exploration framework, demonstrated with RO-Crate cultural collections.
+
 ## Interoperability
 
 ### Drop down to NetworkX
@@ -261,6 +320,16 @@ G = result.to_networkx()
 
 ```python
 result.to_jsonld("output.json")
+```
+
+### Export to Gephi
+
+```python
+result.to_gephi("output.gexf",
+    layout=True,          # pre-compute node positions
+    colour_by="type",     # set node colours
+    size_by="degree",     # set node sizes
+)
 ```
 
 ## Stretch Goals
