@@ -21,6 +21,8 @@ This project develops accessible tools for researchers to:
 - Visualise collections interactively, both online and offline
 - Understand and work with RO-Crate workflows through documentation and training
 
+A set of RO-Crates converted from OHRM databases are available on FigShare: https://figshare.unimelb.edu.au/projects/OHRM_Upload_Project/230466
+
 ## Project Goals
 
 The project focuses on use-case driven development, prioritising specific research contexts for HASS and GLAM collections. Initial work will target:
