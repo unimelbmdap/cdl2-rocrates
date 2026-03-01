@@ -37,6 +37,9 @@ markdown_extensions:
   - pymdownx.snippets
   - tables
 
+exclude_docs: |
+  plans/
+
 plugins:
   - search
   - mkdocstrings:
@@ -52,6 +55,11 @@ plugins:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
-  - API Reference: api.md
+  - API Reference:
+    - Overview: api/index.md
+    - Graph & Crate: api/graph.md
+    - Data Models: api/models.md
+    - Type Discovery: api/types.md
+    - Plugin Interfaces: api/interfaces.md
   - Resources: resources.md
   - Acknowledgements: acknowledgements.md
