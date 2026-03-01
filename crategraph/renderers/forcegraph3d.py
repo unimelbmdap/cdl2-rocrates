@@ -134,6 +134,6 @@ class ForceGraph3DRenderer(Renderer):
                 f.write(html)
             return filepath
 
-        from IPython.display import HTML as IPythonHTML
+        from IPython.display import HTML
 
-        return IPythonHTML(html)
+        return HTML(html)

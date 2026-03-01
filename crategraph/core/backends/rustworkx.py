@@ -33,14 +33,10 @@ class RustworkxBackend(GraphBackend):
             idx = self._graph.add_node({"id": node_id, "entity": entity})
             self._id_to_index[node_id] = idx
 
-    def add_edge(
-        self, source: str, target: str, key: str, relationship: Relationship
-    ) -> None:
+    def add_edge(self, source: str, target: str, key: str, relationship: Relationship) -> None:
         src_idx = self._id_to_index[source]
         tgt_idx = self._id_to_index[target]
-        self._graph.add_edge(
-            src_idx, tgt_idx, {"key": key, "relationship": relationship}
-        )
+        self._graph.add_edge(src_idx, tgt_idx, {"key": key, "relationship": relationship})
 
     def has_node(self, node_id: str) -> bool:
         return node_id in self._id_to_index

@@ -107,9 +107,7 @@ class ROCrateReader(Reader):
         # Build properties dict — everything except @id and @type.
         properties = self._extract_properties(item)
 
-        return Entity(
-            id=entity_id, types=entity_types, properties=properties, source=source
-        )
+        return Entity(id=entity_id, types=entity_types, properties=properties, source=source)
 
     def _normalise_types(self, raw_type: str | list[str]) -> list[str]:
         """Normalise @type to a list of type strings.
@@ -157,9 +155,7 @@ class ROCrateReader(Reader):
 
     # --- Relationship extraction ---
 
-    def _extract_relationships(
-        self, item: dict[str, Any], graph: Graph
-    ) -> list[Relationship]:
+    def _extract_relationships(self, item: dict[str, Any], graph: Graph) -> list[Relationship]:
         raw_type = item.get("@type", "")
         relationships: list[Relationship] = []
 
@@ -182,10 +178,7 @@ class ROCrateReader(Reader):
         for key, value in item.items():
             if key in {"@id", "@type", "source", "target"}:
                 continue
-            if (
-                isinstance(self._inline_relations, list)
-                and key not in self._inline_relations
-            ):
+            if isinstance(self._inline_relations, list) and key not in self._inline_relations:
                 continue
             for target_id in self._extract_id_refs(value):
                 if graph._backend.has_node(target_id):

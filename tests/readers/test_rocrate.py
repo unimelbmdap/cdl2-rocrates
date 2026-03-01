@@ -75,9 +75,7 @@ class TestReadMinimalCrate:
     def test_inline_id_ref(self):
         g = self._load()
         # Bob has worksFor: {"@id": "#acme"} → inline relationship.
-        rels = [
-            r for r in g.relationships if r.source == "#bob" and r.type == "worksFor"
-        ]
+        rels = [r for r in g.relationships if r.source == "#bob" and r.type == "worksFor"]
         assert len(rels) == 1
         assert rels[0].target == "#acme"
         assert rels[0].id is None  # Not reified.

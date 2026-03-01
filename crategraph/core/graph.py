@@ -35,9 +35,7 @@ class Graph:
         self._entities: dict[str, Entity] = {}
         self._relationships: list[Relationship] = []
         self._source_names: set[str] = set()
-        self._backend: GraphBackend = (
-            backend if backend is not None else default_backend()
-        )
+        self._backend: GraphBackend = backend if backend is not None else default_backend()
         self._root: Graph = self  # reference to the root/full graph for expand()
 
     # --- Public read-only properties ---
@@ -264,11 +262,7 @@ class Graph:
 
         # Reject contextual entities.
         entity_id = entity.properties.get("raw_id", entity.id)
-        if (
-            entity_id.startswith("#")
-            or entity_id.startswith("http")
-            or entity_id == "./"
-        ):
+        if entity_id.startswith("#") or entity_id.startswith("http") or entity_id == "./":
             msg = (
                 f"Entity {entity.id!r} is a contextual entity "
                 f"— inspect() works with data entities that point to local files."
@@ -278,10 +272,7 @@ class Graph:
         # Resolve file path.
         crate_root = entity.source or self.source
         if crate_root is None:
-            msg = (
-                f"Cannot resolve file path for {entity.id!r} "
-                f"— no crate source directory is set."
-            )
+            msg = f"Cannot resolve file path for {entity.id!r} — no crate source directory is set."
             raise ValueError(msg)
 
         file_path = _Path(crate_root) / entity_id
@@ -313,9 +304,7 @@ class Graph:
 
     # --- Transform methods ---
 
-    def detect_communities(
-        self, *, resolution: float = 1.0, seed: int | None = None
-    ) -> Graph:
+    def detect_communities(self, *, resolution: float = 1.0, seed: int | None = None) -> Graph:
         """Return a new graph with a ``"community"`` property on each entity.
 
         Uses the Louvain algorithm via :func:`analysis.detect_communities`.
@@ -369,11 +358,7 @@ class Graph:
         for rel in self._relationships:
             src_group = groups.get(rel.source)
             tgt_group = groups.get(rel.target)
-            if (
-                src_group is not None
-                and tgt_group is not None
-                and src_group != tgt_group
-            ):
+            if src_group is not None and tgt_group is not None and src_group != tgt_group:
                 pair = (src_group, tgt_group)
                 edge_weights[pair] += 1
 
@@ -441,10 +426,7 @@ class Graph:
             total_weight = sum(r.properties.get("weight", 1) for r in edges)
 
             # Type label.
-            if len(types_list) == 1:
-                type_label = types_list[0]
-            else:
-                type_label = f"{len(edges)} relationships"
+            type_label = types_list[0] if len(types_list) == 1 else f"{len(edges)} relationships"
 
             collapsed._add_edge(
                 Relationship(
@@ -505,9 +487,7 @@ class Graph:
             for t in entity_types:
                 self.types.validate(t)
             candidates = {
-                eid
-                for eid in candidates
-                if type_set.intersection(self._entities[eid].types)
+                eid for eid in candidates if type_set.intersection(self._entities[eid].types)
             }
 
         # Filter by source.
@@ -515,8 +495,7 @@ class Graph:
             candidates = {
                 eid
                 for eid in candidates
-                if self._entities[eid].source is not None
-                and source in self._entities[eid].source
+                if self._entities[eid].source is not None and source in self._entities[eid].source
             }
 
         # Filter by connectivity.
@@ -570,9 +549,7 @@ class Graph:
                 # Range filter.
                 low, high = expected
                 try:
-                    numeric = (
-                        float(value) if not isinstance(value, (int, float)) else value
-                    )
+                    numeric = float(value) if not isinstance(value, (int, float)) else value
                     if not (low <= numeric <= high):
                         return False
                 except (ValueError, TypeError):
@@ -788,13 +765,9 @@ class Graph:
         sub = Graph.__new__(Graph)
         sub.source = self.source
         sub.metadata = dict(self.metadata)
-        sub._entities = {
-            nid: self._entities[nid] for nid in node_ids if nid in self._entities
-        }
+        sub._entities = {nid: self._entities[nid] for nid in node_ids if nid in self._entities}
         sub._relationships = [
-            r
-            for r in self._relationships
-            if r.source in node_ids and r.target in node_ids
+            r for r in self._relationships if r.source in node_ids and r.target in node_ids
         ]
         sub._source_names = set(self._source_names)
         sub._backend = new_backend

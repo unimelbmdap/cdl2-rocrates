@@ -5,9 +5,9 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+from crategraph.core.analysis import merge_by_primary_type
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
-from crategraph.core.analysis import merge_by_primary_type
 
 
 def _build_graph() -> Graph:
@@ -23,9 +23,7 @@ def _build_graph() -> Graph:
         )
     )
     g._add_node(
-        Entity(
-            id="#e", types=["PublishedResource", "Book"], properties={"name": "Book 1"}
-        )
+        Entity(id="#e", types=["PublishedResource", "Book"], properties={"name": "Book 1"})
     )
     g._add_edge(Relationship(source="#a", target="#c", type="memberOf"))
     g._add_edge(Relationship(source="#b", target="#c", type="memberOf"))
@@ -67,9 +65,7 @@ class TestMergeByPrimaryType:
         g = _build_graph()
         merged = merge_by_primary_type(g)
         org_edges = [
-            r
-            for r in merged.relationships
-            if {r.source, r.target} == {"Person", "Organisation"}
+            r for r in merged.relationships if {r.source, r.target} == {"Person", "Organisation"}
         ]
         assert len(org_edges) == 1
         assert org_edges[0].properties["weight"] == 2

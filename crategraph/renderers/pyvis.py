@@ -76,11 +76,7 @@ class PyvisRenderer(Renderer):
                 label = str(label)[:37] + "..."
 
             colour = colour_map.get(eid, "#bab0ac")
-            size = (
-                _node_size(degrees.get(eid, 0), max_degree)
-                if size_by == "connections"
-                else 15
-            )
+            size = _node_size(degrees.get(eid, 0), max_degree) if size_by == "connections" else 15
 
             # Tooltip with type and properties.
             title_parts = [f"<b>{entity.type}</b>: {eid}"]
@@ -107,9 +103,7 @@ class PyvisRenderer(Renderer):
         for rel in graph._relationships:
             if rel.source in graph._entities and rel.target in graph._entities:
                 weight = rel.properties.get("weight", 1)
-                edge_width = (
-                    1 + math.log1p(weight) if isinstance(weight, (int, float)) else 1
-                )
+                edge_width = 1 + math.log1p(weight) if isinstance(weight, (int, float)) else 1
                 edge_opts: dict[str, Any] = {
                     "title": rel.type,
                     "width": edge_width,

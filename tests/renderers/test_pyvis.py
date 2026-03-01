@@ -16,9 +16,7 @@ def _build_graph() -> Graph:
     g = Graph()
     g._add_node(Entity(id="#a", types=["Person"], properties={"name": "Alice"}))
     g._add_node(Entity(id="#b", types=["Person"], properties={"name": "Bob"}))
-    g._add_node(
-        Entity(id="#c", types=["Organisation"], properties={"name": "Uni of Melbourne"})
-    )
+    g._add_node(Entity(id="#c", types=["Organisation"], properties={"name": "Uni of Melbourne"}))
     g._add_edge(Relationship(source="#a", target="#c", type="memberOf"))
     g._add_edge(Relationship(source="#b", target="#c", type="memberOf"))
     return g
@@ -118,15 +116,9 @@ class TestPyvisColourByGeneric:
 
     def test_colour_by_arbitrary_property(self):
         g = Graph()
-        g._add_node(
-            Entity(id="#a", types=["Person"], properties={"name": "A", "dept": "IT"})
-        )
-        g._add_node(
-            Entity(id="#b", types=["Person"], properties={"name": "B", "dept": "IT"})
-        )
-        g._add_node(
-            Entity(id="#c", types=["Person"], properties={"name": "C", "dept": "HR"})
-        )
+        g._add_node(Entity(id="#a", types=["Person"], properties={"name": "A", "dept": "IT"}))
+        g._add_node(Entity(id="#b", types=["Person"], properties={"name": "B", "dept": "IT"}))
+        g._add_node(Entity(id="#c", types=["Person"], properties={"name": "C", "dept": "HR"}))
         g._add_edge(Relationship(source="#a", target="#b", type="knows"))
         result = PyvisRenderer().render(g, colour_by="dept")
         colours = {n["id"]: n["color"] for n in result.nodes}
@@ -164,9 +156,7 @@ class TestBidirectionalEdges:
         """Normal or collapsed unidirectional edges keep default arrows."""
         g = Graph()
         g._add_node(Entity(id="#a", types=["Person"], properties={"name": "Alice"}))
-        g._add_node(
-            Entity(id="#b", types=["Organisation"], properties={"name": "CSIRO"})
-        )
+        g._add_node(Entity(id="#b", types=["Organisation"], properties={"name": "CSIRO"}))
         g._add_edge(Relationship(source="#a", target="#b", type="author"))
         renderer = PyvisRenderer()
         net = renderer.render(g)

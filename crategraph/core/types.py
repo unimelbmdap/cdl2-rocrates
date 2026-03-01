@@ -36,9 +36,7 @@ class TypeRegistry:
         if len(sorted_names) <= 10:
             listing = ", ".join(sorted_names)
         else:
-            listing = (
-                ", ".join(sorted_names[:10]) + f", ... ({len(sorted_names)} total)"
-            )
+            listing = ", ".join(sorted_names[:10]) + f", ... ({len(sorted_names)} total)"
         return f"TypeRegistry([{listing}])"
 
     def __getattr__(self, name: str) -> str:
@@ -80,8 +78,6 @@ class TypeRegistry:
             if len(available) <= 10:
                 available_str = ", ".join(available)
             else:
-                available_str = (
-                    ", ".join(available[:10]) + f", ... ({len(available)} total)"
-                )
+                available_str = ", ".join(available[:10]) + f", ... ({len(available)} total)"
             msg = f'"{name}" isn\'t a recognised {self._label}. Available: {available_str}'
         raise ValueError(msg)

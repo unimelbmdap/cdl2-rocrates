@@ -89,9 +89,7 @@ class RDFLibBackend:
                 self._graph.add((uri, URIRef(self._ns[key]), Literal(value)))
             # TODO: handle @id refs, typed literals, lists
 
-    def add_edge(
-        self, source: str, target: str, key: str, relationship: Relationship
-    ) -> None:
+    def add_edge(self, source: str, target: str, key: str, relationship: Relationship) -> None:
         from rdflib import URIRef
 
         src = self._resolve(source)

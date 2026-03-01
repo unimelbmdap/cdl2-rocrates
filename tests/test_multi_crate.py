@@ -60,9 +60,7 @@ class TestMultiCrateLoading:
 
     def test_reified_relationship_prefixed(self):
         crate = Crate(MINIMAL, SECOND)
-        rels = [
-            r for r in crate.relationships if r.id == "minimal-crate/#rel-alice-acme"
-        ]
+        rels = [r for r in crate.relationships if r.id == "minimal-crate/#rel-alice-acme"]
         assert len(rels) == 1
         assert rels[0].source == "minimal-crate/#alice"
         assert rels[0].target == "minimal-crate/#acme"

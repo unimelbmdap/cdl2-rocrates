@@ -71,9 +71,7 @@ class SvgRenderer(Renderer):
         use_count = "count" in first_entity.properties
 
         if use_count:
-            size_values = {
-                eid: e.properties.get("count", 1) for eid, e in graph._entities.items()
-            }
+            size_values = {eid: e.properties.get("count", 1) for eid, e in graph._entities.items()}
         else:
             size_values = {eid: len(graph._neighbours(eid)) for eid in graph._entities}
 
@@ -81,9 +79,7 @@ class SvgRenderer(Renderer):
 
         # Scale node radii proportionally to the canvas.
         scale = min(vb_w, vb_h) / 600.0
-        radii = {
-            nid: _node_radius(v, max_val, scale=scale) for nid, v in size_values.items()
-        }
+        radii = {nid: _node_radius(v, max_val, scale=scale) for nid, v in size_values.items()}
 
         # Dynamic padding: ensure the largest node fits within the canvas.
         max_radius = max(radii.values()) if radii else 16.0 * scale
@@ -172,9 +168,7 @@ def _compute_layout(
 
     # Seed for determinism.
     rng = _random.Random(42)
-    pos: dict[str, list[float]] = {
-        n: [rng.uniform(-1, 1), rng.uniform(-1, 1)] for n in nodes
-    }
+    pos: dict[str, list[float]] = {n: [rng.uniform(-1, 1), rng.uniform(-1, 1)] for n in nodes}
 
     k = 2.0 / max(1.0, math.sqrt(len(nodes)))  # ideal spring length
     # Normalise radii into layout-space so they influence repulsion.
@@ -348,9 +342,7 @@ def _build_svg(
     )
 
     # Background.
-    parts.append(
-        f'<rect width="{vb_width}" height="{vb_height}" fill="#fafafa" rx="8"/>'
-    )
+    parts.append(f'<rect width="{vb_width}" height="{vb_height}" fill="#fafafa" rx="8"/>')
 
     # Edges (drawn first, behind nodes).
     max_weight = max(
@@ -380,17 +372,12 @@ def _build_svg(
         colour = colour_map.get(eid, "#bab0ac")
 
         # Label: prefer explicit label property, fall back to name or id.
-        raw_label = (
-            entity.properties.get("label") or entity.properties.get("name") or eid
-        )
+        raw_label = entity.properties.get("label") or entity.properties.get("name") or eid
         truncated = raw_label[:20] + "\u2026" if len(raw_label) > 20 else raw_label
 
         # Count suffix: only for merged/aggregated graphs.
         count = entity.properties.get("count")
-        if count is not None:
-            label = f"{_esc(truncated)} ({count})"
-        else:
-            label = _esc(truncated)
+        label = f"{_esc(truncated)} ({count})" if count is not None else _esc(truncated)
 
         parts.append(
             f'<circle cx="{pos[0]:.1f}" cy="{pos[1]:.1f}" r="{r:.1f}" '

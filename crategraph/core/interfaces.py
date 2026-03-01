@@ -26,9 +26,7 @@ class GraphBackend(ABC):
         """Add or replace a node."""
 
     @abstractmethod
-    def add_edge(
-        self, source: str, target: str, key: str, relationship: Relationship
-    ) -> None:
+    def add_edge(self, source: str, target: str, key: str, relationship: Relationship) -> None:
         """Add a directed edge."""
 
     @abstractmethod

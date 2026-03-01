@@ -15,9 +15,7 @@ def _build_graph() -> Graph:
     g = Graph()
     g._add_node(Entity(id="#a", types=["Person"], properties={"name": "Alice"}))
     g._add_node(Entity(id="#b", types=["Person"], properties={"name": "Bob"}))
-    g._add_node(
-        Entity(id="#c", types=["Organisation"], properties={"name": "Uni of Melbourne"})
-    )
+    g._add_node(Entity(id="#c", types=["Organisation"], properties={"name": "Uni of Melbourne"}))
     g._add_edge(Relationship(source="#a", target="#c", type="memberOf"))
     g._add_edge(Relationship(source="#b", target="#c", type="memberOf"))
     return g
@@ -33,50 +31,38 @@ class TestGraphToJson:
 
     def test_node_count(self):
         g = _build_graph()
-        data = ForceGraph3DRenderer()._graph_to_json(
-            g, colour_by="type", size_by="connections"
-        )
+        data = ForceGraph3DRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
         assert len(data["nodes"]) == 3
 
     def test_link_count(self):
         g = _build_graph()
-        data = ForceGraph3DRenderer()._graph_to_json(
-            g, colour_by="type", size_by="connections"
-        )
+        data = ForceGraph3DRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
         assert len(data["links"]) == 2
 
     def test_node_has_required_fields(self):
         g = _build_graph()
-        data = ForceGraph3DRenderer()._graph_to_json(
-            g, colour_by="type", size_by="connections"
-        )
+        data = ForceGraph3DRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
         node = data["nodes"][0]
         for field in ("id", "name", "val", "color", "degree", "properties"):
             assert field in node, f"Missing field: {field}"
 
     def test_link_has_required_fields(self):
         g = _build_graph()
-        data = ForceGraph3DRenderer()._graph_to_json(
-            g, colour_by="type", size_by="connections"
-        )
+        data = ForceGraph3DRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
         link = data["links"][0]
         for field in ("source", "target", "type", "properties"):
             assert field in link, f"Missing field: {field}"
 
     def test_node_name_uses_entity_name(self):
         g = _build_graph()
-        data = ForceGraph3DRenderer()._graph_to_json(
-            g, colour_by="type", size_by="connections"
-        )
+        data = ForceGraph3DRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
         names = {n["id"]: n["name"] for n in data["nodes"]}
         assert names["#a"] == "Alice"
         assert names["#c"] == "Uni of Melbourne"
 
     def test_nodes_coloured_by_type(self):
         g = _build_graph()
-        data = ForceGraph3DRenderer()._graph_to_json(
-            g, colour_by="type", size_by="connections"
-        )
+        data = ForceGraph3DRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
         colours = {n["id"]: n["color"] for n in data["nodes"]}
         assert colours["#a"] == colours["#b"]  # same type
         assert colours["#a"] != colours["#c"]  # different type
@@ -91,33 +77,25 @@ class TestGraphToJson:
 
     def test_node_val_is_logarithmic(self):
         g = _build_graph()
-        data = ForceGraph3DRenderer()._graph_to_json(
-            g, colour_by="type", size_by="connections"
-        )
+        data = ForceGraph3DRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
         vals = {n["id"]: n["val"] for n in data["nodes"]}
         # #c has degree 2, #a has degree 1 — #c should be larger.
         assert vals["#c"] > vals["#a"]
 
     def test_node_val_bounds(self):
         g = _build_graph()
-        data = ForceGraph3DRenderer()._graph_to_json(
-            g, colour_by="type", size_by="connections"
-        )
+        data = ForceGraph3DRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
         for node in data["nodes"]:
             assert 2 <= node["val"] <= 100
 
     def test_empty_graph(self):
         g = Graph()
-        data = ForceGraph3DRenderer()._graph_to_json(
-            g, colour_by="type", size_by="connections"
-        )
+        data = ForceGraph3DRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
         assert data == {"nodes": [], "links": []}
 
     def test_json_serialisable(self):
         g = _build_graph()
-        data = ForceGraph3DRenderer()._graph_to_json(
-            g, colour_by="type", size_by="connections"
-        )
+        data = ForceGraph3DRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
         # Should not raise.
         json.dumps(data)
 
@@ -133,19 +111,11 @@ class TestColourByGeneric:
 
     def test_colour_by_arbitrary_property(self):
         g = Graph()
-        g._add_node(
-            Entity(id="#a", types=["Person"], properties={"name": "A", "dept": "IT"})
-        )
-        g._add_node(
-            Entity(id="#b", types=["Person"], properties={"name": "B", "dept": "IT"})
-        )
-        g._add_node(
-            Entity(id="#c", types=["Person"], properties={"name": "C", "dept": "HR"})
-        )
+        g._add_node(Entity(id="#a", types=["Person"], properties={"name": "A", "dept": "IT"}))
+        g._add_node(Entity(id="#b", types=["Person"], properties={"name": "B", "dept": "IT"}))
+        g._add_node(Entity(id="#c", types=["Person"], properties={"name": "C", "dept": "HR"}))
         g._add_edge(Relationship(source="#a", target="#b", type="knows"))
-        data = ForceGraph3DRenderer()._graph_to_json(
-            g, colour_by="dept", size_by="connections"
-        )
+        data = ForceGraph3DRenderer()._graph_to_json(g, colour_by="dept", size_by="connections")
         colours = {n["id"]: n["color"] for n in data["nodes"]}
         assert colours["#a"] == colours["#b"]
         assert colours["#a"] != colours["#c"]
@@ -253,9 +223,7 @@ class TestBidirectionalLinks:
                 },
             )
         )
-        data = ForceGraph3DRenderer()._graph_to_json(
-            g, colour_by="type", size_by="connections"
-        )
+        data = ForceGraph3DRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
         assert len(data["links"]) == 1
         assert data["links"][0]["bidirectional"] is True
 
@@ -263,13 +231,9 @@ class TestBidirectionalLinks:
         """Normal edges should have bidirectional=False."""
         g = Graph()
         g._add_node(Entity(id="#a", types=["Person"], properties={"name": "Alice"}))
-        g._add_node(
-            Entity(id="#b", types=["Organisation"], properties={"name": "CSIRO"})
-        )
+        g._add_node(Entity(id="#b", types=["Organisation"], properties={"name": "CSIRO"}))
         g._add_edge(Relationship(source="#a", target="#b", type="author"))
-        data = ForceGraph3DRenderer()._graph_to_json(
-            g, colour_by="type", size_by="connections"
-        )
+        data = ForceGraph3DRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
         assert data["links"][0]["bidirectional"] is False
 
 

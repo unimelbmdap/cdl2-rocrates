@@ -24,11 +24,7 @@ def _build_graph() -> Graph:
 def _build_merged_graph() -> Graph:
     """Graph that looks like merge_by_primary_type output (has count property)."""
     g = Graph()
-    g._add_node(
-        Entity(
-            id="Person", types=["Person"], properties={"label": "Person", "count": 5}
-        )
-    )
+    g._add_node(Entity(id="Person", types=["Person"], properties={"label": "Person", "count": 5}))
     g._add_node(
         Entity(
             id="Organisation",

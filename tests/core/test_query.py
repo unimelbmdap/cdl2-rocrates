@@ -22,15 +22,9 @@ def _sample_graph(*, backend=None) -> Graph:
     """Build a small test graph with entities and relationships."""
     kwargs = {"backend": backend} if backend else {}
     g = Graph(**kwargs)
-    g._add_node(
-        Entity(id="#alice", types=["Person"], properties={"name": "Alice", "age": "30"})
-    )
-    g._add_node(
-        Entity(id="#bob", types=["Person"], properties={"name": "Bob", "age": "25"})
-    )
-    g._add_node(
-        Entity(id="#paper", types=["Document"], properties={"name": "Research Paper"})
-    )
+    g._add_node(Entity(id="#alice", types=["Person"], properties={"name": "Alice", "age": "30"}))
+    g._add_node(Entity(id="#bob", types=["Person"], properties={"name": "Bob", "age": "25"}))
+    g._add_node(Entity(id="#paper", types=["Document"], properties={"name": "Research Paper"}))
     g._add_edge(Relationship(source="#alice", target="#paper", type="author"))
     g._add_edge(Relationship(source="#bob", target="#paper", type="reviewer"))
     g._add_edge(Relationship(source="#alice", target="#bob", type="knows"))
@@ -155,9 +149,7 @@ class TestGraphQueryMethod:
 
     def test_chaining_select_then_query(self):
         g = _sample_graph()
-        result = g.select(entity_types=["Person"]).query(
-            "MATCH (a)-[]->(b) RETURN a, b"
-        )
+        result = g.select(entity_types=["Person"]).query("MATCH (a)-[]->(b) RETURN a, b")
         for entity in result.entities:
             assert "Person" in entity.types
 
@@ -177,9 +169,7 @@ class TestBackendWarning:
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             g.query("MATCH (a:Person) RETURN a")
-        cypher_warnings = [
-            w for w in caught if issubclass(w.category, CypherQueryWarning)
-        ]
+        cypher_warnings = [w for w in caught if issubclass(w.category, CypherQueryWarning)]
         assert len(cypher_warnings) == 0
 
     def test_warning_for_rustworkx(self):
@@ -190,9 +180,7 @@ class TestBackendWarning:
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             g.query("MATCH (a:Person) RETURN a")
-        cypher_warnings = [
-            w for w in caught if issubclass(w.category, CypherQueryWarning)
-        ]
+        cypher_warnings = [w for w in caught if issubclass(w.category, CypherQueryWarning)]
         assert len(cypher_warnings) == 1
         assert "NetworkX" in str(cypher_warnings[0].message)
 

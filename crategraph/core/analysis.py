@@ -29,9 +29,7 @@ class GraphSummary:
             lines.append(f"Sources: {', '.join(self.sources)}")
         elif self.source:
             lines.append(f"Source: {self.source}")
-        lines.append(
-            f"Entities: {self.entity_count} | Relationships: {self.relationship_count}"
-        )
+        lines.append(f"Entities: {self.entity_count} | Relationships: {self.relationship_count}")
 
         if self.entity_type_counts:
             lines.append("")
@@ -54,9 +52,7 @@ class GraphSummary:
         """Compact HTML representation — same content as __repr__ in a pre block."""
         from html import escape
 
-        return (
-            f"<pre style='font-size:13px; line-height:1.4'>{escape(repr(self))}</pre>"
-        )
+        return f"<pre style='font-size:13px; line-height:1.4'>{escape(repr(self))}</pre>"
 
 
 def summary(graph: Graph) -> GraphSummary:
@@ -100,9 +96,7 @@ def most_connected(
     return degrees[:n]
 
 
-def _format_type_rows(
-    counts: dict[str, int], *, top_n: int = 5, max_bar: int = 15
-) -> list[str]:
+def _format_type_rows(counts: dict[str, int], *, top_n: int = 5, max_bar: int = 15) -> list[str]:
     """Format type counts as aligned rows with Unicode sparkline bars."""
     sorted_items = sorted(counts.items(), key=lambda x: -x[1])
     top = sorted_items[:top_n]
@@ -150,15 +144,15 @@ def detect_communities(
         return {}
 
     # Build an undirected NetworkX graph for community detection.
-    G = nx.Graph()
+    nx_graph = nx.Graph()
     for eid in graph._entities:
-        G.add_node(eid)
+        nx_graph.add_node(eid)
     for rel in graph._relationships:
         if rel.source in graph._entities and rel.target in graph._entities:
-            G.add_edge(rel.source, rel.target)
+            nx_graph.add_edge(rel.source, rel.target)
 
     communities = nx.community.louvain_communities(
-        G,
+        nx_graph,
         resolution=resolution,
         seed=seed,
     )

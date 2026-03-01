@@ -11,14 +11,8 @@ from crategraph.core.models import Entity, Relationship
 def _build_graph() -> Graph:
     """Build a test graph with varied entity types and connections."""
     g = Graph(source="test.zip")
-    g._add_node(
-        Entity(
-            id="#a", types=["Person"], properties={"name": "Alice"}, source="crate1/"
-        )
-    )
-    g._add_node(
-        Entity(id="#b", types=["Person"], properties={"name": "Bob"}, source="crate1/")
-    )
+    g._add_node(Entity(id="#a", types=["Person"], properties={"name": "Alice"}, source="crate1/"))
+    g._add_node(Entity(id="#b", types=["Person"], properties={"name": "Bob"}, source="crate1/"))
     g._add_node(
         Entity(
             id="#c",
@@ -27,14 +21,8 @@ def _build_graph() -> Graph:
             source="crate2/",
         )
     )
-    g._add_node(
-        Entity(
-            id="#d", types=["Event"], properties={"name": "Meeting"}, source="crate1/"
-        )
-    )
-    g._add_node(
-        Entity(id="#e", types=["Person"], properties={"name": "Eve"}, source="crate2/")
-    )
+    g._add_node(Entity(id="#d", types=["Event"], properties={"name": "Meeting"}, source="crate1/"))
+    g._add_node(Entity(id="#e", types=["Person"], properties={"name": "Eve"}, source="crate2/"))
     g._add_edge(Relationship(source="#a", target="#c", type="memberOf"))
     g._add_edge(Relationship(source="#b", target="#c", type="memberOf"))
     g._add_edge(Relationship(source="#a", target="#d", type="attended"))

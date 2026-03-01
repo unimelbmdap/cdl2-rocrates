@@ -17,9 +17,7 @@ def _build_graph() -> Graph:
             properties={"name": "University of Melbourne"},
         )
     )
-    g._add_node(
-        Entity(id="#d", types=["Event"], properties={"name": "Annual Conference 2024"})
-    )
+    g._add_node(Entity(id="#d", types=["Event"], properties={"name": "Annual Conference 2024"}))
     g._add_edge(Relationship(source="#b", target="#c", type="memberOf"))
     return g
 

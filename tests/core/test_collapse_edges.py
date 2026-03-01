@@ -172,16 +172,8 @@ class TestCollapseAfterMerge:
         g = Graph()
         g._add_node(Entity(id="#a", types=["Person"]))
         g._add_node(Entity(id="#b", types=["Org"]))
-        g._add_edge(
-            Relationship(
-                source="#a", target="#b", type="rel1", properties={"weight": 5}
-            )
-        )
-        g._add_edge(
-            Relationship(
-                source="#a", target="#b", type="rel2", properties={"weight": 3}
-            )
-        )
+        g._add_edge(Relationship(source="#a", target="#b", type="rel1", properties={"weight": 5}))
+        g._add_edge(Relationship(source="#a", target="#b", type="rel2", properties={"weight": 3}))
         collapsed = g.collapse_edges()
         rel = collapsed.relationships[0]
         assert rel.properties["weight"] == 8

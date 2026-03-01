@@ -9,9 +9,7 @@ from crategraph.core.models import Entity, Relationship
 def _build_graph() -> Graph:
     g = Graph(source="test.zip")
     g._add_node(Entity(id="#a", types=["Person"], properties={"name": "Alice"}))
-    g._add_node(
-        Entity(id="#b", types=["Organisation"], properties={"name": "Uni of Melbourne"})
-    )
+    g._add_node(Entity(id="#b", types=["Organisation"], properties={"name": "Uni of Melbourne"}))
     g._add_edge(Relationship(source="#a", target="#b", type="memberOf"))
     return g
 
@@ -20,9 +18,7 @@ def _build_large_graph(n: int = 40) -> Graph:
     """Build a graph with *n* entities to trigger the summary view."""
     g = Graph()
     for i in range(n):
-        g._add_node(
-            Entity(id=f"#{i}", types=[f"Type{i % 5}"], properties={"name": f"E{i}"})
-        )
+        g._add_node(Entity(id=f"#{i}", types=[f"Type{i % 5}"], properties={"name": f"E{i}"}))
     for i in range(n - 1):
         g._add_edge(Relationship(source=f"#{i}", target=f"#{i + 1}", type="link"))
     return g

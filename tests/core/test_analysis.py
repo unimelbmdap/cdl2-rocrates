@@ -200,9 +200,7 @@ class TestDetectCommunities:
             g._add_node(Entity(id=f"#a{i}", types=["Person"]))
         for i in range(4):
             for j in range(i + 1, 4):
-                g._add_edge(
-                    Relationship(source=f"#a{i}", target=f"#a{j}", type="knows")
-                )
+                g._add_edge(Relationship(source=f"#a{i}", target=f"#a{j}", type="knows"))
         result = analysis_mod.detect_communities(g)
         communities = set(result.values())
         assert len(communities) == 1
@@ -250,10 +248,7 @@ class TestGraphDetectCommunities:
         r1 = g.detect_communities(seed=42)
         r2 = g.detect_communities(seed=42)
         for eid in g._entities:
-            assert (
-                r1.get(eid).properties["community"]
-                == r2.get(eid).properties["community"]
-            )
+            assert r1.get(eid).properties["community"] == r2.get(eid).properties["community"]
 
     def test_empty_graph(self):
         assert len(Graph().detect_communities()) == 0

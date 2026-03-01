@@ -17,9 +17,7 @@ def _build_graph() -> Graph:
         )
     )
     g._add_node(
-        Entity(
-            id="#b", types=["Person"], properties={"name": "Bob", "location": "Sydney"}
-        )
+        Entity(id="#b", types=["Person"], properties={"name": "Bob", "location": "Sydney"})
     )
     g._add_node(
         Entity(
@@ -55,9 +53,7 @@ class TestResolveColourMap:
 
     def test_missing_property_gets_fallback_group(self):
         g = Graph()
-        g._add_node(
-            Entity(id="#a", types=["Person"], properties={"location": "Melbourne"})
-        )
+        g._add_node(Entity(id="#a", types=["Person"], properties={"location": "Melbourne"}))
         g._add_node(Entity(id="#b", types=["Person"], properties={}))
         cmap = resolve_colour_map(g, "location")
         assert "#a" in cmap and "#b" in cmap

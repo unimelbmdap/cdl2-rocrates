@@ -14,9 +14,7 @@ class TestGraphCreation:
         assert len(g) == 0
 
     def test_graph_with_source_and_metadata(self):
-        g = Graph(
-            source="crate.zip", metadata={"@context": "https://w3id.org/ro/crate/1.1"}
-        )
+        g = Graph(source="crate.zip", metadata={"@context": "https://w3id.org/ro/crate/1.1"})
         assert g.source == "crate.zip"
         assert g.metadata["@context"] == "https://w3id.org/ro/crate/1.1"
 

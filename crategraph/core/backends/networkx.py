@@ -17,9 +17,7 @@ class NetworkXBackend(GraphBackend):
     def add_node(self, node_id: str, entity: Entity) -> None:
         self._graph.add_node(node_id, entity=entity)
 
-    def add_edge(
-        self, source: str, target: str, key: str, relationship: Relationship
-    ) -> None:
+    def add_edge(self, source: str, target: str, key: str, relationship: Relationship) -> None:
         self._graph.add_edge(source, target, key=key, relationship=relationship)
 
     def has_node(self, node_id: str) -> bool:

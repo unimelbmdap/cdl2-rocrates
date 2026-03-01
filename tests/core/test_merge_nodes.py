@@ -10,9 +10,7 @@ def _build_graph() -> Graph:
     g = Graph()
     g._add_node(Entity(id="#a", types=["Person"], properties={"location": "Melbourne"}))
     g._add_node(Entity(id="#b", types=["Person"], properties={"location": "Melbourne"}))
-    g._add_node(
-        Entity(id="#c", types=["Organisation"], properties={"location": "Sydney"})
-    )
+    g._add_node(Entity(id="#c", types=["Organisation"], properties={"location": "Sydney"}))
     g._add_node(Entity(id="#d", types=["Event"], properties={"location": "Melbourne"}))
     g._add_edge(Relationship(source="#a", target="#c", type="memberOf"))
     g._add_edge(Relationship(source="#b", target="#c", type="memberOf"))
@@ -37,9 +35,7 @@ class TestMergeByType:
         merged = g.merge_nodes(by="type")
         # Person → Organisation (2 memberOf edges) → weight=2.
         rels = [
-            r
-            for r in merged.relationships
-            if r.source == "Person" and r.target == "Organisation"
+            r for r in merged.relationships if r.source == "Person" and r.target == "Organisation"
         ]
         assert len(rels) == 1
         assert rels[0].properties["weight"] == 2

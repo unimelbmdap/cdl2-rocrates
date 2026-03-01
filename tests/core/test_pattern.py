@@ -14,9 +14,7 @@ def _build_graph() -> Graph:
     g._add_node(Entity(id="#alice", types=["Person"], properties={"name": "Alice"}))
     g._add_node(Entity(id="#bob", types=["Person"], properties={"name": "Bob"}))
     g._add_node(Entity(id="#acme", types=["Organisation"], properties={"name": "ACME"}))
-    g._add_node(
-        Entity(id="#globex", types=["Organisation"], properties={"name": "Globex"})
-    )
+    g._add_node(Entity(id="#globex", types=["Organisation"], properties={"name": "Globex"}))
     g._add_node(Entity(id="#meeting", types=["Event"], properties={"name": "Meeting"}))
     g._add_edge(Relationship(source="#alice", target="#acme", type="memberOf"))
     g._add_edge(Relationship(source="#bob", target="#globex", type="memberOf"))
@@ -94,9 +92,7 @@ class TestPatternCombined:
 
     def test_from_via_and_to(self):
         g = _build_graph()
-        result = g.pattern(
-            from_type="Organisation", via="Superior", to_type="Organisation"
-        )
+        result = g.pattern(from_type="Organisation", via="Superior", to_type="Organisation")
         assert len(result.relationships) == 1
         assert "#acme" in result._entities
         assert "#globex" in result._entities

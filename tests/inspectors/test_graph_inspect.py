@@ -82,11 +82,11 @@ class TestGraphInspect:
     def test_inspect_unsupported_format_raises(self, crate):
         import unittest.mock
 
-        with unittest.mock.patch(
-            "crategraph.inspectors.find_inspector", return_value=None
+        with (
+            unittest.mock.patch("crategraph.inspectors.find_inspector", return_value=None),
+            pytest.raises(ValueError, match="format not supported"),
         ):
-            with pytest.raises(ValueError, match="format not supported"):
-                crate.inspect("sample.txt")
+            crate.inspect("sample.txt")
 
 
 class TestMultiCrateInspect:
@@ -95,9 +95,7 @@ class TestMultiCrateInspect:
         second = Path(__file__).parent.parent / "fixtures" / "second-crate"
         crate = Crate(str(FIXTURES), str(second))
         # Find a File entity from minimal-crate.
-        file_entities = [
-            e for e in crate.entities if "File" in e.types and "sample.txt" in e.id
-        ]
+        file_entities = [e for e in crate.entities if "File" in e.types and "sample.txt" in e.id]
         if not file_entities:
             pytest.skip("No sample.txt File entity in multi-crate fixture")
         entity = file_entities[0]

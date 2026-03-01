@@ -146,10 +146,7 @@ def run_cypher(graph: Graph, cypher: str) -> Graph:
     try:
         from grandcypher import GrandCypher
     except ImportError:
-        msg = (
-            "Cypher queries require grand-cypher. "
-            "Install it with: uv add crategraph[cypher]"
-        )
+        msg = "Cypher queries require grand-cypher. Install it with: uv add crategraph[cypher]"
         raise ImportError(msg) from None
 
     cypher = _normalise_cypher(cypher)

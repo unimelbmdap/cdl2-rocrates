@@ -9,19 +9,11 @@ from crategraph.core.models import Entity, Relationship
 def _build_graph() -> Graph:
     g = Graph()
     g._add_node(
-        Entity(
-            id="#a", types=["Person"], properties={"name": "Alice", "birth_year": 1837}
-        )
+        Entity(id="#a", types=["Person"], properties={"name": "Alice", "birth_year": 1837})
     )
+    g._add_node(Entity(id="#b", types=["Person"], properties={"name": "Bob", "birth_year": 1901}))
     g._add_node(
-        Entity(
-            id="#b", types=["Person"], properties={"name": "Bob", "birth_year": 1901}
-        )
-    )
-    g._add_node(
-        Entity(
-            id="#c", types=["Person"], properties={"name": "Carol", "birth_year": 1850}
-        )
+        Entity(id="#c", types=["Person"], properties={"name": "Carol", "birth_year": 1850})
     )
     g._add_node(Entity(id="#d", types=["Organisation"], properties={"name": "ACME"}))
     g._add_edge(Relationship(source="#a", target="#d", type="memberOf"))

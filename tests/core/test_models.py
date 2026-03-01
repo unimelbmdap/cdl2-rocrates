@@ -135,15 +135,11 @@ class TestValidationReport:
         assert report.is_valid is True
 
     def test_report_with_warning_is_valid(self):
-        report = ValidationReport(
-            issues=[ValidationIssue(severity="warning", message="minor")]
-        )
+        report = ValidationReport(issues=[ValidationIssue(severity="warning", message="minor")])
         assert report.is_valid is True
 
     def test_report_with_error_is_not_valid(self):
-        report = ValidationReport(
-            issues=[ValidationIssue(severity="error", message="bad")]
-        )
+        report = ValidationReport(issues=[ValidationIssue(severity="error", message="bad")])
         assert report.is_valid is False
 
     def test_report_with_mixed_issues(self):
