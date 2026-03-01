@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Network Visualisation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                         'Helvetica Neue', Arial, sans-serif;
+        }
+
+        #graph-3d {
+            width: %(width)s;
+            height: %(height)s;
+        }
+
+        /* Controls (top-left) */
+        #controls-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 2000;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .control-button {
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            transition: all 0.3s;
+        }
+
+        .control-button:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        }
+
+        .control-button.dark {
+            background: rgba(40, 40, 40, 0.95);
+            color: #f0f0f0;
+        }
+
+        #rotate-control {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        #rotate-control.dark {
+            background: rgba(40, 40, 40, 0.95);
+            color: #f0f0f0;
+        }
+
+        #rotate-control input[type="checkbox"] {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+
+        #rotate-control label {
+            cursor: pointer;
+            margin: 0;
+            user-select: none;
+        }
+
+        /* Node details panel (top-right) */
+        #details-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 16px;
+            max-width: 350px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 2000;
+            display: none;
+        }
+
+        #details-panel h6 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .detail-row {
+            padding: 4px 0;
+            font-size: 13px;
+            color: #333;
+            padding-left: 8px;
+            margin-bottom: 2px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .neighbour-item {
+            padding: 4px 0;
+            font-size: 13px;
+            color: #333;
+            border-left: 3px solid #5B9BD5;
+            padding-left: 8px;
+            margin-bottom: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="graph-3d"></div>
+    <div id="details-panel"></div>
+    <div id="controls-container">
+        <button id="dark-mode-toggle" class="control-button dark"
+                onclick="toggleDarkMode()">Dark Mode</button>
+        <div id="rotate-control">
+            <input type="checkbox" id="rotate-checkbox"
+                   onchange="toggleRotation()" />
+            <label for="rotate-checkbox">Rotate</label>
+        </div>
+    </div>
+
+    <!-- Dependencies -->
+    <script src="https://unpkg.com/three@0.159.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three-spritetext@1.8.2/dist/three-spritetext.min.js"></script>
+    <script src="https://unpkg.com/3d-force-graph@1.73.2/dist/3d-force-graph.min.js"></script>
+
+    <script>
+    // Graph data (embedded by Python renderer)
+    const graphData = %(graph_data)s;
+
+    // State
+    let Graph3D = null;
+    let isDarkMode = false;
+    let isRotating = false;
+    let rotationAnimationId = null;
+    const highlightedNodes = new Set();
+    const highlightedLinks = new Set();
+
+    // HTML escaping to prevent XSS from entity data.
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(String(text)));
+        return div.innerHTML;
+    }
+
+    // Tooltip builder
+    function buildTooltip(title, properties) {
+        let html = '<div style="color: #1a1a1a; background: rgba(255, 255, 255, 0.95); ' +
+                   'padding: 8px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">' +
+                   '<b style="font-size: 14px;">' + escapeHtml(title) + '</b>';
+
+        if (properties && Object.keys(properties).length > 0) {
+            html += '<br/><span style="font-size: 12px;">';
+            for (const [key, value] of Object.entries(properties)) {
+                html += escapeHtml(key) + ': ' + escapeHtml(value) + '<br/>';
+            }
+            html += '</span>';
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    // Initialise graph
+    document.addEventListener('DOMContentLoaded', function() {
+        if (!graphData.nodes || graphData.nodes.length === 0) {
+            document.getElementById('graph-3d').innerHTML =
+                '<div style="padding: 20px;">No network data available</div>';
+            return;
+        }
+
+        Graph3D = ForceGraph3D()
+            (document.getElementById('graph-3d'))
+            .graphData(graphData)
+
+            // Nodes
+            .nodeLabel(function(node) {
+                var props = Object.assign({}, node.properties || {});
+                props['Connections'] = node.degree;
+                return buildTooltip(node.name, props);
+            })
+            .nodeVal(function(node) { return node.val / 2; })
+            .nodeColor(function(node) { return node.color; })
+            .nodeOpacity(0.9)
+            .nodeResolution(16)
+
+            // Links
+            .linkLabel(function(link) {
+                var props = Object.assign({type: link.type}, link.properties || {});
+                return buildTooltip('Edge', props);
+            })
+            .linkWidth(0.4)
+            .linkColor(function() { return isDarkMode ? '#7DBAED' : '#5B9BD5'; })
+            .linkCurvature(0.25)
+            .linkCurveRotation(0)
+            .linkDirectionalArrowLength(link => link.bidirectional ? 0 : 3.5)
+            .linkDirectionalArrowRelPos(1)
+            .linkOpacity(function() { return isDarkMode ? 0.5 : 0.2; })
+
+            // Scene
+            .backgroundColor('#f5f5f5')
+
+            // Interaction
+            .onNodeHover(function(node) {
+                document.body.style.cursor = node ? 'pointer' : 'default';
+            })
+            .onNodeClick(function(node) {
+                if (node) showNodeDetails(node);
+            })
+            .onBackgroundClick(function() {
+                hideNodeDetails();
+            });
+    });
+
+    // Node click: show details + highlight neighbourhood
+    function showNodeDetails(node) {
+        if (!Graph3D || !graphData) return;
+
+        highlightedNodes.clear();
+        highlightedLinks.clear();
+        highlightedNodes.add(node.id);
+
+        // Find neighbours
+        var neighbours = [];
+        graphData.links.forEach(function(link) {
+            var otherNodeId = null;
+            var direction = '';
+
+            if ((link.source.id !== undefined ? link.source.id : link.source) === node.id) {
+                otherNodeId = link.target.id !== undefined ? link.target.id : link.target;
+                direction = 'to';
+            } else if ((link.target.id !== undefined ? link.target.id : link.target) === node.id) {
+                otherNodeId = link.source.id !== undefined ? link.source.id : link.source;
+                direction = 'from';
+            }
+
+            if (otherNodeId !== null) {
+                highlightedNodes.add(otherNodeId);
+                highlightedLinks.add(link);
+
+                var otherNode = graphData.nodes.find(function(n) { return n.id === otherNodeId; });
+                if (otherNode) {
+                    neighbours.push({
+                        name: otherNode.name,
+                        direction: direction,
+                        linkProperties: link.properties || {}
+                    });
+                }
+            }
+        });
+
+        applyHighlighting();
+        updateDetailsPanel(node, neighbours);
+    }
+
+    function updateDetailsPanel(node, neighbours) {
+        var panel = document.getElementById('details-panel');
+        if (!panel) return;
+
+        var html = '<h6><span>' + escapeHtml(node.name) + '</span>' +
+            '<button onclick="hideNodeDetails()" ' +
+            'style="background: none; border: none; font-size: 18px; ' +
+            'cursor: pointer; color: #999; padding: 0; line-height: 1;">&times;</button></h6>';
+
+        // Show node properties
+        if (node.properties && Object.keys(node.properties).length > 0) {
+            for (var key in node.properties) {
+                html += '<div class="detail-row"><span class="detail-label">' +
+                    escapeHtml(key) + ':</span> ' + escapeHtml(node.properties[key]) + '</div>';
+            }
+        }
+
+        html += '<div class="detail-row"><span class="detail-label">Connections:</span> ' +
+            node.degree + '</div>';
+
+        // Show neighbours
+        if (neighbours.length > 0) {
+            html += '<div style="margin-top: 12px; border-top: 1px solid #e0e0e0; padding-top: 8px;">';
+            html += '<div style="font-size: 12px; font-weight: 600; color: #666; ' +
+                'text-transform: uppercase; margin-bottom: 4px;">Neighbours</div>';
+            neighbours.forEach(function(n) {
+                var arrow = n.direction === 'to' ? '&rarr;' : '&larr;';
+                html += '<div class="neighbour-item">' + arrow + ' ' + escapeHtml(n.name) + '</div>';
+            });
+            html += '</div>';
+        }
+
+        panel.innerHTML = html;
+        panel.style.display = 'block';
+    }
+
+    function hideNodeDetails() {
+        highlightedNodes.clear();
+        highlightedLinks.clear();
+        applyHighlighting();
+
+        var panel = document.getElementById('details-panel');
+        if (panel) panel.style.display = 'none';
+    }
+
+    // Highlighting
+    function applyHighlighting() {
+        if (!Graph3D) return;
+
+        var hasHighlight = highlightedNodes.size > 0;
+
+        Graph3D.nodeColor(function(node) {
+            if (!hasHighlight) return node.color;
+            if (highlightedNodes.has(node.id)) return node.color;
+            return isDarkMode ? '#505050' : '#d0d0d0';
+        });
+
+        Graph3D.linkColor(function(link) {
+            if (!hasHighlight) return isDarkMode ? '#7DBAED' : '#5B9BD5';
+            if (highlightedLinks.has(link)) return '#2E75B6';
+            return isDarkMode ? '#606060' : '#e8e8e8';
+        }).linkWidth(function(link) {
+            if (!hasHighlight) return 0.4;
+            return highlightedLinks.has(link) ? 1.2 : 0.2;
+        }).linkOpacity(function(link) {
+            if (isDarkMode) {
+                if (!hasHighlight) return 0.5;
+                return highlightedLinks.has(link) ? 0.9 : 0.15;
+            }
+            if (!hasHighlight) return 0.2;
+            return highlightedLinks.has(link) ? 0.6 : 0.05;
+        });
+    }
+
+    // Dark mode
+    function toggleDarkMode() {
+        if (!Graph3D) return;
+        isDarkMode = !isDarkMode;
+
+        var button = document.getElementById('dark-mode-toggle');
+        var rotateControl = document.getElementById('rotate-control');
+
+        if (isDarkMode) {
+            Graph3D.backgroundColor('#1a1a1a');
+            button.textContent = 'Light Mode';
+            button.classList.remove('dark');
+            rotateControl.classList.add('dark');
+        } else {
+            Graph3D.backgroundColor('#f5f5f5');
+            button.textContent = 'Dark Mode';
+            button.classList.add('dark');
+            rotateControl.classList.remove('dark');
+        }
+
+        Graph3D.refresh();
+        applyHighlighting();
+    }
+
+    // Auto-rotation
+    function toggleRotation() {
+        if (!Graph3D) return;
+        isRotating = document.getElementById('rotate-checkbox').checked;
+        if (isRotating) startRotation();
+        else stopRotation();
+    }
+
+    function startRotation() {
+        var initialPos = Graph3D.cameraPosition();
+        var distance = Math.sqrt(
+            initialPos.x * initialPos.x + initialPos.y * initialPos.y + initialPos.z * initialPos.z
+        );
+        var initialY = initialPos.y;
+        var angle = Math.atan2(initialPos.x, initialPos.z) * 180 / Math.PI;
+
+        function rotate() {
+            if (!isRotating) return;
+            angle += 0.3;
+
+            Graph3D.cameraPosition({
+                x: distance * Math.sin(angle * Math.PI / 180),
+                y: initialY,
+                z: distance * Math.cos(angle * Math.PI / 180)
+            }, null, 0);
+
+            rotationAnimationId = requestAnimationFrame(rotate);
+        }
+
+        rotate();
+    }
+
+    function stopRotation() {
+        if (rotationAnimationId) {
+            cancelAnimationFrame(rotationAnimationId);
+            rotationAnimationId = null;
+        }
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+This is a sample text file for testing the inspectors module.
+It contains a few lines of plain text.

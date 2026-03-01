@@ -1,0 +1,58 @@
+{
+    "@context": "https://w3id.org/ro/crate/1.1/context",
+    "@graph": [
+        {
+            "@id": "./",
+            "@type": "Dataset",
+            "name": "Minimal test crate",
+            "description": "A crate with a few entities and relationships for testing."
+        },
+        {
+            "@id": "#alice",
+            "@type": "Person",
+            "name": "Alice Smith"
+        },
+        {
+            "@id": "#bob",
+            "@type": "Person",
+            "name": "Bob Jones",
+            "worksFor": {"@id": "#acme"}
+        },
+        {
+            "@id": "#acme",
+            "@type": "Organisation",
+            "name": "ACME Corp"
+        },
+        {
+            "@id": "#rel-alice-acme",
+            "@type": ["Relationship", "Superior"],
+            "source": {"@id": "#alice"},
+            "target": {"@id": "#acme"},
+            "description": "Alice is a director of ACME"
+        },
+        {
+            "@id": "sample.txt",
+            "@type": "File",
+            "name": "Sample text file",
+            "encodingFormat": "text/plain"
+        },
+        {
+            "@id": "sample.csv",
+            "@type": "File",
+            "name": "Sample CSV data",
+            "encodingFormat": "text/csv"
+        },
+        {
+            "@id": "sample.pdf",
+            "@type": "File",
+            "name": "Sample PDF document",
+            "encodingFormat": "application/pdf"
+        },
+        {
+            "@id": "sample.png",
+            "@type": "File",
+            "name": "Sample image",
+            "encodingFormat": "image/png"
+        }
+    ]
+}

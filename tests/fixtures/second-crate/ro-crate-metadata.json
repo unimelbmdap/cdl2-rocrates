@@ -1,0 +1,28 @@
+{
+    "@context": "https://w3id.org/ro/crate/1.1/context",
+    "@graph": [
+        {
+            "@id": "./",
+            "@type": "Dataset",
+            "name": "Second test crate",
+            "description": "A second crate with overlapping IDs for multi-crate testing."
+        },
+        {
+            "@id": "#alice",
+            "@type": "Person",
+            "name": "Alice Zhang"
+        },
+        {
+            "@id": "#project-x",
+            "@type": "Project",
+            "name": "Project X"
+        },
+        {
+            "@id": "#rel-alice-project",
+            "@type": ["Relationship", "Contributor"],
+            "source": {"@id": "#alice"},
+            "target": {"@id": "#project-x"},
+            "description": "Alice contributes to Project X"
+        }
+    ]
+}

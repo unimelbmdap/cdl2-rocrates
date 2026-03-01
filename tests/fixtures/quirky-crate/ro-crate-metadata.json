@@ -1,0 +1,38 @@
+{
+    "@context": "https://w3id.org/ro/crate/1.1/context",
+    "@graph": [
+        {
+            "@id": "./",
+            "@type": "Dataset",
+            "name": "Quirky test crate"
+        },
+        {
+            "@id": "#entity1",
+            "@type": " Source",
+            "name": "Leading space type"
+        },
+        {
+            "@id": "#entity2",
+            "@type": "",
+            "name": "Empty type"
+        },
+        {
+            "@id": "#Gavan%20McCarthy",
+            "@type": "Person",
+            "name": "Gavan McCarthy"
+        },
+        {
+            "@id": "#func1",
+            "@type": "Function",
+            "name": "A function",
+            "fparent": "F00002",
+            "description": null
+        },
+        {
+            "@id": "#rel-plain-string",
+            "@type": ["Relationship", "Related"],
+            "source": {"@id": "#entity1"},
+            "target": {"@id": "#func1"}
+        }
+    ]
+}
