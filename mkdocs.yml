@@ -55,6 +55,7 @@ plugins:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - Architecture: architecture.md
   - API Reference:
     - Overview: api/index.md
     - Graph & Crate: api/graph.md
