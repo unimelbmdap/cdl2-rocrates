@@ -276,6 +276,16 @@ class Graph:
             raise ValueError(msg)
 
         file_path = _Path(crate_root) / entity_id
+        crate_root_resolved = _Path(crate_root).resolve(strict=False)
+        try:
+            file_path_resolved = file_path.resolve(strict=False)
+            file_path_resolved.relative_to(crate_root_resolved)
+        except ValueError:
+            msg = (
+                f"Entity ID {entity_id!r} resolves outside the crate directory "
+                f"{str(crate_root_resolved)!r}."
+            )
+            raise ValueError(msg) from None
         if not file_path.is_file():
             msg = (
                 f"Cannot find file {entity_id!r} in crate at {crate_root!r}. "

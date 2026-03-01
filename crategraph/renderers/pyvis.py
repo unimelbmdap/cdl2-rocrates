@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING, Any
 
+from markupsafe import escape
 from pyvis.network import Network
 
 from crategraph.core.interfaces import Renderer
@@ -79,12 +80,12 @@ class PyvisRenderer(Renderer):
             size = _node_size(degrees.get(eid, 0), max_degree) if size_by == "connections" else 15
 
             # Tooltip with type and properties.
-            title_parts = [f"<b>{entity.type}</b>: {eid}"]
+            title_parts = [f"<b>{escape(entity.type)}</b>: {escape(eid)}"]
             for key, value in list(entity.properties.items())[:8]:
                 val_str = str(value)
                 if len(val_str) > 60:
                     val_str = val_str[:57] + "..."
-                title_parts.append(f"{key}: {val_str}")
+                title_parts.append(f"{escape(str(key))}: {escape(val_str)}")
             title = "<br>".join(title_parts)
 
             # Hide labels on large graphs — show name on hover instead.

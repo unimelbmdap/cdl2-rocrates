@@ -19,7 +19,15 @@ def _resolve_entity_path(entity: Entity) -> Path | None:
         return None
     if entity.source is None:
         return None
-    return Path(entity.source) / entity_id
+    crate_root = Path(entity.source)
+    file_path = crate_root / entity_id
+    crate_root_resolved = crate_root.resolve(strict=False)
+    try:
+        file_path_resolved = file_path.resolve(strict=False)
+        file_path_resolved.relative_to(crate_root_resolved)
+    except ValueError:
+        return None
+    return file_path
 
 
 class MarkItDownInspector(Inspector):
