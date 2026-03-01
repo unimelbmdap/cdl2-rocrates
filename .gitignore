@@ -174,3 +174,12 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+
+# Local data and generated outputs (not tracked)
+/data/
+/examples/
+/docs/plans/
+/benchmarks/
+
+# Worktrees
+.worktrees/
