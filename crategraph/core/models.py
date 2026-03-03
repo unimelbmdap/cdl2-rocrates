@@ -31,6 +31,19 @@ class Entity:
         """Best display name: ``name`` property, falling back to ``id``."""
         return str(self.properties.get("name", self.id))
 
+    @property
+    def has_data(self) -> bool:
+        """Whether this entity is a data entity (file or directory).
+
+        Returns ``True`` if the entity has ``File`` or ``Dataset`` in its
+        types, per the RO-Crate specification.  The root dataset (``./``)
+        is excluded.
+        """
+        raw_id = self.properties.get("raw_id", self.id)
+        if raw_id == "./":
+            return False
+        return "File" in self.types or "Dataset" in self.types
+
     def __repr__(self) -> str:
         return f"Entity({self.type!r}, {self.name!r}, id={self.id!r})"
 

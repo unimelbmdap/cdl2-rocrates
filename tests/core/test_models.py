@@ -49,6 +49,52 @@ class TestEntity:
         assert a != b
 
 
+# --- Entity.has_data ---
+
+
+class TestEntityHasData:
+    def test_file_entity(self):
+        e = Entity(id="data.csv", types=["File"])
+        assert e.has_data is True
+
+    def test_dataset_directory(self):
+        e = Entity(id="subdir/", types=["Dataset"])
+        assert e.has_data is True
+
+    def test_multi_type_array(self):
+        e = Entity(id="workflow.cwl", types=["File", "ComputationalWorkflow"])
+        assert e.has_data is True
+
+    def test_root_dataset_excluded(self):
+        e = Entity(id="./", types=["Dataset"])
+        assert e.has_data is False
+
+    def test_root_dataset_excluded_via_raw_id(self):
+        """Multi-crate entities store original ID as raw_id."""
+        e = Entity(id="mycrate/./", types=["Dataset"], properties={"raw_id": "./"})
+        assert e.has_data is False
+
+    def test_person_contextual_entity(self):
+        e = Entity(id="#alice", types=["Person"])
+        assert e.has_data is False
+
+    def test_organisation_contextual_entity(self):
+        e = Entity(id="#org1", types=["Organisation"])
+        assert e.has_data is False
+
+    def test_web_based_file_entity(self):
+        e = Entity(id="https://example.com/file.pdf", types=["File"])
+        assert e.has_data is True
+
+    def test_creative_work_not_treated_as_data(self):
+        e = Entity(id="ro-crate-metadata.json", types=["CreativeWork"])
+        assert e.has_data is False
+
+    def test_no_types(self):
+        e = Entity(id="mystery")
+        assert e.has_data is False
+
+
 # --- Relationship ---
 
 
