@@ -125,3 +125,35 @@ class FileInfo:
             f"border-radius:4px'>{content}</pre>"
             f"</div>"
         )
+
+
+# --- Viewer result model ---
+
+
+@dataclass(frozen=True)
+class ViewInfo:
+    """Result of viewing a data file — rich HTML preview."""
+
+    path: str
+    html: str
+    title: str | None
+    size_bytes: int
+    media_type: str | None
+
+    def __repr__(self) -> str:
+        name = Path(self.path).name
+        return f"ViewInfo({name!r}, {self.size_bytes} bytes)"
+
+    def _repr_html_(self) -> str:
+        name = _escape_html(Path(self.path).name)
+        parts = [f"<b>{name}</b>"]
+        if self.media_type:
+            parts.append(f" ({_escape_html(self.media_type)})")
+        parts.append(f" — {self.size_bytes:,} bytes")
+        header = "".join(parts)
+        return (
+            f"<div style='font-family:monospace; font-size:13px'>"
+            f"<div style='margin-bottom:4px'>{header}</div>"
+            f"<div style='max-height:500px; overflow-y:auto'>{self.html}</div>"
+            f"</div>"
+        )
