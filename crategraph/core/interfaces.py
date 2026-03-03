@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
-    from crategraph.core.models import Entity, FileInfo, Relationship, ValidationReport
+    from crategraph.core.models import Entity, FileInfo, Relationship, ValidationReport, ViewInfo
 
 
 # --- Internal backend ABC ---
@@ -124,3 +124,20 @@ class Inspector(ABC):
     @abstractmethod
     def inspect(self, path: Path) -> FileInfo:
         """Inspect the file at *path* and return structured info."""
+
+
+class Viewer(ABC):
+    """Base class for file viewers.
+
+    Concrete viewers produce rich HTML previews of data files
+    referenced by entities — images displayed as images, CSVs as
+    interactive tables, audio with playback controls.
+    """
+
+    @abstractmethod
+    def supports(self, entity: Entity) -> bool:
+        """Return True if this viewer can handle the entity's file."""
+
+    @abstractmethod
+    def view(self, path: Path) -> ViewInfo:
+        """View the file at *path* and return a rich HTML preview."""
