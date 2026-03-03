@@ -13,7 +13,7 @@ from crategraph.core.types import TypeRegistry
 
 if TYPE_CHECKING:
     from crategraph.core.interfaces import GraphBackend
-    from crategraph.core.models import FileInfo
+    from crategraph.core.models import FileInfo, ViewInfo
 
 
 class Graph:
@@ -307,6 +307,84 @@ class Graph:
         return FileInfo(
             path=info.path,
             content=info.content,
+            title=info.title,
+            size_bytes=info.size_bytes,
+            media_type=media_type if media_type else info.media_type,
+        )
+
+    # --- View ---
+
+    def view(self, entity: Entity | str) -> ViewInfo:
+        """View the data file associated with an entity.
+
+        Returns a rich HTML preview of the file — images as ``<img>``
+        tags, CSVs as HTML tables, audio with playback controls.
+
+        Args:
+            entity: An ``Entity`` object or an entity ID string.
+
+        Returns a ``ViewInfo`` with the file's HTML preview and metadata.
+
+        Raises:
+            KeyError: If the entity ID doesn't exist in the graph.
+            ValueError: If the entity is contextual (``#``-prefixed or URL).
+            FileNotFoundError: If the referenced file doesn't exist on disk.
+        """
+        from pathlib import Path as _Path
+
+        from crategraph.core.models import ViewInfo
+        from crategraph.viewers import find_viewer
+
+        # Resolve entity from string ID.
+        if isinstance(entity, str):
+            entity = self.get(entity)
+
+        # Reject contextual entities.
+        entity_id = entity.properties.get("raw_id", entity.id)
+        if entity_id.startswith("#") or entity_id.startswith("http") or entity_id == "./":
+            msg = (
+                f"Entity {entity.id!r} is a contextual entity "
+                f"— view() works with data entities that point to local files."
+            )
+            raise ValueError(msg)
+
+        # Resolve file path.
+        crate_root = entity.source or self.source
+        if crate_root is None:
+            msg = f"Cannot resolve file path for {entity.id!r} — no crate source directory is set."
+            raise ValueError(msg)
+
+        file_path = _Path(crate_root) / entity_id
+        crate_root_resolved = _Path(crate_root).resolve(strict=False)
+        try:
+            file_path_resolved = file_path.resolve(strict=False)
+            file_path_resolved.relative_to(crate_root_resolved)
+        except ValueError:
+            msg = (
+                f"Entity ID {entity_id!r} resolves outside the crate directory "
+                f"{str(crate_root_resolved)!r}."
+            )
+            raise ValueError(msg) from None
+        if not file_path.is_file():
+            msg = (
+                f"Cannot find file {entity_id!r} in crate at {crate_root!r}. "
+                f"Check the entity ID refers to a local file."
+            )
+            raise FileNotFoundError(msg)
+
+        # Find a viewer.
+        viewer = find_viewer(entity)
+        if viewer is None:
+            msg = f"Could not view {entity_id!r} — format not supported."
+            raise ValueError(msg)
+
+        # View and fill in media_type from entity properties if available.
+        info = viewer.view(file_path)
+        media_type = entity.properties.get("encodingFormat")
+
+        return ViewInfo(
+            path=info.path,
+            html=info.html,
             title=info.title,
             size_bytes=info.size_bytes,
             media_type=media_type if media_type else info.media_type,
