@@ -152,3 +152,34 @@ class TestEntities:
         rels = g.relationships
         assert len(rels) == 1
         assert rels[0] == r
+
+
+class TestFiles:
+    def test_files_returns_only_data_entities(self):
+        g = Graph()
+        g._add_node(Entity(id="./", types=["Dataset"]))
+        g._add_node(Entity(id="#alice", types=["Person"]))
+        g._add_node(
+            Entity(id="data.csv", types=["File"], properties={"encodingFormat": "text/csv"})
+        )
+        g._add_node(Entity(id="subdir/", types=["Dataset"]))
+        files = g.files
+        assert len(files) == 2
+        ids = [e.id for e in files]
+        assert "data.csv" in ids
+        assert "subdir/" in ids
+        assert "./" not in ids
+        assert "#alice" not in ids
+
+    def test_files_sorted_by_id(self):
+        g = Graph()
+        g._add_node(Entity(id="z.txt", types=["File"]))
+        g._add_node(Entity(id="a.txt", types=["File"]))
+        files = g.files
+        assert [e.id for e in files] == ["a.txt", "z.txt"]
+
+    def test_files_empty_graph(self):
+        g = Graph()
+        files = g.files
+        assert len(files) == 0
+        assert not files

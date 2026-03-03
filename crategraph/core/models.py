@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from html import escape as _escape_html
 from pathlib import Path
@@ -169,4 +170,94 @@ class ViewInfo:
             f"<div style='margin-bottom:4px'>{header}</div>"
             f"<div style='max-height:500px; overflow-y:auto'>{self.html}</div>"
             f"</div>"
+        )
+
+
+# --- File tree model ---
+
+
+class FileTree:
+    """Tree view of data entities in a crate.
+
+    Iterable over the underlying ``Entity`` objects.  Displays as an
+    indented file tree in Jupyter notebooks and in ``repr()``.
+    """
+
+    __slots__ = ("_entities",)
+
+    def __init__(self, entities: list[Entity]) -> None:
+        self._entities = entities
+
+    def __iter__(self) -> Iterator[Entity]:
+        return iter(self._entities)
+
+    def __len__(self) -> int:
+        return len(self._entities)
+
+    def __getitem__(self, index: int) -> Entity:
+        return self._entities[index]
+
+    def __bool__(self) -> bool:
+        return len(self._entities) > 0
+
+    # --- Tree building helper ---
+
+    @staticmethod
+    def _build_tree(entities: list[Entity]) -> dict[str, Any]:
+        """Build a nested dict representing the directory tree."""
+        tree: dict[str, Any] = {}
+        for entity in entities:
+            raw_id = entity.properties.get("raw_id", entity.id)
+            parts = raw_id.rstrip("/").split("/")
+            node = tree
+            for part in parts[:-1]:
+                node = node.setdefault(part + "/", {})
+            # Leaf node: store the entity.
+            node[parts[-1]] = entity
+        return tree
+
+    def _format_label(self, entity: Entity) -> str:
+        """Format label for a single entity."""
+        raw_id = entity.properties.get("raw_id", entity.id)
+        name = raw_id.rstrip("/").rsplit("/", 1)[-1]
+        media_type = entity.properties.get("encodingFormat")
+        is_web = raw_id.startswith("http://") or raw_id.startswith("https://")
+        if is_web:
+            name = raw_id
+        parts = [name]
+        if media_type:
+            parts.append(f"({media_type})")
+        if is_web:
+            parts.append("[web]")
+        return " ".join(parts)
+
+    def _render_tree(self, tree: dict[str, Any], prefix: str = "") -> list[str]:
+        """Render tree dict as lines with box-drawing connectors."""
+        lines: list[str] = []
+        items = list(tree.items())
+        for i, (key, value) in enumerate(items):
+            is_last = i == len(items) - 1
+            connector = "\u2514\u2500\u2500 " if is_last else "\u251c\u2500\u2500 "
+            child_prefix = prefix + ("    " if is_last else "\u2502   ")
+            if isinstance(value, Entity):
+                lines.append(f"{prefix}{connector}{self._format_label(value)}")
+            else:
+                # Directory node.
+                lines.append(f"{prefix}{connector}{key}")
+                lines.extend(self._render_tree(value, child_prefix))
+        return lines
+
+    def __repr__(self) -> str:
+        n = len(self._entities)
+        label = "file" if n == 1 else "files"
+        header = f"FileTree ({n} {label})"
+        if not self._entities:
+            return header
+        tree = self._build_tree(self._entities)
+        lines = self._render_tree(tree)
+        return header + "\n" + "\n".join(lines)
+
+    def _repr_html_(self) -> str:
+        return (
+            f"<pre style='font-family:monospace; font-size:13px'>{_escape_html(repr(self))}</pre>"
         )

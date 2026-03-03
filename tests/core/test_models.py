@@ -6,6 +6,7 @@ import pytest
 
 from crategraph.core.models import (
     Entity,
+    FileTree,
     Relationship,
     SelectOptions,
     ValidationIssue,
@@ -93,6 +94,124 @@ class TestEntityHasData:
     def test_no_types(self):
         e = Entity(id="mystery")
         assert e.has_data is False
+
+
+# --- FileTree ---
+
+
+class TestFileTree:
+    def test_empty(self):
+        tree = FileTree([])
+        assert len(tree) == 0
+        assert list(tree) == []
+        assert not tree
+        assert repr(tree) == "FileTree (0 files)"
+
+    def test_single_file(self):
+        e = Entity(id="data.csv", types=["File"], properties={"encodingFormat": "text/csv"})
+        tree = FileTree([e])
+        assert len(tree) == 1
+        assert list(tree) == [e]
+        assert tree[0] is e
+        assert tree
+        assert "data.csv" in repr(tree)
+        assert "text/csv" in repr(tree)
+        assert "1 file)" in repr(tree)
+
+    def test_flat_tree_repr(self):
+        entities = [
+            Entity(id="a.txt", types=["File"], properties={"encodingFormat": "text/plain"}),
+            Entity(id="b.csv", types=["File"], properties={"encodingFormat": "text/csv"}),
+        ]
+        tree = FileTree(entities)
+        text = repr(tree)
+        assert "FileTree (2 files)" in text
+        assert "a.txt (text/plain)" in text
+        assert "b.csv (text/csv)" in text
+        # Last item should use └, others ├
+        assert "├── a.txt" in text
+        assert "└── b.csv" in text
+
+    def test_nested_tree_repr(self):
+        entities = [
+            Entity(
+                id="docs/report.pdf",
+                types=["File"],
+                properties={"encodingFormat": "application/pdf"},
+            ),
+            Entity(
+                id="docs/notes.txt", types=["File"], properties={"encodingFormat": "text/plain"}
+            ),
+            Entity(
+                id="images/photo.png", types=["File"], properties={"encodingFormat": "image/png"}
+            ),
+        ]
+        tree = FileTree(entities)
+        text = repr(tree)
+        assert "docs/" in text
+        assert "report.pdf" in text
+        assert "images/" in text
+        assert "photo.png" in text
+
+    def test_web_based_entity(self):
+        e = Entity(
+            id="https://example.com/data.pdf",
+            types=["File"],
+            properties={"encodingFormat": "application/pdf"},
+        )
+        tree = FileTree([e])
+        text = repr(tree)
+        assert "https://example.com/data.pdf" in text
+        assert "[web]" in text
+
+    def test_multi_crate_grouping(self):
+        """Multi-crate entities use raw_id for tree, but prefixed id groups by crate."""
+        entities = [
+            Entity(
+                id="crate-a/data.csv",
+                types=["File"],
+                properties={"raw_id": "data.csv", "encodingFormat": "text/csv"},
+            ),
+            Entity(
+                id="crate-b/image.png",
+                types=["File"],
+                properties={"raw_id": "image.png", "encodingFormat": "image/png"},
+            ),
+        ]
+        tree = FileTree(entities)
+        text = repr(tree)
+        # raw_id is used for tree structure, so these are flat
+        assert "data.csv" in text
+        assert "image.png" in text
+
+    def test_dataset_directory(self):
+        e = Entity(id="subdir/", types=["Dataset"])
+        tree = FileTree([e])
+        text = repr(tree)
+        assert "subdir" in text
+
+    def test_no_encoding_format(self):
+        e = Entity(id="mystery.bin", types=["File"])
+        tree = FileTree([e])
+        text = repr(tree)
+        assert "mystery.bin" in text
+        # No parenthesised media type
+        assert "()" not in text
+
+    def test_iteration(self):
+        entities = [
+            Entity(id="a.txt", types=["File"]),
+            Entity(id="b.txt", types=["File"]),
+        ]
+        tree = FileTree(entities)
+        assert [e.id for e in tree] == ["a.txt", "b.txt"]
+
+    def test_repr_html(self):
+        e = Entity(id="data.csv", types=["File"])
+        tree = FileTree([e])
+        html = tree._repr_html_()
+        assert "<pre" in html
+        assert "data.csv" in html
 
 
 # --- Relationship ---
