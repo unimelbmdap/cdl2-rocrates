@@ -36,6 +36,10 @@ result.visualise()
 
 This is likely simpler to implement over a NetworkX backend (LLM generates Python using the existing `select`/`where`/`pattern` API) than over SPARQL or Cypher. The existing chainable API is already close to natural language in structure, which should make prompt engineering more tractable.
 
+## `inspect()` / `view()` Naming
+
+The names `inspect()` and `view()` may be confusing — `inspect` suggests "look at" but actually extracts text content, while `view` is the one that produces a visual preview. In the current implementation, `inspect` is effectively `extract` (convert file to markdown via markitdown). The name may make more sense if other inspector implementations emerge that do something other than text extraction (e.g. metadata extraction, structural analysis), but for now the distinction is unintuitive. Revisit once the inspector plugin ecosystem has more shape — renaming to `extract()` would be a breaking change but might be clearer if text extraction remains the primary use case.
+
 ## `Entity.has_data` Naming
 
 The `has_data` property name aligns with the RO-Crate spec's "data entity" terminology, but may not be immediately intuitive to users unfamiliar with the spec — they might read it as "has any data/metadata." Alternatives considered: `has_file` (clear but slightly wrong for directories), `has_content` (ambiguous), `is_data_entity` (jargon-heavy). Revisit once there's user feedback on whether the name causes confusion.
