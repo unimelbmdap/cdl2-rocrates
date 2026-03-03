@@ -13,7 +13,7 @@ from crategraph.core.types import TypeRegistry
 
 if TYPE_CHECKING:
     from crategraph.core.interfaces import GraphBackend
-    from crategraph.core.models import FileInfo, FileTree, ViewInfo
+    from crategraph.core.models import FileInfo, ViewInfo
 
 
 class Graph:
@@ -67,19 +67,16 @@ class Graph:
         return list(self._relationships)
 
     @property
-    def files(self) -> FileTree:
-        """Data entities (files and directories) as a tree view.
+    def files(self) -> list[Entity]:
+        """Data entities (files and directories) in the graph.
 
-        Returns a ``FileTree`` that iterates over data entities and
-        displays as an indented file tree in notebooks and ``repr()``.
+        Convenience for filtering to entities where ``has_data`` is
+        ``True``, sorted by ID.
         """
-        from crategraph.core.models import FileTree
-
-        data_entities = sorted(
+        return sorted(
             (e for e in self._entities.values() if e.has_data),
             key=lambda e: e.properties.get("raw_id", e.id),
         )
-        return FileTree(data_entities)
 
     def __len__(self) -> int:
         """Number of entities in the graph."""

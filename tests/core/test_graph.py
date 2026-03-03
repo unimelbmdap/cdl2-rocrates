@@ -182,4 +182,8 @@ class TestFiles:
         g = Graph()
         files = g.files
         assert len(files) == 0
-        assert not files
+
+    def test_files_returns_list(self):
+        g = Graph()
+        g._add_node(Entity(id="data.csv", types=["File"]))
+        assert isinstance(g.files, list)
