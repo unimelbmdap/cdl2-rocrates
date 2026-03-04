@@ -162,7 +162,7 @@ class Graph:
         renderer: str = "2d",
         colour_by: str = "type",
         size_by: str = "connections",
-        height: str = "600px",
+        height: str = "100vh",
         width: str = "100%",
         filepath: str | None = None,
         collapse_edges: bool = False,

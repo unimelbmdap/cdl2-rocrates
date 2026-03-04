@@ -32,7 +32,7 @@ class PyvisRenderer(Renderer):
         *,
         colour_by: str = "type",
         size_by: str = "connections",
-        height: str = "600px",
+        height: str = "100vh",
         width: str = "100%",
         filepath: str | None = None,
         notebook: bool = True,
