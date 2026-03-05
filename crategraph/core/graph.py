@@ -474,6 +474,120 @@ class Graph:
 
         return merged
 
+    def simplify(
+        self,
+        *,
+        min_connections: int | None = None,
+    ) -> Graph:
+        """Remove peripheral nodes to reveal the structural backbone.
+
+        Each call strips away one more layer of weakly-connected nodes
+        (k-core peeling).  Chainable: calling ``simplify()`` on an
+        already-simplified graph automatically increases the threshold.
+
+        Surviving nodes gain a ``"simplified"`` property — a dict
+        mapping removed-neighbour type to count.
+
+        Args:
+            min_connections: Explicit minimum-degree threshold.  When
+                omitted the method auto-escalates: first call uses 2,
+                subsequent calls increment from the previous level.
+
+        Returns a new ``Graph``, or ``self`` if no further
+        simplification is possible (with a warning).
+        """
+        import warnings
+
+        if min_connections is not None:
+            k = min_connections
+        elif hasattr(self, "_simplification_k"):
+            k = self._simplification_k + 1
+        else:
+            k = 2
+
+        result = self._simplify_core(k)
+
+        if len(result) == 0 or len(result) == len(self):
+            warnings.warn(
+                f"Graph is fully simplified: all {len(self)} remaining "
+                f"nodes have fewer than {k} connections. "
+                f"Returning the current graph.",
+                stacklevel=2,
+            )
+            return self
+
+        result._simplification_k = k
+        return result
+
+    def _simplify_core(self, min_connections: int) -> Graph:
+        """BFS k-core peeling implementation (O(V+E), backend-agnostic).
+
+        1. Compute degrees via ``_neighbours()``
+        2. BFS-peel nodes below *min_connections*
+        3. Annotate survivors with type-counted summary of removed neighbours
+        4. Build new ``Graph`` preserving ``_root``
+        """
+        from collections import deque
+        from dataclasses import replace
+
+        # Step 1 — initial degrees (unique neighbours, both directions).
+        all_ids = set(self._entities.keys())
+        degree: dict[str, int] = {}
+        neighbours: dict[str, set[str]] = {}
+        for nid in all_ids:
+            nbrs = self._neighbours(nid) & all_ids
+            neighbours[nid] = nbrs
+            degree[nid] = len(nbrs)
+
+        # Step 2 — BFS peel.
+        removed: set[str] = set()
+        queue: deque[str] = deque(nid for nid, deg in degree.items() if deg < min_connections)
+        while queue:
+            nid = queue.popleft()
+            if nid in removed:
+                continue
+            removed.add(nid)
+            for nbr in neighbours[nid]:
+                if nbr not in removed:
+                    degree[nbr] -= 1
+                    if degree[nbr] < min_connections:
+                        queue.append(nbr)
+
+        surviving = all_ids - removed
+
+        # Step 3 — annotate survivors with removed-neighbour summary.
+        removed_direct: dict[str, dict[str, int]] = {}
+        for sid in surviving:
+            type_counts: dict[str, int] = {}
+            for nbr in neighbours[sid]:
+                if nbr in removed:
+                    entity = self._entities[nbr]
+                    primary = entity.types[0] if entity.types else "Unknown"
+                    type_counts[primary] = type_counts.get(primary, 0) + 1
+            removed_direct[sid] = type_counts
+
+        # Step 4 — build new Graph (mirrors _subgraph pattern).
+        sub = Graph.__new__(Graph)
+        sub.source = self.source
+        sub.metadata = dict(self.metadata)
+        sub._entities = {}
+        for nid in surviving:
+            entity = self._entities[nid]
+            annotation = removed_direct[nid]
+            if annotation:
+                new_props = {**entity.properties, "simplified": annotation}
+                sub._entities[nid] = replace(entity, properties=new_props)
+            else:
+                sub._entities[nid] = entity
+        sub._relationships = [
+            r for r in self._relationships if r.source in surviving and r.target in surviving
+        ]
+        sub._source_names = set(self._source_names)
+        new_backend = self._backend.subgraph(surviving, sub._entities, sub._relationships)
+        sub._backend = new_backend
+        sub._root = self._root
+        return sub
+
     def collapse_edges(self) -> Graph:
         """Collapse parallel edges between node pairs into single summary edges.
 
