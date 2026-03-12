@@ -64,11 +64,19 @@ class PyvisRenderer(Renderer):
         # Colour mapping.
         colour_map = resolve_colour_map(graph, colour_by)
 
-        # Pre-compute degrees for sizing.
-        degrees: dict[str, int] = {}
-        for eid in graph._entities:
-            degrees[eid] = len(graph._neighbours(eid))
-        max_degree = max(degrees.values()) if degrees else 0
+        # Pre-compute size values.
+        size_values: dict[str, float] = {}
+        if size_by == "connections":
+            for eid in graph._entities:
+                size_values[eid] = float(len(graph._neighbours(eid)))
+        else:
+            for eid, entity in graph._entities.items():
+                val = entity.properties.get(size_by)
+                try:
+                    size_values[eid] = float(val) if val is not None else 0.0
+                except (ValueError, TypeError):
+                    size_values[eid] = 0.0
+        max_size_val = max(size_values.values()) if size_values else 0
 
         # Add nodes.
         for eid, entity in graph._entities.items():
@@ -77,7 +85,7 @@ class PyvisRenderer(Renderer):
                 label = str(label)[:37] + "..."
 
             colour = colour_map.get(eid, "#bab0ac")
-            size = _node_size(degrees.get(eid, 0), max_degree) if size_by == "connections" else 15
+            size = _node_size(int(size_values.get(eid, 0)), int(max_size_val))
 
             # Tooltip with type and properties.
             title_parts = [f"<b>{escape(entity.type)}</b>: {escape(eid)}"]
@@ -104,7 +112,10 @@ class PyvisRenderer(Renderer):
         for rel in graph._relationships:
             if rel.source in graph._entities and rel.target in graph._entities:
                 weight = rel.properties.get("weight", 1)
-                edge_width = 1 + math.log1p(weight) if isinstance(weight, (int, float)) else 1
+                if isinstance(weight, (int, float)) and weight > 1:
+                    edge_width = 1 + 2 * math.log1p(weight)
+                else:
+                    edge_width = 1
                 edge_opts: dict[str, Any] = {
                     "title": rel.type,
                     "width": edge_width,

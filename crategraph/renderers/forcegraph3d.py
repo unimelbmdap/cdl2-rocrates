@@ -44,10 +44,18 @@ class ForceGraph3DRenderer(Renderer):
         if not graph._entities:
             return {"nodes": [], "links": []}
 
-        # Pre-compute degrees.
-        degrees: dict[str, int] = {}
-        for eid in graph._entities:
-            degrees[eid] = len(graph._neighbours(eid))
+        # Pre-compute size values.
+        size_values: dict[str, float] = {}
+        if size_by == "connections":
+            for eid in graph._entities:
+                size_values[eid] = float(len(graph._neighbours(eid)))
+        else:
+            for eid, entity in graph._entities.items():
+                raw = entity.properties.get(size_by)
+                try:
+                    size_values[eid] = float(raw) if raw is not None else 0.0
+                except (ValueError, TypeError):
+                    size_values[eid] = 0.0
 
         # Colour mapping.
         colour_map = resolve_colour_map(graph, colour_by)
@@ -55,8 +63,8 @@ class ForceGraph3DRenderer(Renderer):
         # Build nodes.
         nodes = []
         for eid, entity in graph._entities.items():
-            degree = degrees.get(eid, 0)
-            val = _node_size(degree) if size_by == "connections" else 10.0
+            degree = len(graph._neighbours(eid))
+            val = _node_size(int(size_values.get(eid, 0)))
             properties = {k: str(v) for k, v in entity.properties.items()}
 
             nodes.append(
@@ -75,6 +83,11 @@ class ForceGraph3DRenderer(Renderer):
         for rel in graph._relationships:
             if rel.source in graph._entities and rel.target in graph._entities:
                 properties = {k: str(v) for k, v in rel.properties.items()}
+                weight = rel.properties.get("weight", 1)
+                if isinstance(weight, (int, float)) and weight > 1:
+                    width = 0.4 + 2 * math.log1p(weight)
+                else:
+                    width = 0.4
                 links.append(
                     {
                         "source": rel.source,
@@ -82,6 +95,7 @@ class ForceGraph3DRenderer(Renderer):
                         "type": rel.type,
                         "properties": properties,
                         "bidirectional": bool(rel.properties.get("bidirectional")),
+                        "width": round(width, 2),
                     }
                 )
 

@@ -453,21 +453,20 @@ class Graph:
                 )
             )
 
-        # Build weighted edges between groups.
-        edge_weights: Counter[tuple[str, str]] = Counter()
+        # Build weighted edges between groups, preserving relationship types.
+        edge_weights: Counter[tuple[str, str, str]] = Counter()
         for rel in self._relationships:
             src_group = groups.get(rel.source)
             tgt_group = groups.get(rel.target)
             if src_group is not None and tgt_group is not None and src_group != tgt_group:
-                pair = (src_group, tgt_group)
-                edge_weights[pair] += 1
+                edge_weights[(src_group, tgt_group, rel.type)] += 1
 
-        for (src, tgt), weight in edge_weights.items():
+        for (src, tgt, rel_type), weight in edge_weights.items():
             merged._add_edge(
                 Relationship(
                     source=src,
                     target=tgt,
-                    type="merged",
+                    type=rel_type,
                     properties={"weight": weight},
                 )
             )

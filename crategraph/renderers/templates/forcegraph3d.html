@@ -217,7 +217,7 @@
                 var props = Object.assign({type: link.type}, link.properties || {});
                 return buildTooltip('Edge', props);
             })
-            .linkWidth(0.4)
+            .linkWidth(function(link) { return link.width || 0.4; })
             .linkColor(function() { return isDarkMode ? '#7DBAED' : '#5B9BD5'; })
             .linkCurvature(0.25)
             .linkCurveRotation(0)
@@ -343,8 +343,9 @@
             if (highlightedLinks.has(link)) return '#2E75B6';
             return isDarkMode ? '#606060' : '#e8e8e8';
         }).linkWidth(function(link) {
-            if (!hasHighlight) return 0.4;
-            return highlightedLinks.has(link) ? 1.2 : 0.2;
+            var base = link.width || 0.4;
+            if (!hasHighlight) return base;
+            return highlightedLinks.has(link) ? base * 2 : 0.2;
         }).linkOpacity(function(link) {
             if (isDarkMode) {
                 if (!hasHighlight) return 0.5;
