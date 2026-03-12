@@ -180,6 +180,7 @@ pyrightconfig.json
 /data/
 /examples/
 /docs/plans/
+/docs/superpowers
 /benchmarks/
 
 # Worktrees
