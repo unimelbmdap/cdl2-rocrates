@@ -22,7 +22,12 @@ _METADATA_FILENAME = "ro-crate-metadata.json"
 class ROCrateReader(Reader):
     """Read an RO-Crate directory into a Graph."""
 
-    def __init__(self, *, inline_relations: bool | list[str] = True) -> None:
+    def __init__(
+        self,
+        *,
+        inline_relations: bool | list[str] = True,
+        include_root: bool = True,
+    ) -> None:
         if not isinstance(inline_relations, (bool, list)):
             msg = (
                 f"inline_relations must be bool or list[str], "
@@ -35,6 +40,7 @@ class ROCrateReader(Reader):
             msg = "inline_relations list must contain only strings"
             raise TypeError(msg)
         self._inline_relations = inline_relations
+        self._include_root = include_root
 
     def can_read(self, path: str) -> bool:
         """Return True if *path* is or contains ``ro-crate-metadata.json``."""
@@ -55,15 +61,29 @@ class ROCrateReader(Reader):
         )
 
         items = data.get("@graph", [])
+        root_id = "./"
+
+        # Promote root Dataset properties to graph.metadata (always).
+        for item in items:
+            if item.get("@id") == root_id:
+                graph.metadata.update(self._extract_properties(item))
+                break
+
         # First pass: create all entities.
         for item in items:
+            if not self._include_root and item.get("@id") == root_id:
+                continue
             entity = self._parse_entity(item, source=str(metadata_path.parent))
             if entity is not None:
                 graph._add_node(entity)
 
         # Second pass: extract relationships (reified + inline @id refs).
         for item in items:
+            if not self._include_root and item.get("@id") == root_id:
+                continue
             for rel in self._extract_relationships(item, graph):
+                if not self._include_root and (rel.source == root_id or rel.target == root_id):
+                    continue
                 graph._add_edge(rel)
 
         return graph

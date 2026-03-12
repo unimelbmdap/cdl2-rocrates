@@ -30,12 +30,17 @@ class Crate(Graph):
             ``True`` (default) — all inline refs become edges.
             ``False`` — only reified Relationship entities become edges.
             ``list[str]`` — only these property names become edges.
+        include_root: Whether to include the root Dataset entity (``./``)
+            as a node in the graph. Defaults to ``False`` — the root's
+            properties are promoted to ``metadata`` and the node and its
+            edges are excluded. Pass ``True`` to include it.
     """
 
     def __init__(
         self,
         *paths: str,
         inline_relations: bool | list[str] = True,
+        include_root: bool = False,
     ) -> None:
         if not paths:
             msg = "Crate requires at least one path."
@@ -56,13 +61,17 @@ class Crate(Graph):
                     raise ValueError(msg)
                 dirnames.append(dirname)
 
-        reader = ROCrateReader(inline_relations=inline_relations)
+        reader = ROCrateReader(
+            inline_relations=inline_relations,
+            include_root=include_root,
+        )
 
         if multi:
             super().__init__(source=None, metadata={})
             for path in paths:
                 loaded = reader.read(path)
                 prefix = self._crate_dirname(path)
+                self.metadata[prefix] = dict(loaded.metadata)
                 self._ingest_prefixed(loaded, prefix)
         else:
             loaded = reader.read(paths[0])

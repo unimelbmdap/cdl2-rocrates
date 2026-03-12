@@ -78,7 +78,8 @@ class TestGraphView:
         with pytest.raises(ValueError, match="contextual entity"):
             crate.view("https://example.com/resource")
 
-    def test_view_root_dataset_raises(self, crate):
+    def test_view_root_dataset_raises(self):
+        crate = Crate(str(FIXTURES), include_root=True)
         with pytest.raises(ValueError, match="contextual entity"):
             crate.view("./")
 

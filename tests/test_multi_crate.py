@@ -35,8 +35,8 @@ class TestMultiCrateLoading:
 
     def test_entities_from_both_crates(self):
         crate = Crate(MINIMAL, SECOND)
-        # minimal: 8 entities, second: 3 entities = 11 total
-        assert len(crate) == 11
+        # minimal: 7 entities, second: 2 entities = 9 total (roots excluded)
+        assert len(crate) == 9
 
     def test_ids_prefixed_by_directory(self):
         crate = Crate(MINIMAL, SECOND)
@@ -68,24 +68,37 @@ class TestMultiCrateLoading:
     def test_select_by_source_recovers_subgraph(self):
         crate = Crate(MINIMAL, SECOND)
         minimal_only = crate.select(source="minimal-crate")
-        assert len(minimal_only) == 8
+        assert len(minimal_only) == 7
         second_only = crate.select(source="second-crate")
-        assert len(second_only) == 3
+        assert len(second_only) == 2
 
     def test_entity_source_field_set(self):
         crate = Crate(MINIMAL, SECOND)
         alice = crate._entities["minimal-crate/#alice"]
         assert "minimal-crate" in alice.source
 
-    def test_boilerplate_ids_prefixed(self):
+    def test_roots_excluded_by_default(self):
         crate = Crate(MINIMAL, SECOND)
+        assert "minimal-crate/./" not in crate._entities
+        assert "second-crate/./" not in crate._entities
+
+    def test_include_root_restores_prefixed_roots(self):
+        crate = Crate(MINIMAL, SECOND, include_root=True)
         assert "minimal-crate/./" in crate._entities
         assert "second-crate/./" in crate._entities
+        assert len(crate) == 11
 
     def test_graph_source_is_none_for_multi(self):
         """graph.source should be None when multiple crates are loaded."""
         crate = Crate(MINIMAL, SECOND)
         assert crate.source is None
+
+    def test_multi_crate_metadata_per_prefix(self):
+        crate = Crate(MINIMAL, SECOND)
+        assert "minimal-crate" in crate.metadata
+        assert "second-crate" in crate.metadata
+        assert crate.metadata["minimal-crate"]["name"] == "Minimal test crate"
+        assert crate.metadata["second-crate"]["name"] == "Second test crate"
 
 
 class TestMultiCrateMergeByRawId:
@@ -186,36 +199,20 @@ class TestMultiCrateSourcesDisplay:
 class TestRestoreRootSingleCrate:
     """_restore_root() reconstructs the root Dataset from metadata."""
 
-    def _crate_without_root(self) -> Crate:
-        """Load a crate, then simulate Option A by removing the root
-        and promoting its properties to metadata."""
-        crate = Crate(MINIMAL)
-        root = crate._entities.pop("./")
-        crate._relationships = [
-            r for r in crate._relationships if r.source != "./" and r.target != "./"
-        ]
-        # Rebuild backend without the root node.
-        crate._backend = crate._backend.subgraph(
-            set(crate._entities), crate._entities, crate._relationships
-        )
-        # Promote root properties to metadata (what Option A will do).
-        crate.metadata.update(root.properties)
-        return crate
-
     def test_restores_root_entity(self):
-        crate = self._crate_without_root()
+        crate = Crate(MINIMAL)
         assert "./" not in crate._entities
         crate._restore_root()
         assert "./" in crate._entities
 
     def test_restored_root_has_dataset_type(self):
-        crate = self._crate_without_root()
+        crate = Crate(MINIMAL)
         crate._restore_root()
         root = crate._entities["./"]
         assert root.types == ["Dataset"]
 
     def test_restored_root_has_metadata_properties(self):
-        crate = self._crate_without_root()
+        crate = Crate(MINIMAL)
         crate._restore_root()
         root = crate._entities["./"]
         assert root.properties["name"] == "Minimal test crate"
@@ -225,20 +222,20 @@ class TestRestoreRootSingleCrate:
         )
 
     def test_restored_root_has_source(self):
-        crate = self._crate_without_root()
+        crate = Crate(MINIMAL)
         crate._restore_root()
         root = crate._entities["./"]
         assert root.source is not None
         assert "minimal-crate" in root.source
 
     def test_noop_when_root_present(self):
-        crate = Crate(MINIMAL)
+        crate = Crate(MINIMAL, include_root=True)
         original_count = len(crate)
         crate._restore_root()
         assert len(crate) == original_count
 
     def test_context_excluded_from_properties(self):
-        crate = self._crate_without_root()
+        crate = Crate(MINIMAL)
         crate._restore_root()
         root = crate._entities["./"]
         assert "@context" not in root.properties
@@ -247,26 +244,8 @@ class TestRestoreRootSingleCrate:
 class TestRestoreRootMultiCrate:
     """_restore_root() reconstructs per-prefix root entities."""
 
-    def _multi_crate_without_roots(self) -> Crate:
-        """Load multi-crate, remove roots, promote metadata per-prefix."""
-        crate = Crate(MINIMAL, SECOND)
-        per_prefix_meta: dict[str, dict] = {}
-        for prefix in ["minimal-crate", "second-crate"]:
-            root_id = f"{prefix}/./"
-            root = crate._entities.pop(root_id)
-            crate._relationships = [
-                r for r in crate._relationships if r.source != root_id and r.target != root_id
-            ]
-            per_prefix_meta[prefix] = dict(root.properties)
-        # Rebuild backend without root nodes.
-        crate._backend = crate._backend.subgraph(
-            set(crate._entities), crate._entities, crate._relationships
-        )
-        crate.metadata = per_prefix_meta
-        return crate
-
     def test_restores_both_roots(self):
-        crate = self._multi_crate_without_roots()
+        crate = Crate(MINIMAL, SECOND)
         assert "minimal-crate/./" not in crate._entities
         assert "second-crate/./" not in crate._entities
         crate._restore_root()
@@ -274,7 +253,7 @@ class TestRestoreRootMultiCrate:
         assert "second-crate/./" in crate._entities
 
     def test_restored_roots_have_correct_names(self):
-        crate = self._multi_crate_without_roots()
+        crate = Crate(MINIMAL, SECOND)
         crate._restore_root()
         min_root = crate._entities["minimal-crate/./"]
         sec_root = crate._entities["second-crate/./"]
@@ -282,14 +261,14 @@ class TestRestoreRootMultiCrate:
         assert sec_root.properties["name"] == "Second test crate"
 
     def test_restored_roots_have_raw_id(self):
-        crate = self._multi_crate_without_roots()
+        crate = Crate(MINIMAL, SECOND)
         crate._restore_root()
         for prefix in ["minimal-crate", "second-crate"]:
             root = crate._entities[f"{prefix}/./"]
             assert root.properties["raw_id"] == "./"
 
     def test_noop_when_roots_present(self):
-        crate = Crate(MINIMAL, SECOND)
+        crate = Crate(MINIMAL, SECOND, include_root=True)
         original_count = len(crate)
         crate._restore_root()
         assert len(crate) == original_count

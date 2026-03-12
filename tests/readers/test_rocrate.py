@@ -38,15 +38,15 @@ class TestReadMinimalCrate:
 
     def test_loads_entities(self):
         g = self._load()
-        # Root dataset + alice + bob + acme + 4 Files = 8 entities.
-        # Reified relationship is an edge, not an entity.
-        assert len(g) == 8
+        # alice + bob + acme + 4 Files = 7 entities.
+        # Root dataset excluded by default; reified relationship is an edge.
+        assert len(g) == 7
 
     def test_entity_types(self):
         g = self._load()
         assert "Person" in g.types
         assert "Organisation" in g.types
-        assert "Dataset" in g.types
+        assert "File" in g.types
 
     def test_entity_properties(self):
         g = self._load()
@@ -61,6 +61,21 @@ class TestReadMinimalCrate:
     def test_metadata_has_context(self):
         g = self._load()
         assert "@context" in g.metadata
+
+    def test_metadata_has_root_properties(self):
+        g = self._load()
+        assert g.metadata["name"] == "Minimal test crate"
+        assert "description" in g.metadata
+
+    def test_root_excluded_by_default(self):
+        g = self._load()
+        assert "./" not in g._entities
+
+    def test_include_root_restores_root_entity(self):
+        g = Crate(str(MINIMAL), include_root=True)
+        assert "./" in g._entities
+        assert len(g) == 8
+        assert "Dataset" in g.types
 
     def test_reified_relationship(self):
         g = self._load()

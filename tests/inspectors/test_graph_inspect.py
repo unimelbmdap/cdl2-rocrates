@@ -75,7 +75,8 @@ class TestGraphInspect:
         with pytest.raises(ValueError, match="contextual entity"):
             crate.inspect("https://example.com/resource")
 
-    def test_inspect_root_dataset_raises(self, crate):
+    def test_inspect_root_dataset_raises(self):
+        crate = Crate(str(FIXTURES), include_root=True)
         with pytest.raises(ValueError, match="contextual entity"):
             crate.inspect("./")
 
