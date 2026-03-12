@@ -121,6 +121,158 @@ def _format_type_rows(counts: dict[str, int], *, top_n: int = 5, max_bar: int = 
     return rows
 
 
+@dataclass
+class GraphProfile:
+    """Structural profile of a graph — deeper metrics than GraphSummary.
+
+    Degree is measured as unique neighbour count (not edge count),
+    consistent with ``most_connected()``.  Density uses the simple
+    directed graph formula n*(n-1) and can exceed 1.0 for multi-edge
+    graphs.
+    """
+
+    entity_count: int
+    relationship_count: int
+    density: float
+    entity_type_count: int
+    relationship_type_count: int
+    component_count: int
+    largest_component_fraction: float
+    max_degree: int
+    mean_degree: float
+    median_degree: float
+    degree_skewness: float
+    max_edge_multiplicity: int
+    mean_edge_multiplicity: float
+    self_loop_count: int
+    isolate_count: int
+    source: str | None = None
+
+    def __repr__(self) -> str:
+        lines = ["=== Graph Profile ==="]
+        if self.source:
+            lines.append(f"Source: {self.source}")
+        lines.append(f"Entities: {self.entity_count} | Relationships: {self.relationship_count}")
+        lines.append(f"Density: {self.density:.4f}")
+        lines.append(
+            f"Types: {self.entity_type_count} entity, {self.relationship_type_count} relationship"
+        )
+        lines.append(
+            f"Components: {self.component_count} (largest: {self.largest_component_fraction:.1%})"
+        )
+        lines.append(
+            f"Degree: max={self.max_degree}, mean={self.mean_degree:.1f}, "
+            f"median={self.median_degree:.1f}, skew={self.degree_skewness:.2f}"
+        )
+        lines.append(
+            f"Edge multiplicity: max={self.max_edge_multiplicity}, "
+            f"mean={self.mean_edge_multiplicity:.1f}"
+        )
+        lines.append(f"Self-loops: {self.self_loop_count} | Isolates: {self.isolate_count}")
+        return "\n".join(lines)
+
+    def _repr_html_(self) -> str:
+        from html import escape
+
+        return f"<pre style='font-size:13px; line-height:1.4'>{escape(repr(self))}</pre>"
+
+
+def profile(graph: Graph) -> GraphProfile:
+    """Return a structural profile of the graph."""
+    from statistics import median
+
+    import networkx as nx
+
+    n = len(graph._entities)
+    m = len(graph._relationships)
+
+    # Density: edges / max possible directed edges.
+    max_edges = n * (n - 1) if n > 1 else 0
+    density = m / max_edges if max_edges > 0 else 0.0
+
+    # Type cardinalities.
+    entity_types: set[str] = set()
+    for e in graph._entities.values():
+        entity_types.update(e.types)
+    rel_types = set(r.type for r in graph._relationships)
+
+    # Build undirected nx graph for component analysis.
+    nx_graph = nx.Graph()
+    for eid in graph._entities:
+        nx_graph.add_node(eid)
+    for rel in graph._relationships:
+        if rel.source in graph._entities and rel.target in graph._entities:
+            nx_graph.add_edge(rel.source, rel.target)
+
+    # Components.
+    if n == 0:
+        comp_count = 0
+        largest_frac = 0.0
+    else:
+        components = list(nx.connected_components(nx_graph))
+        comp_count = len(components)
+        largest_frac = max(len(c) for c in components) / n
+
+    # Degree distribution (unique neighbours, both directions).
+    degrees = [len(graph._neighbours(eid)) for eid in graph._entities]
+    if degrees:
+        max_deg = max(degrees)
+        mean_deg = sum(degrees) / len(degrees)
+        med_deg = float(median(degrees))
+        # Skewness: Fisher-Pearson (avoid scipy dependency).
+        if len(degrees) >= 3:
+            std = (sum((d - mean_deg) ** 2 for d in degrees) / len(degrees)) ** 0.5
+            if std > 0:
+                skew = sum((d - mean_deg) ** 3 for d in degrees) / (len(degrees) * std**3)
+            else:
+                skew = 0.0
+        else:
+            skew = 0.0
+    else:
+        max_deg = 0
+        mean_deg = 0.0
+        med_deg = 0.0
+        skew = 0.0
+
+    # Edge multiplicity — count edges per unordered node pair.
+    pair_counts: Counter[frozenset[str]] = Counter()
+    self_loops = 0
+    for rel in graph._relationships:
+        if rel.source == rel.target:
+            self_loops += 1
+        else:
+            pair_counts[frozenset((rel.source, rel.target))] += 1
+
+    if pair_counts:
+        max_mult = max(pair_counts.values())
+        mean_mult = sum(pair_counts.values()) / len(pair_counts)
+    else:
+        max_mult = 0
+        mean_mult = 0.0
+
+    # Isolates.
+    isolate_count = sum(1 for d in degrees if d == 0)
+
+    return GraphProfile(
+        entity_count=n,
+        relationship_count=m,
+        density=density,
+        entity_type_count=len(entity_types),
+        relationship_type_count=len(rel_types),
+        component_count=comp_count,
+        largest_component_fraction=largest_frac,
+        max_degree=max_deg,
+        mean_degree=mean_deg,
+        median_degree=med_deg,
+        degree_skewness=skew,
+        max_edge_multiplicity=max_mult,
+        mean_edge_multiplicity=mean_mult,
+        self_loop_count=self_loops,
+        isolate_count=isolate_count,
+        source=graph.source,
+    )
+
+
 def detect_communities(
     graph: Graph,
     *,

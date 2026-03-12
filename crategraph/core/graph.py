@@ -154,6 +154,10 @@ class Graph:
         """Return the top *n* entities by number of connections."""
         return analysis_mod.most_connected(self, n=n, entity_types=entity_types)
 
+    def profile(self) -> analysis_mod.GraphProfile:
+        """Return a structural profile with density, components, degree stats."""
+        return analysis_mod.profile(self)
+
     # --- Visualisation ---
 
     def visualise(
