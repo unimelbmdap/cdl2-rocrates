@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from crategraph.core.corpus import Corpus
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
 from crategraph.readers.rocrate import ROCrateReader
@@ -112,4 +113,4 @@ class Crate(Graph):
             )
 
 
-__all__ = ["Crate", "Graph"]
+__all__ = ["Corpus", "Crate", "Graph"]
