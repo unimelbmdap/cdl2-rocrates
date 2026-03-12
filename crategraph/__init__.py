@@ -80,6 +80,51 @@ class Crate(Graph):
             return p.parent.name
         return p.name
 
+    def _restore_root(self) -> None:
+        """Re-add the root Dataset entity from stored metadata.
+
+        Reconstructs the ``./`` entity (or prefixed variants for multi-crate
+        graphs) from ``self.metadata`` and adds it back into the graph.
+        No-op if the root is already present.
+
+        This is intended for internal use by writers and other components
+        that need a complete RO-Crate representation including the root
+        Dataset node.
+        """
+        root_id = "./"
+        # Multi-crate: metadata is nested under per-crate prefixes.
+        if self.source is None and self._source_names:
+            for source_path in sorted(self._source_names):
+                prefix = Path(source_path).name
+                prefixed_root_id = f"{prefix}/{root_id}"
+                if prefixed_root_id in self._entities:
+                    continue
+                crate_meta = self.metadata.get(prefix, {})
+                props = {k: v for k, v in crate_meta.items() if k != "@context"}
+                props["raw_id"] = root_id
+                self._add_node(
+                    Entity(
+                        id=prefixed_root_id,
+                        types=["Dataset"],
+                        properties=props,
+                        source=source_path,
+                    )
+                )
+            return
+
+        # Single-crate: root is simply "./".
+        if root_id in self._entities:
+            return
+        props = {k: v for k, v in self.metadata.items() if k != "@context"}
+        self._add_node(
+            Entity(
+                id=root_id,
+                types=["Dataset"],
+                properties=props,
+                source=self.source,
+            )
+        )
+
     def _ingest_prefixed(self, loaded: Graph, prefix: str) -> None:
         """Add entities and relationships from *loaded* with prefixed IDs."""
         # Build ID mapping: raw_id -> prefixed_id
