@@ -133,7 +133,7 @@ class ROCrateReader(Reader):
     def _is_reified_relationship(self, raw_type: str | list[str]) -> bool:
         if isinstance(raw_type, list):
             return "Relationship" in raw_type
-        return False
+        return raw_type == "Relationship"
 
     def _extract_properties(self, item: dict[str, Any]) -> dict[str, Any]:
         skip = {"@id", "@type"}

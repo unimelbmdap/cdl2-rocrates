@@ -186,6 +186,9 @@ pyrightconfig.json
 # Worktrees
 .worktrees/
 
+# Pytest temp directories
+pytest-of-*/
+
 # macOS
 .DS_Store
 

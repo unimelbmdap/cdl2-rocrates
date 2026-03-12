@@ -168,6 +168,79 @@ class TestGraphProfile:
         assert p.isolate_count == 0
 
 
+class TestEntityTypeDistribution:
+    def test_entity_type_counts(self):
+        p = _build_simple_graph().profile()
+        assert p.entity_type_counts == {"Person": 2, "Organisation": 1, "Event": 1}
+
+    def test_relationship_type_counts(self):
+        p = _build_simple_graph().profile()
+        assert p.relationship_type_counts == {"memberOf": 2, "attended": 2}
+
+    def test_top_entity_type_fraction_uniform(self):
+        """Person is 2/4 = 0.5 of entities."""
+        p = _build_simple_graph().profile()
+        assert abs(p.top_entity_type_fraction - 0.5) < 1e-9
+
+    def test_top_entity_type_fraction_dominated(self):
+        """Graph dominated by one type."""
+        g = Graph()
+        for i in range(9):
+            g._add_node(Entity(id=f"#f{i}", types=["File"]))
+        g._add_node(Entity(id="#d", types=["Dataset"]))
+        p = g.profile()
+        assert abs(p.top_entity_type_fraction - 0.9) < 1e-9
+
+    def test_top_entity_type_fraction_empty(self):
+        assert Graph().profile().top_entity_type_fraction == 0.0
+
+    def test_counts_sorted_by_frequency(self):
+        """entity_type_counts should be ordered most-common first."""
+        p = _build_simple_graph().profile()
+        counts = list(p.entity_type_counts.values())
+        assert counts == sorted(counts, reverse=True)
+
+    def test_counts_use_primary_type(self):
+        """Multi-type entities are counted by their first type only."""
+        g = Graph()
+        g._add_node(Entity(id="#a", types=["Person", "Agent"]))
+        g._add_node(Entity(id="#b", types=["Person"]))
+        p = g.profile()
+        assert p.entity_type_counts == {"Person": 2}
+        # But entity_type_count includes all unique types.
+        assert p.entity_type_count == 2  # Person, Agent
+
+
+class TestDataEntityFraction:
+    def test_mixed_data_and_contextual(self):
+        g = Graph()
+        g._add_node(Entity(id="data.csv", types=["File"]))
+        g._add_node(Entity(id="subdir/", types=["Dataset"]))
+        g._add_node(Entity(id="#alice", types=["Person"]))
+        g._add_node(Entity(id="#org", types=["Organisation"]))
+        p = g.profile()
+        assert p.data_entity_count == 2
+        assert abs(p.data_entity_fraction - 0.5) < 1e-9
+
+    def test_root_dataset_excluded(self):
+        g = Graph()
+        g._add_node(Entity(id="./", types=["Dataset"]))
+        g._add_node(Entity(id="file.txt", types=["File"]))
+        p = g.profile()
+        assert p.data_entity_count == 1
+        assert abs(p.data_entity_fraction - 0.5) < 1e-9
+
+    def test_all_contextual(self):
+        p = _build_simple_graph().profile()
+        assert p.data_entity_count == 0
+        assert p.data_entity_fraction == 0.0
+
+    def test_empty_graph(self):
+        p = Graph().profile()
+        assert p.data_entity_count == 0
+        assert p.data_entity_fraction == 0.0
+
+
 class TestGraphProfileRepr:
     def test_repr_contains_density(self):
         r = repr(_build_simple_graph().profile())

@@ -136,16 +136,21 @@ class GraphProfile:
     density: float
     entity_type_count: int
     relationship_type_count: int
-    component_count: int
-    largest_component_fraction: float
-    max_degree: int
-    mean_degree: float
-    median_degree: float
-    degree_skewness: float
-    max_edge_multiplicity: int
-    mean_edge_multiplicity: float
-    self_loop_count: int
-    isolate_count: int
+    entity_type_counts: dict[str, int] = field(default_factory=dict)
+    relationship_type_counts: dict[str, int] = field(default_factory=dict)
+    top_entity_type_fraction: float = 0.0
+    data_entity_count: int = 0
+    data_entity_fraction: float = 0.0
+    component_count: int = 0
+    largest_component_fraction: float = 0.0
+    max_degree: int = 0
+    mean_degree: float = 0.0
+    median_degree: float = 0.0
+    degree_skewness: float = 0.0
+    max_edge_multiplicity: int = 0
+    mean_edge_multiplicity: float = 0.0
+    self_loop_count: int = 0
+    isolate_count: int = 0
     source: str | None = None
 
     def __repr__(self) -> str:
@@ -157,6 +162,16 @@ class GraphProfile:
         lines.append(
             f"Types: {self.entity_type_count} entity, {self.relationship_type_count} relationship"
         )
+        if self.entity_type_counts:
+            lines.append("")
+            lines.append("Entity types:")
+            lines.extend(_format_type_rows(self.entity_type_counts, top_n=5))
+        lines.append(
+            f"Data entities: {self.data_entity_count} ({self.data_entity_fraction:.0%}) "
+            f"| Contextual: {self.entity_count - self.data_entity_count} "
+            f"({1 - self.data_entity_fraction:.0%})"
+        )
+        lines.append("")
         lines.append(
             f"Components: {self.component_count} (largest: {self.largest_component_fraction:.1%})"
         )
@@ -190,11 +205,30 @@ def profile(graph: Graph) -> GraphProfile:
     max_edges = n * (n - 1) if n > 1 else 0
     density = m / max_edges if max_edges > 0 else 0.0
 
-    # Type cardinalities.
-    entity_types: set[str] = set()
+    # Type distributions.
+    entity_type_counter: Counter[str] = Counter()
     for e in graph._entities.values():
-        entity_types.update(e.types)
-    rel_types = set(r.type for r in graph._relationships)
+        # Count by primary type (first in list) to avoid double-counting
+        # multi-typed entities.
+        if e.types:
+            entity_type_counter[e.types[0]] += 1
+    entity_type_counts = dict(entity_type_counter.most_common())
+    rel_type_counter: Counter[str] = Counter(r.type for r in graph._relationships)
+    rel_type_counts = dict(rel_type_counter.most_common())
+
+    # All unique types (including secondary types from multi-type entities).
+    all_entity_types: set[str] = set()
+    for e in graph._entities.values():
+        all_entity_types.update(e.types)
+
+    # How dominated is the graph by its most common type?
+    top_entity_type_fraction = (
+        max(entity_type_counter.values()) / n if entity_type_counter else 0.0
+    )
+
+    # Data vs contextual entity split.
+    data_entity_count = sum(1 for e in graph._entities.values() if e.has_data)
+    data_entity_fraction = data_entity_count / n if n > 0 else 0.0
 
     # Build undirected nx graph for component analysis.
     nx_graph = nx.Graph()
@@ -257,8 +291,13 @@ def profile(graph: Graph) -> GraphProfile:
         entity_count=n,
         relationship_count=m,
         density=density,
-        entity_type_count=len(entity_types),
-        relationship_type_count=len(rel_types),
+        entity_type_count=len(all_entity_types),
+        relationship_type_count=len(rel_type_counts),
+        entity_type_counts=entity_type_counts,
+        relationship_type_counts=rel_type_counts,
+        top_entity_type_fraction=top_entity_type_fraction,
+        data_entity_count=data_entity_count,
+        data_entity_fraction=data_entity_fraction,
         component_count=comp_count,
         largest_component_fraction=largest_frac,
         max_degree=max_deg,

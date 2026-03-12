@@ -31,13 +31,25 @@ class CorpusProfile:
     def to_dataframe(self) -> Any:
         """Return profiles as a pandas DataFrame (one row per crate).
 
+        Dict fields (``entity_type_counts``, ``relationship_type_counts``)
+        are replaced with scalar summaries: ``top_entity_type`` and
+        ``top_relationship_type`` (most common type name).
+
         Requires ``pandas`` — install via ``pip install pandas``.
         """
         from dataclasses import asdict
 
         import pandas as pd
 
-        rows = [asdict(p) for p in self.profiles]
+        rows = []
+        for p in self.profiles:
+            row = asdict(p)
+            # Replace dicts with the top type name for flat DataFrame output.
+            etc = row.pop("entity_type_counts")
+            rtc = row.pop("relationship_type_counts")
+            row["top_entity_type"] = max(etc, key=etc.get) if etc else None
+            row["top_relationship_type"] = max(rtc, key=rtc.get) if rtc else None
+            rows.append(row)
         return pd.DataFrame(rows)
 
     def __repr__(self) -> str:
