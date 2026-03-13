@@ -113,13 +113,18 @@ class SigmaRenderer(Renderer):
         return Markup(html)
 
     @staticmethod
-    def _load_bundle() -> str:
-        """Load the vendored Sigma.js + graphology + FA2 JS bundle."""
-        return (
+    def _load_bundle() -> Markup:
+        """Load the vendored Sigma.js + graphology + FA2 JS bundle.
+
+        Returns ``Markup`` so MarkupSafe does not HTML-escape the JS
+        when it is substituted into the template via ``%`` formatting.
+        """
+        js = (
             files("crategraph.renderers.templates")
             .joinpath("vendor/sigma-fa2.min.js")
             .read_text(encoding="utf-8")
         )
+        return Markup(js)
 
     def render(
         self,
