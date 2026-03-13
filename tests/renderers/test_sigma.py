@@ -206,3 +206,39 @@ class TestSigmaRenderer:
             SigmaRenderer().render(g, filepath=filepath, colour_by="community")
             content = Path(filepath).read_text()
             assert "Alice" in content
+
+
+class TestGraphVisualiseSigma:
+    """Integration tests: Graph.visualise(renderer='sigma') full pipeline."""
+
+    def test_visualise_sigma(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "output.html")
+            result = g.visualise(renderer="sigma", filepath=filepath)
+            assert result == filepath
+            assert Path(filepath).exists()
+
+    def test_visualise_sigma_community(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "output.html")
+            result = g.visualise(renderer="sigma", filepath=filepath, colour_by="community")
+            assert result == filepath
+
+    def test_visualise_sigma_animated(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "output.html")
+            result = g.visualise(renderer="sigma", filepath=filepath, animated=True)
+            assert result == filepath
+            content = Path(filepath).read_text()
+            assert '"animated": true' in content or '"animated":true' in content
+
+    def test_merged_graph_visualise_sigma(self):
+        g = _build_graph()
+        merged = g.merge_nodes(by="type")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "merged.html")
+            result = merged.visualise(renderer="sigma", filepath=filepath)
+            assert result == filepath

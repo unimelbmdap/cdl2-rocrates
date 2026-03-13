@@ -205,10 +205,15 @@ class Graph:
             from crategraph.renderers.svg import SvgRenderer
 
             impl = SvgRenderer()
+        elif renderer == "sigma":
+            from crategraph.renderers.sigma import SigmaRenderer
+
+            impl = SigmaRenderer()
         else:
             msg = (
                 f'Unknown renderer "{renderer}". '
-                f'Choose "2d" (pyvis), "3d" (3d-force-graph), or "svg" (static SVG).'
+                'Choose "2d" (pyvis), "3d" (3d-force-graph), '
+                '"svg" (static SVG), or "sigma" (sigma.js WebGL).'
             )
             raise ValueError(msg)
 
