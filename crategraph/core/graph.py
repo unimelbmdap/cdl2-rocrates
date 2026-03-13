@@ -176,7 +176,8 @@ class Graph:
 
         Args:
             renderer: ``"2d"`` (default) for pyvis, ``"3d"`` for
-                3d-force-graph, ``"svg"`` for static SVG.
+                3d-force-graph, ``"svg"`` for static SVG,
+                ``"sigma"`` for sigma.js WebGL.
             colour_by: Property to colour nodes by (default ``"type"``).
                 Any entity property or attribute works. ``"community"``
                 auto-computes Louvain communities if not already present.

@@ -207,6 +207,23 @@ class TestSigmaRenderer:
             content = Path(filepath).read_text()
             assert "Alice" in content
 
+    def test_script_tag_in_entity_name_is_escaped(self):
+        """Verify </script> in node data cannot break out of the JSON script block."""
+        g = Graph()
+        g._add_node(
+            Entity(
+                id="#xss",
+                types=["Thing"],
+                properties={"name": "</script><script>alert(1)//"},
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "xss.html")
+            SigmaRenderer().render(g, filepath=filepath)
+            content = Path(filepath).read_text()
+            assert "</script><script>" not in content
+            assert "<\\/script>" in content
+
 
 class TestGraphVisualiseSigma:
     """Integration tests: Graph.visualise(renderer='sigma') full pipeline."""
