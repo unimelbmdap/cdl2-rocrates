@@ -165,10 +165,15 @@ class SigmaRenderer(Renderer):
         template = self._load_template()
         bundle = self._load_bundle()
 
+        # Escape '</script>' sequences in JSON to prevent XSS when
+        # embedding inside <script> tags (OWASP recommendation).
+        def _safe_json(obj: object) -> Markup:
+            return Markup(json.dumps(obj).replace("</", "<\\/"))
+
         html = template % {
-            "graph_data": Markup(json.dumps(graph_json)),
-            "type_colours": Markup(json.dumps(type_colours)),
-            "config": Markup(json.dumps(config)),
+            "graph_data": _safe_json(graph_json),
+            "type_colours": _safe_json(type_colours),
+            "config": _safe_json(config),
             "bundle": bundle,
             "height": height,
             "width": width,

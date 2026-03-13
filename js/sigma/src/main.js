@@ -148,8 +148,6 @@ function setupInteractions(graph, renderer, typeColours) {
 
 function runSyncLayout(graph, container, typeColours) {
   var status = document.getElementById("status");
-  status.textContent = "Building graph...";
-
   status.textContent = "Computing layout...";
   var t0 = performance.now();
   var settings = forceAtlas2.inferSettings(graph);
@@ -186,6 +184,9 @@ function runAnimatedLayout(graph, container, typeColours) {
 
   var fa2Layout = new FA2Layout(graph, { settings: settings });
   var isRunning = false;
+
+  btnToggle.style.display = "inline-block";
+  btnStop.style.display = "inline-block";
 
   fa2Layout.start();
   isRunning = true;
