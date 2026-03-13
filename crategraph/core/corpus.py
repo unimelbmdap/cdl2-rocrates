@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import glob as glob_mod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -184,6 +185,8 @@ class Corpus:
         columns: int = 0,
         cell_height: str = "280px",
         max_nodes: int = 10_000,
+        show_edges: bool = False,
+        transform: Callable[[Any], Any] | None = None,
         filepath: str | None = None,
     ) -> Any:
         """Render a grid of sigma thumbnails — one per crate.
@@ -196,6 +199,12 @@ class Corpus:
             size_by: Node sizing strategy.
             columns: Grid columns (0 = auto).
             cell_height: CSS height per thumbnail.
+            show_edges: Keep edges visible in thumbnails (default hides
+                them after layout to reduce visual clutter).
+            transform: Optional callable applied to each ``Graph`` after
+                loading (before sampling and JSON conversion).  For example
+                ``lambda g: g.merge_nodes(by="type")`` to show a
+                type-level summary of each crate.
             filepath: Save HTML to this path.
 
         Returns an ``IPython.display.HTML`` object or filepath string.
@@ -219,7 +228,9 @@ class Corpus:
                 graph = reader.read(path)
                 total_entities = len(graph._entities)
                 total_rels = len(graph._relationships)
-                if max_nodes > 0 and total_entities > max_nodes:
+                if transform is not None:
+                    graph = transform(graph)
+                if max_nodes > 0 and len(graph._entities) > max_nodes:
                     # Keep top-N nodes by degree for a representative thumbnail.
                     ranked = sorted(
                         graph._entities,
@@ -261,7 +272,7 @@ class Corpus:
         if columns <= 0:
             columns = min(4, math.ceil(math.sqrt(len(grid_data))))
 
-        config = {"grid": True}
+        config: dict[str, Any] = {"grid": True, "showEdges": show_edges}
         template = renderer._load_template(variant="grid")
         bundle = renderer._load_bundle()
 

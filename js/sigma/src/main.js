@@ -401,8 +401,10 @@ function initGrid() {
     var iters = n > 10000 ? 5 : n > 2000 ? 15 : n > 500 ? 30 : 50;
     forceAtlas2.assign(graph, { iterations: iters, settings: settings });
 
-    // Edges drove the layout — clear them so thumbnails show nodes only.
-    graph.clearEdges();
+    // Edges drove the layout — clear them unless the caller wants them visible.
+    if (!window.sigmaConfig.showEdges) {
+      graph.clearEdges();
+    }
 
     var renderer = new Sigma(graph, entry.container, {
       renderEdgeLabels: false,

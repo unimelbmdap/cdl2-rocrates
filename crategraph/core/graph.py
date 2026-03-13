@@ -468,7 +468,7 @@ class Graph:
             merged._add_node(
                 Entity(
                     id=label,
-                    types=["MergedGroup"],
+                    types=[label] if by == "type" else ["MergedGroup"],
                     properties={"label": label, "count": count, "merged_by": by},
                 )
             )
