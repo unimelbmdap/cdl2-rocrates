@@ -36,11 +36,11 @@ class Entity:
         """Whether this entity is a data entity (file or directory).
 
         Returns ``True`` if the entity has ``File`` or ``Dataset`` in its
-        types, per the RO-Crate specification.  The root dataset (``./``)
-        is excluded.
+        types, per the RO-Crate specification.  The root Dataset entity
+        is excluded (identified by the ``_is_root`` property flag set
+        during loading).
         """
-        raw_id = self.properties.get("raw_id", self.id)
-        if raw_id == "./":
+        if self.properties.get("_is_root"):
             return False
         return "File" in self.types or "Dataset" in self.types
 

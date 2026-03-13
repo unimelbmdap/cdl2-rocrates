@@ -66,12 +66,25 @@ class TestEntityHasData:
         assert e.has_data is True
 
     def test_root_dataset_excluded(self):
-        e = Entity(id="./", types=["Dataset"])
+        e = Entity(id="./", types=["Dataset"], properties={"_is_root": True})
+        assert e.has_data is False
+
+    def test_arcp_root_dataset_excluded(self):
+        """Root datasets with non-./ IDs are excluded via _is_root flag."""
+        e = Entity(
+            id="arcp://name,test",
+            types=["Dataset", "RepositoryCollection"],
+            properties={"_is_root": True},
+        )
         assert e.has_data is False
 
     def test_root_dataset_excluded_via_raw_id(self):
         """Multi-crate entities store original ID as raw_id."""
-        e = Entity(id="mycrate/./", types=["Dataset"], properties={"raw_id": "./"})
+        e = Entity(
+            id="mycrate/./",
+            types=["Dataset"],
+            properties={"raw_id": "./", "_is_root": True},
+        )
         assert e.has_data is False
 
     def test_person_contextual_entity(self):

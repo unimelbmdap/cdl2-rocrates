@@ -278,7 +278,12 @@ class Graph:
 
         # Reject contextual entities.
         entity_id = entity.properties.get("raw_id", entity.id)
-        if entity_id.startswith("#") or entity_id.startswith("http") or entity_id == "./":
+        if (
+            entity_id.startswith("#")
+            or entity_id.startswith("http")
+            or entity_id == "./"
+            or entity.properties.get("_is_root")
+        ):
             msg = (
                 f"Entity {entity.id!r} is a contextual entity "
                 f"— inspect() works with data entities that point to local files."
@@ -357,7 +362,12 @@ class Graph:
 
         # Reject contextual entities.
         entity_id = entity.properties.get("raw_id", entity.id)
-        if entity_id.startswith("#") or entity_id.startswith("http") or entity_id == "./":
+        if (
+            entity_id.startswith("#")
+            or entity_id.startswith("http")
+            or entity_id == "./"
+            or entity.properties.get("_is_root")
+        ):
             msg = (
                 f"Entity {entity.id!r} is a contextual entity "
                 f"— view() works with data entities that point to local files."

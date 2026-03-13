@@ -30,10 +30,12 @@ class Crate(Graph):
             ``True`` (default) — all inline refs become edges.
             ``False`` — only reified Relationship entities become edges.
             ``list[str]`` — only these property names become edges.
-        include_root: Whether to include the root Dataset entity (``./``)
-            as a node in the graph. Defaults to ``False`` — the root's
+        include_root: Whether to include the root Dataset entity as a
+            node in the graph. Defaults to ``False`` — the root's
             properties are promoted to ``metadata`` and the node and its
-            edges are excluded. Pass ``True`` to include it.
+            edges are excluded. Pass ``True`` to include it. The root
+            is identified via the metadata descriptor's ``about``
+            property per the RO-Crate spec (falls back to ``./``).
     """
 
     def __init__(
@@ -92,25 +94,32 @@ class Crate(Graph):
     def _restore_root(self) -> None:
         """Re-add the root Dataset entity from stored metadata.
 
-        Reconstructs the ``./`` entity (or prefixed variants for multi-crate
+        Reconstructs the root entity (or prefixed variants for multi-crate
         graphs) from ``self.metadata`` and adds it back into the graph.
         No-op if the root is already present.
+
+        The root ``@id`` is read from ``metadata["_root_id"]`` (set by
+        ``ROCrateReader`` during loading), falling back to ``"./"`` for
+        crates that lack a metadata descriptor.
 
         This is intended for internal use by writers and other components
         that need a complete RO-Crate representation including the root
         Dataset node.
         """
-        root_id = "./"
+        _meta_keys = {"@context", "_root_id"}
+
         # Multi-crate: metadata is nested under per-crate prefixes.
         if self.source is None and self._source_names:
             for source_path in sorted(self._source_names):
                 prefix = Path(source_path).name
+                crate_meta = self.metadata.get(prefix, {})
+                root_id = crate_meta.get("_root_id", "./")
                 prefixed_root_id = f"{prefix}/{root_id}"
                 if prefixed_root_id in self._entities:
                     continue
-                crate_meta = self.metadata.get(prefix, {})
-                props = {k: v for k, v in crate_meta.items() if k != "@context"}
+                props = {k: v for k, v in crate_meta.items() if k not in _meta_keys}
                 props["raw_id"] = root_id
+                props["_is_root"] = True
                 self._add_node(
                     Entity(
                         id=prefixed_root_id,
@@ -121,10 +130,12 @@ class Crate(Graph):
                 )
             return
 
-        # Single-crate: root is simply "./".
+        # Single-crate.
+        root_id = self.metadata.get("_root_id", "./")
         if root_id in self._entities:
             return
-        props = {k: v for k, v in self.metadata.items() if k != "@context"}
+        props = {k: v for k, v in self.metadata.items() if k not in _meta_keys}
+        props["_is_root"] = True
         self._add_node(
             Entity(
                 id=root_id,

@@ -61,7 +61,7 @@ class ROCrateReader(Reader):
         )
 
         items = data.get("@graph", [])
-        root_id = "./"
+        root_id = self._detect_root_id(items)
 
         # Promote root Dataset properties to graph.metadata (always).
         for item in items:
@@ -69,12 +69,22 @@ class ROCrateReader(Reader):
                 graph.metadata.update(self._extract_properties(item))
                 break
 
+        # Store root ID after promotion so it can't be overwritten.
+        graph.metadata["_root_id"] = root_id
+
         # First pass: create all entities.
         for item in items:
             if not self._include_root and item.get("@id") == root_id:
                 continue
             entity = self._parse_entity(item, source=str(metadata_path.parent))
             if entity is not None:
+                if item.get("@id") == root_id:
+                    entity = Entity(
+                        id=entity.id,
+                        types=entity.types,
+                        properties={**entity.properties, "_is_root": True},
+                        source=entity.source,
+                    )
                 graph._add_node(entity)
 
         # Second pass: extract relationships (reified + inline @id refs).
@@ -87,6 +97,29 @@ class ROCrateReader(Reader):
                 graph._add_edge(rel)
 
         return graph
+
+    def _detect_root_id(self, items: list[dict[str, Any]]) -> str:
+        """Detect the root Dataset ``@id`` from the metadata descriptor.
+
+        Per the RO-Crate spec, the root Dataset is referenced by the
+        ``about`` property of the ``ro-crate-metadata.json`` entity.
+        Falls back to ``"./"`` if not found.
+        """
+        for item in items:
+            if item.get("@id") == "ro-crate-metadata.json":
+                about = item.get("about")
+                if isinstance(about, dict) and "@id" in about:
+                    return about["@id"]
+                if isinstance(about, str):
+                    return about
+                if isinstance(about, list) and about:
+                    first = about[0]
+                    if isinstance(first, dict) and "@id" in first:
+                        return first["@id"]
+                    if isinstance(first, str):
+                        return first
+                break
+        return "./"
 
     # --- Path resolution ---
 

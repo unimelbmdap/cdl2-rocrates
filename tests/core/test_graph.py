@@ -157,7 +157,7 @@ class TestEntities:
 class TestFiles:
     def test_files_returns_only_data_entities(self):
         g = Graph()
-        g._add_node(Entity(id="./", types=["Dataset"]))
+        g._add_node(Entity(id="./", types=["Dataset"], properties={"_is_root": True}))
         g._add_node(Entity(id="#alice", types=["Person"]))
         g._add_node(
             Entity(id="data.csv", types=["File"], properties={"encodingFormat": "text/csv"})

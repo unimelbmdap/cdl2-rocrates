@@ -12,6 +12,7 @@ from crategraph.readers.rocrate import ROCrateReader
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 MINIMAL = FIXTURES / "minimal-crate"
 QUIRKY = FIXTURES / "quirky-crate"
+ARCP_ROOT = FIXTURES / "arcp-root-crate"
 
 
 class TestCanRead:
@@ -259,6 +260,92 @@ class TestInlineRelationsTypeError:
         """TypeError is raised by ROCrateReader, not just Crate."""
         with pytest.raises(TypeError, match="inline_relations must be bool or list"):
             ROCrateReader(inline_relations="bad")
+
+
+class TestRootIdDetection:
+    """Root ID is detected from the metadata descriptor's ``about`` property."""
+
+    def test_minimal_crate_root_id_is_dot_slash(self):
+        reader = ROCrateReader(include_root=True)
+        g = reader.read(str(MINIMAL))
+        assert g.metadata["_root_id"] == "./"
+
+    def test_arcp_root_id_detected(self):
+        reader = ROCrateReader(include_root=True)
+        g = reader.read(str(ARCP_ROOT))
+        assert g.metadata["_root_id"] == "arcp://name,test-collection"
+
+    def test_arcp_root_entity_in_graph_when_included(self):
+        g = Crate(str(ARCP_ROOT), include_root=True)
+        assert "arcp://name,test-collection" in g._entities
+
+    def test_arcp_root_excluded_by_default(self):
+        g = Crate(str(ARCP_ROOT))
+        assert "arcp://name,test-collection" not in g._entities
+
+    def test_arcp_root_metadata_promoted(self):
+        g = Crate(str(ARCP_ROOT))
+        assert g.metadata["name"] == "Test collection with arcp root"
+        assert "description" in g.metadata
+
+    def test_arcp_root_edges_excluded_by_default(self):
+        g = Crate(str(ARCP_ROOT))
+        root_id = "arcp://name,test-collection"
+        for rel in g.relationships:
+            assert rel.source != root_id
+            assert rel.target != root_id
+
+    def test_arcp_root_has_is_root_flag(self):
+        g = Crate(str(ARCP_ROOT), include_root=True)
+        root = g._entities["arcp://name,test-collection"]
+        assert root.properties.get("_is_root") is True
+
+    def test_minimal_root_has_is_root_flag(self):
+        g = Crate(str(MINIMAL), include_root=True)
+        root = g._entities["./"]
+        assert root.properties.get("_is_root") is True
+
+    def test_arcp_root_has_data_false(self):
+        g = Crate(str(ARCP_ROOT), include_root=True)
+        root = g._entities["arcp://name,test-collection"]
+        assert root.has_data is False
+
+    def test_arcp_non_root_dataset_has_data_true(self):
+        g = Crate(str(ARCP_ROOT), include_root=True)
+        sub = g._entities["arcp://name,test-collection/subcollection/"]
+        assert sub.has_data is True
+
+    def test_non_root_entities_not_flagged(self):
+        g = Crate(str(ARCP_ROOT), include_root=True)
+        alice = g._entities["#alice"]
+        assert "_is_root" not in alice.properties
+
+    def test_entity_count_without_root(self):
+        g = Crate(str(ARCP_ROOT))
+        # alice + bob + acme + report.csv + subcollection + ro-crate-metadata.json = 6
+        assert len(g) == 6
+
+    def test_entity_count_with_root(self):
+        g = Crate(str(ARCP_ROOT), include_root=True)
+        # Same 6 + root = 7
+        assert len(g) == 7
+
+    def test_fallback_to_dot_slash_without_descriptor(self, tmp_path: Path):
+        """Crate with no ro-crate-metadata.json entity falls back to './'."""
+        import json
+
+        metadata = {
+            "@context": "https://w3id.org/ro/crate/1.1/context",
+            "@graph": [
+                {"@id": "./", "@type": "Dataset", "name": "No descriptor"},
+                {"@id": "#item", "@type": "Thing", "name": "An item"},
+            ],
+        }
+        (tmp_path / "ro-crate-metadata.json").write_text(json.dumps(metadata))
+        reader = ROCrateReader()
+        g = reader.read(str(tmp_path))
+        assert g.metadata["_root_id"] == "./"
+        assert g.metadata["name"] == "No descriptor"
 
 
 class TestReadIAEACrate:

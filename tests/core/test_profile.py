@@ -224,7 +224,7 @@ class TestDataEntityFraction:
 
     def test_root_dataset_excluded(self):
         g = Graph()
-        g._add_node(Entity(id="./", types=["Dataset"]))
+        g._add_node(Entity(id="./", types=["Dataset"], properties={"_is_root": True}))
         g._add_node(Entity(id="file.txt", types=["File"]))
         p = g.profile()
         assert p.data_entity_count == 1

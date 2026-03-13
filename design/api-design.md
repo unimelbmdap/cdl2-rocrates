@@ -41,11 +41,15 @@ crategraph/
 ```python
 from crategraph import Crate
 
-# Single crate
+# Single crate — root Dataset excluded by default, its properties
+# promoted to crate.metadata["name"], crate.metadata["description"], etc.
 crate = Crate("path/to/ro-crate")
 
 # Multiple crates merged into one graph
 crate = Crate("crate1/", "crate2/", "crate3/")
+
+# Include the root Dataset entity as a graph node
+crate = Crate("path/", include_root=True)
 
 # Control which inline @id references become edges
 crate = Crate("path/", inline_relations=True)         # all (default)

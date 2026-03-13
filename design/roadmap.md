@@ -6,49 +6,22 @@ Planned features and future directions for crategraph. These are deferred until 
 
 Profiling 47 crates across two collections identified four structural archetypes (Star, Hairball, Archipelago, Compact — see [crate-archetypes](../docs/crate-archetypes.md)). These findings expose gaps between the current API surface and the workflows users actually need. The challenges below are listed in priority order.
 
-### Root Dataset handling
+### Root Dataset handling — implemented
 
-**The problem.** The root Dataset entity (`./`) is connected to virtually every other entity in most crates. It inflates degree metrics, dominates force-directed layouts, and is informationally empty for structural analysis purposes. The archetypes doc calls filtering it out "almost always the right first step," yet the current API requires users to do this manually every time via `select()`.
+The root Dataset entity is excluded at load time by default. `Crate` defaults to `include_root=False`, and `ROCrateReader` accepts the same parameter (defaulting to `True` for backward compatibility when used directly).
 
-The question is not whether to address this, but *where in the stack* to address it. Making every analysis/rendering method accept an `include_root` parameter would be a maintenance burden and inconsistent across the API. The root needs to be dealt with once, in one place.
+**What was implemented (Option A from the original analysis):**
 
-**What the root entity is used for today:**
+- `ROCrateReader` detects the root entity via the metadata descriptor's `about` property per the RO-Crate spec, falling back to `"./"` if no descriptor is present. This handles both OHRM crates (which use `@id: "./"`) and LDaCA crates (which use `arcp://` URIs).
+- Root entity properties (name, description, licence, etc.) are always promoted to `Graph.metadata`, regardless of `include_root`. For single crates, these are accessible as `crate.metadata["name"]`. For multi-crate graphs, they're nested under per-crate prefixes: `crate.metadata["prefix"]["name"]`.
+- All edges to/from the root are silently dropped when `include_root=False`. `isPartOf: ./` edges are tautological and carry no structural information.
+- The root entity is marked with an `_is_root` property flag, used by `Entity.has_data`, `inspect()`, and `view()` to identify the root regardless of its `@id` format.
+- `Crate._restore_root()` reconstructs the root entity from stored metadata when needed (e.g. for writers that need a complete RO-Crate representation).
 
-- It carries collection-level metadata (name, description, licence, datePublished, etc.) in its properties
-- `Entity.has_data` already explicitly excludes it (`models.py:43`)
-- `inspect()` and `view()` already explicitly reject it (`graph.py:281, 360`)
-- `Graph.metadata` currently only stores `@context` from the JSON-LD wrapper — *not* the root entity's properties
+**Impact on profiling data** (see [crate-archetypes](../docs/crate-archetypes.md)):
 
-So several methods already special-case the root. It's a packaging artefact, not a structural participant.
-
-**Options:**
-
-**A. Exclude at load time** — `Crate("path/", include_root=False)` as the default, with `include_root=True` to opt back in.
-
-The `ROCrateReader` would skip the `./` entity and all its incident edges during parsing. The root entity's properties (name, description, licence) would be merged into `Graph.metadata` so they're accessible via `crate.metadata["name"]` etc., rather than lost entirely.
-
-- *For:* Cleanest downstream — no method ever sees the root node. The graph represents the crate's *content*, while `metadata` describes the *collection*. This matches how researchers actually think about the data.
-- *Against:* Breaking change to default behaviour. Users who currently iterate `crate.entities` and expect to find `./` would need to update code. Multi-crate loading would need to handle per-crate metadata. Edges from other entities that reference `./` as a target (e.g. `isPartOf: {"@id": "./"}`) would become orphaned and need handling (drop silently? redirect to a synthetic collection node?).
-- *Edge case:* Some edges point *to* the root (e.g. `isPartOf: ./`). These would need to either be dropped or redirected. Dropping them is likely fine — `isPartOf: ./` is tautological ("this entity is part of the collection") and carries no structural information.
-
-**B. Promote root metadata to `Graph.metadata`, keep node, add convenience method** — `crate.without_root()` returns a new Graph with the root entity and its edges removed.
-
-The root entity's properties would be copied to `Graph.metadata` at load time (in addition to `@context`), so metadata access doesn't require the node. The root node would remain in the graph for backwards compatibility but could be explicitly removed.
-
-- *For:* Non-breaking. Metadata accessible either way. Users who need the root can keep it.
-- *Against:* Root still distorts every default `profile()`, `summary()`, `most_connected()`, and `visualise()` call. Users still need to remember to remove it. Doesn't solve the "almost always the right first step" problem — it just makes the step slightly more convenient.
-
-**C. Shadow entity — root stored on `Crate` but excluded from graph traversal** — `crate.root` returns the Entity, but it doesn't appear in `crate.entities`, `crate.relationships`, or any graph operation.
-
-- *For:* Root metadata accessible via `crate.root.properties["name"]`. Graph operations are clean without explicit removal.
-- *Against:* Two-tier entity system is confusing. "Is the root in the graph or not?" Edges involving the root would also need to be shadowed, adding complexity to the backend. Hard to explain in documentation.
-
-**D. Exclude from analysis/rendering defaults** — every method that computes metrics or renders the graph skips the root by default, with an `include_root=True` escape hatch.
-
-- *For:* Root stays in the graph for iteration/access. Analysis is clean by default.
-- *Against:* Every method needs the parameter. Inconsistent behaviour — `len(crate)` includes the root, `profile()` doesn't. Testing burden multiplies. This is the approach the archetypes doc implicitly warns against.
-
-**Recommendation:** Option A (exclude at load time) is the cleanest long-term design, with Option B as a non-breaking stepping stone. The root entity's properties should be promoted to `Graph.metadata` regardless of which option is chosen — that metadata belongs on the collection, not on a graph node. If Option A is adopted, `isPartOf: ./` edges should be silently dropped (they're tautological), and the parameter should be `include_root=True` to opt back in rather than `exclude_root` to avoid double-negatives.
+- OHRM crates: 24 of 27 stars eliminated. Hub ratios drop from ~1.0 to 0.01–0.56. Graphs fragment from 1 component into dozens or hundreds — the root was the sole structural glue.
+- LDaCA crates: modest changes for most. A few small crates (Holmer Fieldnotes, Expanded Auslan) see dramatic hub ratio drops where the root was the dominant hub.
 
 ### Archetype detection
 

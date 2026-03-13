@@ -1,0 +1,45 @@
+{
+    "@context": "https://w3id.org/ro/crate/1.1/context",
+    "@graph": [
+        {
+            "@id": "ro-crate-metadata.json",
+            "@type": "CreativeWork",
+            "about": {"@id": "arcp://name,test-collection"},
+            "conformsTo": {"@id": "https://w3id.org/ro/crate/1.1"}
+        },
+        {
+            "@id": "arcp://name,test-collection",
+            "@type": ["Dataset", "RepositoryCollection"],
+            "name": "Test collection with arcp root",
+            "description": "A crate whose root Dataset uses an arcp:// URI instead of ./"
+        },
+        {
+            "@id": "#alice",
+            "@type": "Person",
+            "name": "Alice Smith"
+        },
+        {
+            "@id": "#bob",
+            "@type": "Person",
+            "name": "Bob Jones",
+            "worksFor": {"@id": "#acme"}
+        },
+        {
+            "@id": "#acme",
+            "@type": "Organisation",
+            "name": "ACME Corp"
+        },
+        {
+            "@id": "data/report.csv",
+            "@type": "File",
+            "name": "Report data",
+            "encodingFormat": "text/csv"
+        },
+        {
+            "@id": "arcp://name,test-collection/subcollection/",
+            "@type": ["Dataset", "RepositoryObject"],
+            "name": "Subcollection dataset",
+            "pcdm:memberOf": {"@id": "arcp://name,test-collection"}
+        }
+    ]
+}

@@ -11,6 +11,7 @@ from crategraph import Crate
 FIXTURES = Path(__file__).parent / "fixtures"
 MINIMAL = str(FIXTURES / "minimal-crate")
 SECOND = str(FIXTURES / "second-crate")
+ARCP_ROOT = str(FIXTURES / "arcp-root-crate")
 
 
 class TestSinglePathBackwardsCompatible:
@@ -272,6 +273,47 @@ class TestRestoreRootMultiCrate:
         original_count = len(crate)
         crate._restore_root()
         assert len(crate) == original_count
+
+
+class TestRestoreRootArcpCrate:
+    """_restore_root() works with arcp:// root IDs."""
+
+    def test_restores_arcp_root(self):
+        crate = Crate(ARCP_ROOT)
+        root_id = "arcp://name,test-collection"
+        assert root_id not in crate._entities
+        crate._restore_root()
+        assert root_id in crate._entities
+
+    def test_restored_arcp_root_has_metadata(self):
+        crate = Crate(ARCP_ROOT)
+        crate._restore_root()
+        root = crate._entities["arcp://name,test-collection"]
+        assert root.properties["name"] == "Test collection with arcp root"
+
+    def test_restored_arcp_root_has_is_root_flag(self):
+        crate = Crate(ARCP_ROOT)
+        crate._restore_root()
+        root = crate._entities["arcp://name,test-collection"]
+        assert root.properties["_is_root"] is True
+
+    def test_restored_arcp_root_has_data_false(self):
+        crate = Crate(ARCP_ROOT)
+        crate._restore_root()
+        root = crate._entities["arcp://name,test-collection"]
+        assert root.has_data is False
+
+    def test_noop_when_arcp_root_present(self):
+        crate = Crate(ARCP_ROOT, include_root=True)
+        original_count = len(crate)
+        crate._restore_root()
+        assert len(crate) == original_count
+
+    def test_root_id_excluded_from_restored_properties(self):
+        crate = Crate(ARCP_ROOT)
+        crate._restore_root()
+        root = crate._entities["arcp://name,test-collection"]
+        assert "_root_id" not in root.properties
 
 
 class TestMultiCrateWithInlineRelations:
