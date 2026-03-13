@@ -35,7 +35,7 @@ function buildGraph(graphData) {
       size: n.size,
       color: n.color,
       label: n.label,
-      entityType: n.type,
+      entityType: n.entityType,
       degree: n.degree,
       originalColor: n.color,
     });
@@ -46,7 +46,6 @@ function buildGraph(graphData) {
       graph.addEdge(e.source, e.target, {
         color: e.color,
         size: 0.5,
-        relType: e.type,
       });
     }
   });
@@ -86,7 +85,7 @@ function setupInteractions(graph, renderer, typeColours) {
         '<div class="legend-item"><div class="legend-swatch" style="background:' +
         typeColours[t] +
         '"></div><span>' +
-        t +
+        escapeHtml(t) +
         "</span></div>";
     });
   legendEl.innerHTML = legendHtml;
