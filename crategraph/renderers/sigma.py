@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import math
 import random
+from importlib.resources import files
 from typing import TYPE_CHECKING, Any
 
+from markupsafe import Markup
+
 from crategraph.core.interfaces import Renderer
-from crategraph.renderers._colours import resolve_colour_map
+from crategraph.renderers._colours import PALETTE, resolve_colour_map
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
@@ -99,5 +102,83 @@ class SigmaRenderer(Renderer):
 
         return {"nodes": nodes, "edges": edges}
 
-    def render(self, graph: Graph, **kwargs: Any) -> Any:
-        raise NotImplementedError  # implemented in Task 5
+    @staticmethod
+    def _load_template() -> Markup:
+        """Load the Sigma.js HTML template from the templates directory."""
+        html = (
+            files("crategraph.renderers.templates")
+            .joinpath("sigma.html")
+            .read_text(encoding="utf-8")
+        )
+        return Markup(html)
+
+    @staticmethod
+    def _load_bundle() -> str:
+        """Load the vendored Sigma.js + graphology + FA2 JS bundle."""
+        return (
+            files("crategraph.renderers.templates")
+            .joinpath("vendor/sigma-fa2.min.js")
+            .read_text(encoding="utf-8")
+        )
+
+    def render(
+        self,
+        graph: Graph,
+        *,
+        colour_by: str = "type",
+        size_by: str = "connections",
+        height: str = "100vh",
+        width: str = "100%",
+        filepath: str | None = None,
+        animated: bool = False,
+        **kwargs: Any,
+    ) -> Any:
+        """Build a Sigma.js HTML visualisation from *graph*.
+
+        Args:
+            colour_by: Property to colour nodes by (default ``"type"``).
+                ``"community"`` auto-computes Louvain communities.
+            size_by: ``"connections"`` (default) scales node size by degree.
+            height: CSS height of the canvas.
+            width: CSS width of the canvas.
+            filepath: If given, save the HTML to this path and return it.
+            animated: If ``True``, run ForceAtlas2 in animated (web-worker)
+                mode; otherwise run a synchronous layout pass.
+
+        Returns an ``IPython.display.HTML`` object for notebook display,
+        or the filepath string if *filepath* was provided.
+        """
+        import json
+
+        graph_json = self._graph_to_json(
+            graph,
+            colour_by=colour_by,
+            size_by=size_by,
+        )
+
+        # Build type → colour mapping for the legend.
+        types = sorted({e.type for e in graph._entities.values()})
+        type_colours = {t: PALETTE[i % len(PALETTE)] for i, t in enumerate(types)}
+
+        config = {"animated": animated}
+
+        template = self._load_template()
+        bundle = self._load_bundle()
+
+        html = template % {
+            "graph_data": Markup(json.dumps(graph_json)),
+            "type_colours": Markup(json.dumps(type_colours)),
+            "config": Markup(json.dumps(config)),
+            "bundle": bundle,
+            "height": height,
+            "width": width,
+        }
+
+        if filepath:
+            with open(filepath, "w", encoding="utf-8") as fh:
+                fh.write(html)
+            return filepath
+
+        from IPython.display import HTML
+
+        return HTML(html)

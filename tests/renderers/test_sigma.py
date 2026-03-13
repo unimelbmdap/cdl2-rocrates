@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import tempfile
+from pathlib import Path
 
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
@@ -129,3 +131,78 @@ class TestGraphToJson:
         g = _build_graph()
         data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
         json.dumps(data)  # should not raise
+
+
+class TestSigmaRenderer:
+    def test_save_to_filepath(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "test.html")
+            result = SigmaRenderer().render(g, filepath=filepath)
+            assert result == filepath
+            content = Path(filepath).read_text()
+            assert "Alice" in content
+
+    def test_html_contains_graph_data(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "test.html")
+            SigmaRenderer().render(g, filepath=filepath)
+            content = Path(filepath).read_text()
+            assert '"#a"' in content
+            assert '"#b"' in content
+
+    def test_html_contains_vendored_bundle(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "test.html")
+            SigmaRenderer().render(g, filepath=filepath)
+            content = Path(filepath).read_text()
+            # The vendored bundle should be inlined.
+            assert "graphology" in content.lower() or "sigma" in content.lower()
+
+    def test_returns_html_object_when_no_filepath(self):
+        g = _build_graph()
+        result = SigmaRenderer().render(g)
+        html_str = result.data if hasattr(result, "data") else str(result)
+        assert "sigma-container" in html_str
+
+    def test_animated_false_by_default(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "test.html")
+            SigmaRenderer().render(g, filepath=filepath)
+            content = Path(filepath).read_text()
+            assert '"animated": false' in content or '"animated":false' in content
+
+    def test_animated_true_passed_to_template(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "test.html")
+            SigmaRenderer().render(g, filepath=filepath, animated=True)
+            content = Path(filepath).read_text()
+            assert '"animated": true' in content or '"animated":true' in content
+
+    def test_height_and_width_in_html(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "test.html")
+            SigmaRenderer().render(g, filepath=filepath, height="800px", width="50%")
+            content = Path(filepath).read_text()
+            assert "800px" in content
+            assert "50%" in content
+
+    def test_empty_graph_renders(self):
+        g = Graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "empty.html")
+            result = SigmaRenderer().render(g, filepath=filepath)
+            assert result == filepath
+
+    def test_colour_by_community(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "test.html")
+            SigmaRenderer().render(g, filepath=filepath, colour_by="community")
+            content = Path(filepath).read_text()
+            assert "Alice" in content
