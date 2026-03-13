@@ -4,6 +4,18 @@ import forceAtlas2 from "graphology-layout-forceatlas2";
 import FA2Layout from "graphology-layout-forceatlas2/worker";
 
 // ---------------------------------------------------------------------------
+// Theme state
+// ---------------------------------------------------------------------------
+
+var isDark = true;
+var DIM_DARK = "#333";
+var DIM_LIGHT = "#ccc";
+var EDGE_ALPHA_DARK = 0.15;
+var EDGE_ALPHA_LIGHT = 0.35;
+var currentGraph = null;
+var currentRenderer = null;
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -11,6 +23,37 @@ function escapeHtml(text) {
   var div = document.createElement("div");
   div.appendChild(document.createTextNode(String(text)));
   return div.innerHTML;
+}
+
+function toggleTheme() {
+  isDark = !isDark;
+  document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+
+  var btnTheme = document.getElementById("btn-theme");
+  if (btnTheme) {
+    btnTheme.textContent = isDark ? "Light" : "Dark";
+  }
+
+  // Update sigma background colour
+  if (currentRenderer) {
+    currentRenderer.setSetting(
+      "labelColor",
+      { color: isDark ? "#d8dade" : "#1a1a2e" }
+    );
+  }
+
+  // Update neighbourhood dim colours on any highlighted nodes
+  if (currentGraph) {
+    var dimColour = isDark ? DIM_DARK : DIM_LIGHT;
+    currentGraph.forEachNode(function (nid, na) {
+      if (na.color === DIM_DARK || na.color === DIM_LIGHT) {
+        currentGraph.setNodeAttribute(nid, "color", dimColour);
+      }
+    });
+    if (currentRenderer) {
+      currentRenderer.refresh();
+    }
+  }
 }
 
 function hexToRgba(hex, alpha) {
@@ -113,11 +156,12 @@ function setupInteractions(graph, renderer, typeColours) {
 
     var neighbours = new Set(graph.neighbors(ev.node));
     neighbours.add(ev.node);
+    var dimColour = isDark ? DIM_DARK : DIM_LIGHT;
     graph.forEachNode(function (nid, na) {
       graph.setNodeAttribute(
         nid,
         "color",
-        neighbours.has(nid) ? na.originalColor : "#333"
+        neighbours.has(nid) ? na.originalColor : dimColour
       );
     });
     renderer.refresh();
@@ -163,6 +207,8 @@ function runSyncLayout(graph, container, typeColours) {
     "ms";
 
   var renderer = createRenderer(graph, container);
+  currentGraph = graph;
+  currentRenderer = renderer;
   setupInteractions(graph, renderer, typeColours);
 }
 
@@ -176,6 +222,8 @@ function runAnimatedLayout(graph, container, typeColours) {
   var btnStop = document.getElementById("btn-stop");
 
   var renderer = createRenderer(graph, container);
+  currentGraph = graph;
+  currentRenderer = renderer;
   setupInteractions(graph, renderer, typeColours);
 
   var settings = forceAtlas2.inferSettings(graph);
@@ -247,6 +295,28 @@ function runAnimatedLayout(graph, container, typeColours) {
 }
 
 // ---------------------------------------------------------------------------
+// Simple layout path — static thumbnail, no interactions
+// ---------------------------------------------------------------------------
+
+function runSimpleLayout(graph, container) {
+  var settings = forceAtlas2.inferSettings(graph);
+  settings.barnesHutOptimize = graph.order > 200;
+  forceAtlas2.assign(graph, { iterations: 100, settings: settings });
+
+  new Sigma(graph, container, {
+    renderEdgeLabels: false,
+    renderLabels: false,
+    defaultEdgeColor: "rgba(255,255,255,0.1)",
+    edgeColor: { attribute: "color" },
+    defaultEdgeType: "line",
+    zIndex: true,
+    minCameraRatio: 0.02,
+    maxCameraRatio: 20,
+    enableCameraRotation: false,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
 
@@ -255,7 +325,15 @@ function init() {
   var graph = buildGraph(window.graphData);
   var config = window.sigmaConfig || {};
 
-  if (config.animated) {
+  // Theme toggle
+  var btnTheme = document.getElementById("btn-theme");
+  if (btnTheme) {
+    btnTheme.addEventListener("click", toggleTheme);
+  }
+
+  if (config.simple) {
+    runSimpleLayout(graph, container);
+  } else if (config.animated) {
     runAnimatedLayout(graph, container, window.typeColours);
   } else {
     runSyncLayout(graph, container, window.typeColours);
@@ -265,4 +343,4 @@ function init() {
 document.addEventListener("DOMContentLoaded", init);
 
 // Export for IIFE global access
-export { init, buildGraph, createRenderer, setupInteractions, hexToRgba, escapeHtml };
+export { init, buildGraph, createRenderer, setupInteractions, hexToRgba, escapeHtml, toggleTheme };

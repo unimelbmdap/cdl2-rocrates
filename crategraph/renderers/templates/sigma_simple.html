@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Thumbnail</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #111113; overflow: hidden; }
+        #sigma-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: %(width)s;
+            height: %(height)s;
+        }
+    </style>
+</head>
+<body>
+    <div id="sigma-container"></div>
+
+    <script>%(bundle)s</script>
+
+    <script>
+    window.graphData   = %(graph_data)s;
+    window.typeColours = %(type_colours)s;
+    window.sigmaConfig = %(config)s;
+    </script>
+</body>
+</html>

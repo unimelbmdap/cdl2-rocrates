@@ -199,6 +199,22 @@ class TestSigmaRenderer:
             result = SigmaRenderer().render(g, filepath=filepath)
             assert result == filepath
 
+    def test_theme_toggle_button_present(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "test.html")
+            SigmaRenderer().render(g, filepath=filepath)
+            content = Path(filepath).read_text()
+            assert 'id="btn-theme"' in content
+
+    def test_light_theme_css_present(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "test.html")
+            SigmaRenderer().render(g, filepath=filepath)
+            content = Path(filepath).read_text()
+            assert '[data-theme="light"]' in content
+
     def test_colour_by_community(self):
         g = _build_graph()
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -259,3 +275,56 @@ class TestGraphVisualiseSigma:
             filepath = str(Path(tmpdir) / "merged.html")
             result = merged.visualise(renderer="sigma", filepath=filepath)
             assert result == filepath
+
+
+class TestSigmaSimple:
+    """Tests for the simple/thumbnail sigma template."""
+
+    def test_simple_renders_to_filepath(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "thumb.html")
+            result = SigmaRenderer().render(g, filepath=filepath, simple=True)
+            assert result == filepath
+            assert Path(filepath).exists()
+
+    def test_simple_contains_graph_data(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "thumb.html")
+            SigmaRenderer().render(g, filepath=filepath, simple=True)
+            content = Path(filepath).read_text()
+            assert '"#a"' in content
+            assert '"#b"' in content
+
+    def test_simple_has_no_panels(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "thumb.html")
+            SigmaRenderer().render(g, filepath=filepath, simple=True)
+            content = Path(filepath).read_text()
+            assert 'id="legend"' not in content
+            assert 'id="details"' not in content
+            assert 'id="info"' not in content
+
+    def test_simple_config_flag(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "thumb.html")
+            SigmaRenderer().render(g, filepath=filepath, simple=True)
+            content = Path(filepath).read_text()
+            assert '"simple": true' in content or '"simple":true' in content
+
+    def test_simple_empty_graph(self):
+        g = Graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "empty.html")
+            result = SigmaRenderer().render(g, filepath=filepath, simple=True)
+            assert result == filepath
+
+    def test_simple_returns_html_object_when_no_filepath(self):
+        g = _build_graph()
+        result = SigmaRenderer().render(g, simple=True)
+        html_str = result.data if hasattr(result, "data") else str(result)
+        assert "sigma-container" in html_str
+        assert 'id="legend"' not in html_str

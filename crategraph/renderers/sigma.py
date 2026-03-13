@@ -103,13 +103,10 @@ class SigmaRenderer(Renderer):
         return {"nodes": nodes, "edges": edges}
 
     @staticmethod
-    def _load_template() -> Markup:
+    def _load_template(*, simple: bool = False) -> Markup:
         """Load the Sigma.js HTML template from the templates directory."""
-        html = (
-            files("crategraph.renderers.templates")
-            .joinpath("sigma.html")
-            .read_text(encoding="utf-8")
-        )
+        name = "sigma_simple.html" if simple else "sigma.html"
+        html = files("crategraph.renderers.templates").joinpath(name).read_text(encoding="utf-8")
         return Markup(html)
 
     @staticmethod
@@ -136,6 +133,7 @@ class SigmaRenderer(Renderer):
         width: str = "100%",
         filepath: str | None = None,
         animated: bool = False,
+        simple: bool = False,
         **kwargs: Any,
     ) -> Any:
         """Build a Sigma.js HTML visualisation from *graph*.
@@ -149,6 +147,8 @@ class SigmaRenderer(Renderer):
             filepath: If given, save the HTML to this path and return it.
             animated: If ``True``, run ForceAtlas2 in animated (web-worker)
                 mode; otherwise run a synchronous layout pass.
+            simple: If ``True``, use a minimal template with no UI panels
+                — suitable for grid thumbnails and embedding.
 
         Returns an ``IPython.display.HTML`` object for notebook display,
         or the filepath string if *filepath* was provided.
@@ -165,9 +165,9 @@ class SigmaRenderer(Renderer):
         types = sorted({e.type for e in graph._entities.values()})
         type_colours = {t: PALETTE[i % len(PALETTE)] for i, t in enumerate(types)}
 
-        config = {"animated": animated}
+        config = {"animated": animated, "simple": simple}
 
-        template = self._load_template()
+        template = self._load_template(simple=simple)
         bundle = self._load_bundle()
 
         # Escape '</script>' sequences in JSON to prevent XSS when

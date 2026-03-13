@@ -21,6 +21,51 @@
                     sans-serif;
         }
 
+        /* ----------------------------------------------------------------
+           Light theme overrides
+        ---------------------------------------------------------------- */
+        [data-theme="light"] {
+            --panel-bg: rgba(255, 255, 255, 0.78);
+            --panel-border: rgba(0, 0, 0, 0.08);
+            --panel-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+            --accent: #2BA89E;
+            --accent-dim: rgba(43, 168, 158, 0.25);
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a4e59;
+            --text-muted: #8a8e95;
+        }
+
+        [data-theme="light"] body {
+            background: #f0f1f3;
+            color: var(--text-primary);
+        }
+
+        [data-theme="light"] #sigma-container {
+            background: #f0f1f3;
+        }
+
+        [data-theme="light"] #info .btn {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] #info .btn:hover {
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] #details h4 {
+            border-bottom-color: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] .legend-swatch {
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] #legend::-webkit-scrollbar-thumb,
+        [data-theme="light"] #details::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
@@ -215,6 +260,8 @@
     <div id="sigma-container"></div>
 
     <div id="info">
+        <button id="btn-theme" class="btn" style="display:inline-block">Light</button>
+        <span class="separator" style="color:var(--panel-border)">|</span>
         <span id="status">Initialising&hellip;</span>
         <button id="btn-toggle" class="btn">Start FA2</button>
         <button id="btn-stop" class="btn">Stop</button>
