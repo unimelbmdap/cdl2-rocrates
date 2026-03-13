@@ -1,0 +1,15 @@
+{
+  "name": "crategraph-sigma",
+  "private": true,
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --outfile=dist/sigma-fa2.min.js --format=iife --global-name=CrategraphSigma --minify"
+  },
+  "dependencies": {
+    "graphology": "^0.25.4",
+    "graphology-layout-forceatlas2": "^0.10.1",
+    "sigma": "^2.4.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  }
+}

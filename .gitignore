@@ -195,3 +195,6 @@ pytest-of-*/
 # Claude Code
 .claude/
 CLAUDE.md
+
+# JS build tooling
+node_modules/
