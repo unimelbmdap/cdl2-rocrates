@@ -1,0 +1,131 @@
+"""Tests for SigmaRenderer."""
+
+from __future__ import annotations
+
+import json
+
+from crategraph.core.graph import Graph
+from crategraph.core.models import Entity, Relationship
+from crategraph.renderers.sigma import SigmaRenderer
+
+
+def _build_graph() -> Graph:
+    g = Graph()
+    g._add_node(Entity(id="#a", types=["Person"], properties={"name": "Alice"}))
+    g._add_node(Entity(id="#b", types=["Person"], properties={"name": "Bob"}))
+    g._add_node(Entity(id="#c", types=["Organisation"], properties={"name": "Uni of Melbourne"}))
+    g._add_edge(Relationship(source="#a", target="#c", type="memberOf"))
+    g._add_edge(Relationship(source="#b", target="#c", type="memberOf"))
+    return g
+
+
+class TestGraphToJson:
+    def test_returns_dict_with_nodes_and_edges(self):
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        assert "nodes" in data
+        assert "edges" in data
+
+    def test_node_count(self):
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        assert len(data["nodes"]) == 3
+
+    def test_edge_count(self):
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        assert len(data["edges"]) == 2
+
+    def test_node_has_required_fields(self):
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        node = data["nodes"][0]
+        for field in ("id", "label", "x", "y", "size", "color", "entityType", "degree"):
+            assert field in node, f"Missing field: {field}"
+
+    def test_node_uses_entity_type_not_type(self):
+        """Sigma reserves 'type' for render programs — we must use 'entityType'."""
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        node = data["nodes"][0]
+        assert "entityType" in node
+        assert "type" not in node
+
+    def test_edge_has_required_fields(self):
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        edge = data["edges"][0]
+        for field in ("id", "source", "target", "color"):
+            assert field in edge, f"Missing field: {field}"
+
+    def test_node_name_uses_entity_name(self):
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        labels = {n["id"]: n["label"] for n in data["nodes"]}
+        assert labels["#a"] == "Alice"
+        assert labels["#c"] == "Uni of Melbourne"
+
+    def test_nodes_coloured_by_type(self):
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        colours = {n["id"]: n["color"] for n in data["nodes"]}
+        assert colours["#a"] == colours["#b"]  # same type
+        assert colours["#a"] != colours["#c"]  # different type
+
+    def test_nodes_coloured_by_community(self):
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="community", size_by="connections")
+        for node in data["nodes"]:
+            assert "color" in node
+
+    def test_node_size_scales_with_degree(self):
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        sizes = {n["id"]: n["size"] for n in data["nodes"]}
+        # #c has degree 2, #a has degree 1 — #c should be larger.
+        assert sizes["#c"] > sizes["#a"]
+
+    def test_node_size_bounds(self):
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        for node in data["nodes"]:
+            assert 3.0 <= node["size"] <= 20.0
+
+    def test_node_size_uniform_when_not_connections(self):
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="custom_prop")
+        for node in data["nodes"]:
+            assert node["size"] == 6.0
+
+    def test_node_size_single_node(self):
+        """A lone node with degree 0 should get minimum size."""
+        g = Graph()
+        g._add_node(Entity(id="#lone", types=["Thing"], properties={"name": "Solo"}))
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        assert data["nodes"][0]["size"] == 3.0
+
+    def test_node_colour_has_alpha(self):
+        """Node colours should be rgba with 0.6 opacity."""
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        for node in data["nodes"]:
+            assert node["color"].startswith("rgba(")
+            assert node["color"].endswith(",0.6)")
+
+    def test_edge_colour_has_alpha(self):
+        """Edge colours should be rgba with 0.15 opacity from source node."""
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        for edge in data["edges"]:
+            assert edge["color"].startswith("rgba(")
+            assert edge["color"].endswith(",0.15)")
+
+    def test_empty_graph(self):
+        g = Graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        assert data == {"nodes": [], "edges": []}
+
+    def test_json_serialisable(self):
+        g = _build_graph()
+        data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
+        json.dumps(data)  # should not raise
