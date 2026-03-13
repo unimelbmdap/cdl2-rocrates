@@ -23,6 +23,17 @@ def _hex_to_rgba(hex_colour: str, alpha: float) -> str:
     return f"rgba({r},{g},{b},{alpha})"
 
 
+def _dim_hex(hex_colour: str, factor: float = 0.35) -> str:
+    """Darken a hex colour by scaling RGB channels towards black.
+
+    Used for edge colours — sigma v2's WebGL renderer only supports
+    hex, not rgba, so we simulate transparency by darkening.
+    """
+    h = hex_colour.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"#{int(r * factor):02x}{int(g * factor):02x}{int(b * factor):02x}"
+
+
 def _node_size(degree: int, max_degree: int) -> float:
     """Sqrt-scaled node sizing. Range: 3-20."""
     if max_degree <= 0:
@@ -96,17 +107,24 @@ class SigmaRenderer(Renderer):
                         "id": f"e{i}",
                         "source": rel.source,
                         "target": rel.target,
-                        "color": _hex_to_rgba(source_hex, 0.15),
+                        "color": _dim_hex(source_hex, 0.2),
                     }
                 )
 
         return {"nodes": nodes, "edges": edges}
 
     @staticmethod
-    def _load_template(*, simple: bool = False) -> Markup:
-        """Load the Sigma.js HTML template from the templates directory."""
-        name = "sigma_simple.html" if simple else "sigma.html"
-        html = files("crategraph.renderers.templates").joinpath(name).read_text(encoding="utf-8")
+    def _load_template(*, variant: str = "full") -> Markup:
+        """Load a Sigma.js HTML template.
+
+        *variant* is one of ``"full"``, ``"simple"``, or ``"grid"``.
+        """
+        names = {"full": "sigma.html", "simple": "sigma_simple.html", "grid": "sigma_grid.html"}
+        html = (
+            files("crategraph.renderers.templates")
+            .joinpath(names[variant])
+            .read_text(encoding="utf-8")
+        )
         return Markup(html)
 
     @staticmethod
@@ -167,7 +185,7 @@ class SigmaRenderer(Renderer):
 
         config = {"animated": animated, "simple": simple}
 
-        template = self._load_template(simple=simple)
+        template = self._load_template(variant="simple" if simple else "full")
         bundle = self._load_bundle()
 
         # Escape '</script>' sequences in JSON to prevent XSS when

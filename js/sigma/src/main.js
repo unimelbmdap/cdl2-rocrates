@@ -88,7 +88,7 @@ function buildGraph(graphData) {
     if (!graph.hasEdge(e.source, e.target)) {
       graph.addEdge(e.source, e.target, {
         color: e.color,
-        size: 0.5,
+        size: 0.3,
       });
     }
   });
@@ -317,13 +317,129 @@ function runSimpleLayout(graph, container) {
 }
 
 // ---------------------------------------------------------------------------
+// Grid layout — multiple thumbnails on one page
+// ---------------------------------------------------------------------------
+
+function snapshotSigma(renderer, container) {
+  // Sigma uses layered canvases — composite them into a single image.
+  var canvases = container.querySelectorAll("canvas");
+  var composite = document.createElement("canvas");
+  var first = canvases[0];
+  composite.width = first.width;
+  composite.height = first.height;
+  var ctx = composite.getContext("2d");
+  for (var j = 0; j < canvases.length; j++) {
+    ctx.drawImage(canvases[j], 0, 0);
+  }
+
+  // Replace sigma canvases with a static image.
+  var img = document.createElement("img");
+  img.src = composite.toDataURL("image/png");
+  img.style.width = "100%";
+  img.style.height = "100%";
+  img.style.display = "block";
+
+  renderer.kill();
+  container.innerHTML = "";
+  container.appendChild(img);
+}
+
+function initGrid() {
+  var grid = document.getElementById("grid");
+  var items = window.gridData || [];
+
+  // Force preserveDrawingBuffer so we can snapshot WebGL canvases.
+  var origGetContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (type, attrs) {
+    if (type === "webgl" || type === "webgl2") {
+      attrs = Object.assign({}, attrs, { preserveDrawingBuffer: true });
+    }
+    return origGetContext.call(this, type, attrs);
+  };
+
+  // Pre-build all cells so the grid is visible immediately.
+  var cells = [];
+  items.forEach(function (item, i) {
+    var cell = document.createElement("div");
+    cell.className = "grid-cell";
+
+    var label = document.createElement("div");
+    label.className = "cell-label";
+    label.textContent = item.label || "Crate " + (i + 1);
+    cell.appendChild(label);
+
+    var meta = document.createElement("div");
+    meta.className = "cell-meta";
+    var nNodes = item.totalNodes || item.graphData.nodes.length;
+    var nEdges = item.totalEdges || item.graphData.edges.length;
+    meta.textContent = nNodes + " nodes, " + nEdges + " edges";
+    cell.appendChild(meta);
+
+    var container = document.createElement("div");
+    container.className = "sigma-container";
+    container.id = "sigma-" + i;
+    cell.appendChild(container);
+
+    grid.appendChild(cell);
+    cells.push({ item: item, container: container });
+  });
+
+  // Render one graph at a time: compute layout, let sigma paint one
+  // frame, snapshot to a static image, destroy the WebGL context,
+  // then move on. Never holds more than one context at a time.
+  var idx = 0;
+  function renderNext() {
+    if (idx >= cells.length) return;
+    var entry = cells[idx];
+    var graph = buildGraph(entry.item.graphData);
+    var n = graph.order;
+    var settings = forceAtlas2.inferSettings(graph);
+    settings.barnesHutOptimize = n > 200;
+
+    // Scale iterations down for large graphs — thumbnails don't need
+    // perfect layout, just a recognisable shape.
+    var iters = n > 10000 ? 5 : n > 2000 ? 15 : n > 500 ? 30 : 50;
+    forceAtlas2.assign(graph, { iterations: iters, settings: settings });
+
+    // Edges drove the layout — clear them so thumbnails show nodes only.
+    graph.clearEdges();
+
+    var renderer = new Sigma(graph, entry.container, {
+      renderEdgeLabels: false,
+      renderLabels: false,
+      defaultEdgeColor: "rgba(255,255,255,0.1)",
+      edgeColor: { attribute: "color" },
+      defaultEdgeType: "line",
+      zIndex: true,
+    });
+
+    // Wait for sigma to paint, then snapshot and move on.
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        snapshotSigma(renderer, entry.container);
+        idx++;
+        setTimeout(renderNext, 0);
+      });
+    });
+  }
+  renderNext();
+}
+
+// ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
 
 function init() {
+  var config = window.sigmaConfig || {};
+
+  // Grid mode — multiple graphs on one page
+  if (config.grid) {
+    initGrid();
+    return;
+  }
+
   var container = document.getElementById("sigma-container");
   var graph = buildGraph(window.graphData);
-  var config = window.sigmaConfig || {};
 
   // Theme toggle
   var btnTheme = document.getElementById("btn-theme");
@@ -343,4 +459,4 @@ function init() {
 document.addEventListener("DOMContentLoaded", init);
 
 // Export for IIFE global access
-export { init, buildGraph, createRenderer, setupInteractions, hexToRgba, escapeHtml, toggleTheme };
+export { init, initGrid, buildGraph, createRenderer, setupInteractions, hexToRgba, escapeHtml, toggleTheme };

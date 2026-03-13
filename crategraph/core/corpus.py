@@ -175,3 +175,112 @@ class Corpus:
                 failures.append((path, str(exc)))
 
         return CorpusProfile(profiles=profiles, failures=failures)
+
+    def visualise(
+        self,
+        *,
+        colour_by: str = "type",
+        size_by: str = "connections",
+        columns: int = 0,
+        cell_height: str = "280px",
+        max_nodes: int = 10_000,
+        filepath: str | None = None,
+    ) -> Any:
+        """Render a grid of sigma thumbnails — one per crate.
+
+        Each crate is loaded, converted to a graph JSON, then discarded
+        (constant memory).
+
+        Args:
+            colour_by: Property to colour nodes by.
+            size_by: Node sizing strategy.
+            columns: Grid columns (0 = auto).
+            cell_height: CSS height per thumbnail.
+            filepath: Save HTML to this path.
+
+        Returns an ``IPython.display.HTML`` object or filepath string.
+        """
+        import json
+        import math
+
+        from markupsafe import Markup
+
+        from crategraph.core.graph import Graph
+        from crategraph.renderers.sigma import SigmaRenderer
+
+        renderer = SigmaRenderer()
+        grid_data: list[dict[str, Any]] = []
+
+        for path in self._resolved:
+            reader = self._find_reader(path)
+            if reader is None:
+                continue
+            try:
+                graph = reader.read(path)
+                total_entities = len(graph._entities)
+                total_rels = len(graph._relationships)
+                if max_nodes > 0 and total_entities > max_nodes:
+                    # Keep top-N nodes by degree for a representative thumbnail.
+                    ranked = sorted(
+                        graph._entities,
+                        key=lambda eid: len(graph._neighbours(eid)),
+                        reverse=True,
+                    )
+                    keep = set(ranked[:max_nodes])
+                    sampled = Graph(source=graph.source, metadata=graph.metadata)
+                    for eid in keep:
+                        sampled._add_node(graph._entities[eid])
+                    for rel in graph._relationships:
+                        if rel.source in keep and rel.target in keep:
+                            sampled._add_edge(rel)
+                    graph = sampled
+                graph_json = renderer._graph_to_json(
+                    graph,
+                    colour_by=colour_by,
+                    size_by=size_by,
+                )
+                label = Path(path).stem or Path(path).name
+                # Show original counts so the label is accurate.
+                grid_data.append(
+                    {
+                        "graphData": graph_json,
+                        "label": label,
+                        "totalNodes": total_entities,
+                        "totalEdges": total_rels,
+                    }
+                )
+            except Exception:
+                continue
+
+        if not grid_data:
+            msg = "No crates could be loaded for visualisation."
+            raise ValueError(msg)
+
+        grid_data.sort(key=lambda d: d["totalNodes"])
+
+        if columns <= 0:
+            columns = min(4, math.ceil(math.sqrt(len(grid_data))))
+
+        config = {"grid": True}
+        template = renderer._load_template(variant="grid")
+        bundle = renderer._load_bundle()
+
+        def _safe_json(obj: object) -> Markup:
+            return Markup(json.dumps(obj).replace("</", "<\\/"))
+
+        html = template % {
+            "grid_data": _safe_json(grid_data),
+            "config": _safe_json(config),
+            "bundle": bundle,
+            "columns": columns,
+            "cell_height": cell_height,
+        }
+
+        if filepath:
+            with open(filepath, "w", encoding="utf-8") as fh:
+                fh.write(html)
+            return filepath
+
+        from IPython.display import HTML
+
+        return HTML(html)

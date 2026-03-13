@@ -114,13 +114,13 @@ class TestGraphToJson:
             assert node["color"].startswith("rgba(")
             assert node["color"].endswith(",0.6)")
 
-    def test_edge_colour_has_alpha(self):
-        """Edge colours should be rgba with 0.15 opacity from source node."""
+    def test_edge_colour_is_dimmed_hex(self):
+        """Edge colours should be darkened hex derived from source node."""
         g = _build_graph()
         data = SigmaRenderer()._graph_to_json(g, colour_by="type", size_by="connections")
         for edge in data["edges"]:
-            assert edge["color"].startswith("rgba(")
-            assert edge["color"].endswith(",0.15)")
+            assert edge["color"].startswith("#")
+            assert len(edge["color"]) == 7
 
     def test_empty_graph(self):
         g = Graph()
@@ -328,3 +328,20 @@ class TestSigmaSimple:
         html_str = result.data if hasattr(result, "data") else str(result)
         assert "sigma-container" in html_str
         assert 'id="legend"' not in html_str
+
+
+class TestSigmaGridTemplate:
+    """Tests for the grid template loading."""
+
+    def test_grid_template_loads(self):
+        template = SigmaRenderer._load_template(variant="grid")
+        assert 'id="grid"' in template
+
+    def test_grid_template_has_no_interactive_panels(self):
+        template = SigmaRenderer._load_template(variant="grid")
+        assert 'id="legend"' not in template
+        assert 'id="details"' not in template
+
+    def test_grid_template_disables_pointer_events(self):
+        template = SigmaRenderer._load_template(variant="grid")
+        assert "pointer-events: none" in template
