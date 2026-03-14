@@ -37,6 +37,7 @@ class Graph:
         self._source_names: set[str] = set()
         self._backend: GraphBackend = backend if backend is not None else default_backend()
         self._root: Graph = self  # reference to the root/full graph for expand()
+        self._simplification_k: int | None = None
 
     # --- Public read-only properties ---
 
@@ -517,10 +518,11 @@ class Graph:
         """
         import warnings
 
+        prev_k = self._simplification_k
         if min_connections is not None:
             k = min_connections
-        elif hasattr(self, "_simplification_k"):
-            k = self._simplification_k + 1
+        elif prev_k is not None:
+            k = prev_k + 1
         else:
             k = 2
 
@@ -728,7 +730,8 @@ class Graph:
             candidates = {
                 eid
                 for eid in candidates
-                if self._entities[eid].source is not None and source in self._entities[eid].source
+                for src in (self._entities[eid].source,)
+                if src is not None and source in src
             }
 
         # Filter by connectivity.

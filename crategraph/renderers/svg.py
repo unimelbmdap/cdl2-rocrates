@@ -32,8 +32,8 @@ class SvgRenderer(Renderer):
         graph: Graph,
         *,
         colour_by: str = "type",
-        width: int = DEFAULT_WIDTH,
-        height: int = DEFAULT_HEIGHT,
+        width: int | str = DEFAULT_WIDTH,
+        height: int | str = DEFAULT_HEIGHT,
         filepath: str | None = None,
         **kwargs: Any,
     ) -> Any:
