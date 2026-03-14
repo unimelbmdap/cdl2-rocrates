@@ -117,9 +117,9 @@ class SigmaRenderer(Renderer):
     def _load_template(*, variant: str = "full") -> Markup:
         """Load a Sigma.js HTML template.
 
-        *variant* is one of ``"full"``, ``"simple"``, or ``"grid"``.
+        *variant* is one of ``"full"`` or ``"simple"``.
         """
-        names = {"full": "sigma.html", "simple": "sigma_simple.html", "grid": "sigma_grid.html"}
+        names = {"full": "sigma.html", "simple": "sigma_simple.html"}
         html = (
             files("crategraph.renderers.templates")
             .joinpath(names[variant])
