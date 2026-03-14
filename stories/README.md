@@ -1,8 +1,10 @@
 # User Stories
 
-Narrative stories capturing how researchers would explore and interrogate RO-Crate collections. Each story is written from the researcher's perspective, grounded in real collection data, and designed to surface the kinds of questions researchers naturally ask.
+Narrative stories capturing how researchers might explore and interrogate RO-Crate collections. Each story is written from a researcher's perspective, grounded in real collection data, and designed to surface the kinds of questions researchers naturally ask.
 
-These stories are intended for a separate API fitness evaluation — reading each story, identifying the researcher's questions, and mapping them to crategraph API calls to find gaps and friction.
+**These stories are fictional.** The researchers, their names, and their specific research projects are invented. The collections, entities, and relationships referenced in each story are real — drawn from OHRM and LDaCA RO-Crate datasets — but the scenarios are imagined to illustrate plausible research workflows.
+
+These stories are intended for API fitness evaluation — reading each story, identifying the researcher's questions (in italics), and mapping them to crategraph API calls to find gaps and friction.
 
 ## Stories
 
