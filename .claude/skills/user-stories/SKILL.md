@@ -13,7 +13,7 @@ Generate narrative user stories by exploring real dataset collections. Stories c
 2. **Profile** — for each crate, note: entity types, relationship types, scale, subject matter. Summarise what the collection contains and what discipline it serves.
 3. **Imagine** — for each crate: "A researcher in a relevant discipline has come to this collection because of their existing research interests. What would they want to explore? What questions would arise?"
 4. **Select** — pick the requested number (default 8). Aim for variety across disciplines, research question types, and collections. Max 2 stories per collection. At least 1 cross-collection story if multiple collections are available.
-5. **Write** — produce each story as a markdown file in `stories/` (or user-specified directory). Kebab-case filenames: `<collection>-<theme>.md`.
+5. **Write** — produce each story as a markdown file in `design/ux/stories/` (or user-specified directory). Kebab-case filenames: `<collection>-<theme>.md`.
 6. **Index** — create/update `README.md` in the output directory listing all stories with one-line summaries.
 
 ## Story Format
