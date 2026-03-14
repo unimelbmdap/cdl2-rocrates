@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Crate Gallery — Grid</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0a0c; overflow: hidden; font-family: -apple-system, system-ui, sans-serif; }
+        #canvas3d { display: block; cursor: pointer; }
+        #info {
+            position: fixed; bottom: 20px; left: 50%%; transform: translateX(-50%%);
+            color: #555; font-size: 11px; letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas3d"></canvas>
+    <div id="info">drag to orbit &middot; scroll to zoom</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+    var cards = %(cards_json)s;
+
+    function initGallery() {
+      var canvas = document.getElementById("canvas3d");
+      var scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a0a0c);
+
+      var camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+      var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+
+      var controls = new THREE.OrbitControls(camera, canvas);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.rotateSpeed = 0.5;
+      controls.zoomSpeed = 0.8;
+
+      // Layout: grid in XY plane.
+      var cols = Math.ceil(Math.sqrt(cards.length));
+      var cardW = 4.0;
+      var cardH = 2.8;
+      var gap = 0.6;
+      var stepX = cardW + gap;
+      var stepY = cardH + gap + 0.8;
+
+      var loader = new THREE.TextureLoader();
+      var group = new THREE.Group();
+
+      var clickTargets = [];
+
+      cards.forEach(function (card, i) {
+        var col = i %% cols;
+        var row = Math.floor(i / cols);
+        var x = (col - (cols - 1) / 2) * stepX;
+        var y = -row * stepY;
+
+        var cardGroup = new THREE.Group();
+        cardGroup.position.set(x, y, 0);
+
+        // Thumbnail plane.
+        var tex = loader.load(card.dataUri);
+        tex.minFilter = THREE.LinearFilter;
+        var mat = new THREE.MeshBasicMaterial({ map: tex, transparent: false });
+        var geo = new THREE.PlaneGeometry(cardW, cardH);
+        var mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(0, 0, 0);
+        cardGroup.add(mesh);
+        mesh.userData.cardGroup = cardGroup;
+        clickTargets.push(mesh);
+
+        // Dark backing panel.
+        var backGeo = new THREE.PlaneGeometry(cardW + 0.15, cardH + 1.0);
+        var backMat = new THREE.MeshBasicMaterial({ color: 0x18181b });
+        var back = new THREE.Mesh(backGeo, backMat);
+        back.position.set(0, -0.35, -0.02);
+        cardGroup.add(back);
+
+        // Border outline.
+        var edges = new THREE.EdgesGeometry(backGeo);
+        var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x2a2a2e }));
+        line.position.copy(back.position);
+        cardGroup.add(line);
+
+        // Label — canvas texture.
+        var labelCanvas = document.createElement("canvas");
+        labelCanvas.width = 512;
+        labelCanvas.height = 64;
+        var ctx = labelCanvas.getContext("2d");
+        ctx.fillStyle = "#d8dade";
+        ctx.font = "bold 22px -apple-system, system-ui, sans-serif";
+        ctx.fillText(card.label, 8, 24);
+        ctx.fillStyle = "#7a7e85";
+        ctx.font = "16px ui-monospace, monospace";
+        ctx.fillText(card.meta, 8, 50);
+
+        var labelTex = new THREE.CanvasTexture(labelCanvas);
+        labelTex.minFilter = THREE.LinearFilter;
+        var labelMat = new THREE.MeshBasicMaterial({ map: labelTex, transparent: true });
+        var labelGeo = new THREE.PlaneGeometry(cardW, cardH * 0.2);
+        var labelMesh = new THREE.Mesh(labelGeo, labelMat);
+        labelMesh.position.set(0, -cardH / 2 - 0.15, 0.01);
+        cardGroup.add(labelMesh);
+
+        group.add(cardGroup);
+      });
+
+      scene.add(group);
+
+      // Centre camera on the grid.
+      var totalRows = Math.ceil(cards.length / cols);
+      var centreY = -(totalRows - 1) * stepY / 2;
+      camera.position.set(0, centreY, cols * stepX * 0.8);
+      controls.target.set(0, centreY, 0);
+      controls.update();
+
+      // Render loop.
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Resize handler.
+      window.addEventListener("resize", function () {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      // --- Click to zoom ---
+      var raycaster = new THREE.Raycaster();
+      var mouse = new THREE.Vector2();
+      var savedCamPos = null;
+      var savedTarget = null;
+      var animating = false;
+
+      function smoothMove(from, to, duration, onDone) {
+        var start = performance.now();
+        function step(now) {
+          var t = Math.min((now - start) / duration, 1);
+          // ease in-out
+          t = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+          from.lerpVectors(from.clone(), to, t);
+          if (t < 1) requestAnimationFrame(step); else if (onDone) onDone();
+        }
+        requestAnimationFrame(step);
+      }
+
+      function animateCamera(targetPos, targetLook, duration, onDone) {
+        animating = true;
+        var startPos = camera.position.clone();
+        var startTarget = controls.target.clone();
+        var startTime = performance.now();
+        function step(now) {
+          var t = Math.min((now - startTime) / duration, 1);
+          t = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+          camera.position.lerpVectors(startPos, targetPos, t);
+          controls.target.lerpVectors(startTarget, targetLook, t);
+          controls.update();
+          if (t < 1) {
+            requestAnimationFrame(step);
+          } else {
+            animating = false;
+            if (onDone) onDone();
+          }
+        }
+        requestAnimationFrame(step);
+      }
+
+      canvas.addEventListener("click", function (event) {
+        if (animating) return;
+
+        // If zoomed in, click anywhere to return.
+        if (savedCamPos) {
+          var restorePos = savedCamPos;
+          var restoreTarget = savedTarget;
+          savedCamPos = null;
+          savedTarget = null;
+          animateCamera(restorePos, restoreTarget, 600);
+          return;
+        }
+
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+
+        var hits = raycaster.intersectObjects(clickTargets);
+        if (hits.length > 0) {
+          var hit = hits[0].object;
+          var cardGrp = hit.userData.cardGroup;
+
+          // Save current camera state.
+          savedCamPos = camera.position.clone();
+          savedTarget = controls.target.clone();
+
+          // Compute position in front of the card.
+          var cardWorldPos = new THREE.Vector3();
+          cardGrp.getWorldPosition(cardWorldPos);
+
+          // Get the card's forward direction (normal of the plane).
+          var cardNormal = new THREE.Vector3(0, 0, 1);
+          cardNormal.applyQuaternion(cardGrp.getWorldQuaternion(new THREE.Quaternion()));
+
+          var zoomPos = cardWorldPos.clone().add(cardNormal.multiplyScalar(5));
+
+          animateCamera(zoomPos, cardWorldPos, 600);
+        }
+      });
+    }
+
+    initGallery();
+    </script>
+</body>
+</html>

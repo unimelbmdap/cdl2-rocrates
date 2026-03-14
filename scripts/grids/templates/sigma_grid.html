@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corpus Grid</title>
+    <style>
+        :root {
+            --bg: #111113;
+            --cell-bg: #18181b;
+            --cell-border: rgba(255, 255, 255, 0.06);
+            --cell-radius: 8px;
+            --text-primary: #d8dade;
+            --text-secondary: #7a7e85;
+            --mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Fira Code',
+                    'Droid Sans Mono', 'Source Code Pro', Menlo, monospace;
+            --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui,
+                    sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            font-family: var(--sans);
+            color: var(--text-primary);
+            padding: 24px;
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(%(columns)s, 1fr);
+            gap: 16px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .grid-cell {
+            background: var(--cell-bg);
+            border: 1px solid var(--cell-border);
+            border-radius: var(--cell-radius);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cell-label {
+            padding: 10px 12px 2px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cell-meta {
+            padding: 0 12px 6px;
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-secondary);
+            letter-spacing: 0.02em;
+        }
+
+        .sigma-container {
+            width: 100%%;
+            height: %(cell_height)s;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="grid"></div>
+
+    <script>%(bundle)s</script>
+
+    <script>
+    window.gridData    = %(grid_data)s;
+    window.sigmaConfig = %(config)s;
+    </script>
+</body>
+</html>

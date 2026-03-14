@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corpus Adjacency Heatmaps</title>
+    <style>
+        :root {
+            --bg: #111113;
+            --cell-bg: #18181b;
+            --cell-border: rgba(255, 255, 255, 0.06);
+            --cell-radius: 8px;
+            --text-primary: #d8dade;
+            --text-secondary: #7a7e85;
+            --mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Fira Code',
+                    'Droid Sans Mono', 'Source Code Pro', Menlo, monospace;
+            --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui,
+                    sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            font-family: var(--sans);
+            color: var(--text-primary);
+            padding: 24px;
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(%(columns)s, 1fr);
+            gap: 16px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .grid-cell {
+            background: var(--cell-bg);
+            border: 1px solid var(--cell-border);
+            border-radius: var(--cell-radius);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cell-label {
+            padding: 10px 12px 2px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cell-meta {
+            padding: 0 12px 6px;
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-secondary);
+            letter-spacing: 0.02em;
+        }
+
+        .heatmap-wrap {
+            position: relative;
+            width: 100%%;
+            height: %(cell_height)s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+        }
+
+        canvas.heatmap {
+            image-rendering: pixelated;
+            border-radius: 2px;
+        }
+
+        .axis-label {
+            position: absolute;
+            font-family: var(--mono);
+            font-size: 8px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .colour-bar {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-family: var(--mono);
+            font-size: 8px;
+            color: var(--text-secondary);
+        }
+
+        .colour-bar canvas {
+            border-radius: 1px;
+        }
+
+        /* Tooltip */
+        #tooltip {
+            display: none;
+            position: fixed;
+            background: #27272a;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text-primary);
+            pointer-events: none;
+            z-index: 1000;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div id="grid"></div>
+    <div id="tooltip"></div>
+
+    <script>
+    var heatmapData = %(heatmap_data)s;
+
+    // Colour scale: #111113 → #2563eb → #06b6d4 → #fbbf24
+    function colourScale(t) {
+        // 4-stop gradient: black → indigo → cyan → amber
+        var stops = [
+            [17, 17, 19],      // 0.0 — background
+            [37, 99, 235],     // 0.33 — blue
+            [6, 182, 212],     // 0.66 — cyan
+            [251, 191, 36],    // 1.0 — amber
+        ];
+        t = Math.max(0, Math.min(1, t));
+        var idx = t * (stops.length - 1);
+        var lo = Math.floor(idx);
+        var hi = Math.min(lo + 1, stops.length - 1);
+        var frac = idx - lo;
+        var r = Math.round(stops[lo][0] + (stops[hi][0] - stops[lo][0]) * frac);
+        var g = Math.round(stops[lo][1] + (stops[hi][1] - stops[lo][1]) * frac);
+        var b = Math.round(stops[lo][2] + (stops[hi][2] - stops[lo][2]) * frac);
+        return "rgb(" + r + "," + g + "," + b + ")";
+    }
+
+    var grid = document.getElementById("grid");
+    var tooltip = document.getElementById("tooltip");
+
+    heatmapData.forEach(function (item, idx) {
+        var cell = document.createElement("div");
+        cell.className = "grid-cell";
+
+        var label = document.createElement("div");
+        label.className = "cell-label";
+        label.textContent = item.label;
+        cell.appendChild(label);
+
+        var meta = document.createElement("div");
+        meta.className = "cell-meta";
+        meta.textContent = item.types.length + " types, " +
+            item.totalNodes + " nodes, " + item.totalEdges + " edges";
+        cell.appendChild(meta);
+
+        var wrap = document.createElement("div");
+        wrap.className = "heatmap-wrap";
+
+        var n = item.types.length;
+        var matrix = item.matrix;
+
+        // Find max value for normalisation.
+        var maxVal = 0;
+        for (var i = 0; i < n; i++) {
+            for (var j = 0; j < n; j++) {
+                if (matrix[i][j] > maxVal) maxVal = matrix[i][j];
+            }
+        }
+
+        // Draw heatmap on canvas.
+        var canvas = document.createElement("canvas");
+        canvas.className = "heatmap";
+        canvas.width = n;
+        canvas.height = n;
+
+        // Size the canvas display to fit the cell.
+        var maxPx = Math.min(240, Math.max(60, n * 12));
+        canvas.style.width = maxPx + "px";
+        canvas.style.height = maxPx + "px";
+
+        var ctx = canvas.getContext("2d");
+        for (var i = 0; i < n; i++) {
+            for (var j = 0; j < n; j++) {
+                var val = matrix[i][j];
+                var t = (val > 0 && maxVal > 1) ? Math.log(val + 1) / Math.log(maxVal + 1) : (maxVal > 0 ? val / maxVal : 0);
+                ctx.fillStyle = colourScale(t);
+                ctx.fillRect(j, i, 1, 1);
+            }
+        }
+
+        // Tooltip on hover.
+        (function (canvas, types, matrix, maxVal) {
+            canvas.addEventListener("mousemove", function (ev) {
+                var rect = canvas.getBoundingClientRect();
+                var px = (ev.clientX - rect.left) / rect.width;
+                var py = (ev.clientY - rect.top) / rect.height;
+                var col = Math.floor(px * types.length);
+                var row = Math.floor(py * types.length);
+                if (row >= 0 && row < types.length && col >= 0 && col < types.length) {
+                    var val = matrix[row][col];
+                    tooltip.textContent = types[row] + " → " + types[col] + ": " + val;
+                    tooltip.style.display = "block";
+                    tooltip.style.left = (ev.clientX + 12) + "px";
+                    tooltip.style.top = (ev.clientY - 8) + "px";
+                }
+            });
+            canvas.addEventListener("mouseleave", function () {
+                tooltip.style.display = "none";
+            });
+        })(canvas, item.types, matrix, maxVal);
+
+        wrap.appendChild(canvas);
+
+        // Colour bar legend.
+        var bar = document.createElement("div");
+        bar.className = "colour-bar";
+        bar.innerHTML = "<span>0</span>";
+        var barCanvas = document.createElement("canvas");
+        barCanvas.width = 60;
+        barCanvas.height = 8;
+        var barCtx = barCanvas.getContext("2d");
+        for (var x = 0; x < 60; x++) {
+            barCtx.fillStyle = colourScale(x / 59);
+            barCtx.fillRect(x, 0, 1, 8);
+        }
+        bar.appendChild(barCanvas);
+        bar.innerHTML += "<span>" + maxVal + "</span>";
+        wrap.appendChild(bar);
+
+        cell.appendChild(wrap);
+        grid.appendChild(cell);
+    });
+    </script>
+</body>
+</html>

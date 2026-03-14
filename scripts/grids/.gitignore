@@ -1,0 +1,6 @@
+# Generated outputs (not tracked)
+gallery-*.html
+heatmap-grid.html
+*.pdf
+snapshots/
+__pycache__/
