@@ -27,7 +27,7 @@ def _resolve_entity_path(entity: Entity) -> Path | None:
         file_path_resolved.relative_to(crate_root_resolved)
     except ValueError:
         return None
-    return file_path
+    return file_path_resolved
 
 
 class MarkItDownInspector(Inspector):

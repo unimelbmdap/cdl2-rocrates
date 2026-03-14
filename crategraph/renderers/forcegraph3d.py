@@ -10,6 +10,7 @@ from markupsafe import Markup
 
 from crategraph.core.interfaces import Renderer
 from crategraph.renderers._colours import resolve_colour_map
+from crategraph.renderers._validation import validate_css_dimension
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
@@ -127,6 +128,9 @@ class ForceGraph3DRenderer(Renderer):
         or the filepath string if *filepath* was provided.
         """
         import json
+
+        validate_css_dimension(height, "height")
+        validate_css_dimension(width, "width")
 
         graph_json = self._graph_to_json(
             graph,

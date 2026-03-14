@@ -140,4 +140,9 @@ class Viewer(ABC):
 
     @abstractmethod
     def view(self, path: Path) -> ViewInfo:
-        """View the file at *path* and return a rich HTML preview."""
+        """View the file at *path* and return a rich HTML preview.
+
+        Implementers must HTML-escape all content derived from file data
+        or entity properties before embedding it in the returned
+        ``ViewInfo.html``.
+        """

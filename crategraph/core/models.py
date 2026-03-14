@@ -149,6 +149,9 @@ class ViewInfo:
 
     path: str
     html: str
+    """Raw HTML — callers are responsible for escaping all data-sourced
+    content before including it here. This field is rendered unescaped
+    by ``_repr_html_``."""
     title: str | None
     size_bytes: int
     media_type: str | None
