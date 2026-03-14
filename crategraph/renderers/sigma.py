@@ -48,7 +48,7 @@ class SigmaRenderer(Renderer):
     (default) and animated (web worker) modes via the ``animated`` parameter.
     """
 
-    def _graph_to_json(
+    def graph_to_json(
         self,
         graph: Graph,
         *,
@@ -173,7 +173,7 @@ class SigmaRenderer(Renderer):
         """
         import json
 
-        graph_json = self._graph_to_json(
+        graph_json = self.graph_to_json(
             graph,
             colour_by=colour_by,
             size_by=size_by,
