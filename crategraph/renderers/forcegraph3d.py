@@ -27,8 +27,8 @@ def _load_template() -> Markup:
 
 
 def _node_size(degree: int) -> float:
-    """Logarithmic node sizing. Range: 2-100."""
-    return max(2.0, min(100.0, 2.0 + math.log(degree + 1) * 40))
+    """Square-root node sizing. Range: 2-100."""
+    return max(2.0, min(100.0, 2.0 + math.sqrt(degree) * 4))
 
 
 class ForceGraph3DRenderer(Renderer):

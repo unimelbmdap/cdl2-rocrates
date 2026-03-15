@@ -169,6 +169,8 @@
     let rotationAnimationId = null;
     const highlightedNodes = new Set();
     const highlightedLinks = new Set();
+    var nodeColourMap = {};
+    var colourEdgesBySource = false;
 
     // HTML escaping to prevent XSS from entity data.
     function escapeHtml(text) {
@@ -203,6 +205,9 @@
             return;
         }
 
+        // Build a colour lookup map so linkColor works before d3-force resolves references.
+        graphData.nodes.forEach(function(n) { nodeColourMap[n.id] = n.color; });
+
         Graph3D = ForceGraph3D()
             (document.getElementById('graph-3d'))
             .graphData(graphData)
@@ -224,12 +229,16 @@
                 return buildTooltip('Edge', props);
             })
             .linkWidth(function(link) { return link.width || 0.4; })
-            .linkColor(function() { return isDarkMode ? '#7DBAED' : '#5B9BD5'; })
+            .linkColor(function(link) {
+                var fallback = isDarkMode ? '#7DBAED' : '#5B9BD5';
+                if (!colourEdgesBySource) return fallback;
+                var srcId = link.source.id !== undefined ? link.source.id : link.source;
+                return nodeColourMap[srcId] || fallback;
+            })
             .linkCurvature(0.25)
             .linkCurveRotation(0)
-            .linkDirectionalArrowLength(link => link.bidirectional ? 0 : 3.5)
-            .linkDirectionalArrowRelPos(1)
-            .linkOpacity(function() { return isDarkMode ? 0.5 : 0.2; })
+            .linkDirectionalArrowLength(0)
+            .linkOpacity(0.2)
 
             // Scene
             .backgroundColor('#f5f5f5')
@@ -244,6 +253,14 @@
             .onBackgroundClick(function() {
                 hideNodeDetails();
             });
+
+        // Spread nodes out — reduce centre gravity, increase repulsion.
+        Graph3D.d3Force('charge').strength(-120);
+        Graph3D.d3Force('center').strength(0.03);
+        var linkForce = Graph3D.d3Force('link');
+        if (linkForce) {
+            linkForce.distance(60);
+        }
     });
 
     // Node click: show details + highlight neighbourhood
@@ -345,21 +362,38 @@
         });
 
         Graph3D.linkColor(function(link) {
-            if (!hasHighlight) return isDarkMode ? '#7DBAED' : '#5B9BD5';
-            if (highlightedLinks.has(link)) return '#2E75B6';
+            var fallback = isDarkMode ? '#7DBAED' : '#5B9BD5';
+            var srcColour = fallback;
+            if (colourEdgesBySource) {
+                var srcId = link.source.id !== undefined ? link.source.id : link.source;
+                srcColour = nodeColourMap[srcId] || fallback;
+            }
+            if (!hasHighlight) return srcColour;
+            if (highlightedLinks.has(link)) return srcColour;
             return isDarkMode ? '#606060' : '#e8e8e8';
         }).linkWidth(function(link) {
             var base = link.width || 0.4;
             if (!hasHighlight) return base;
             return highlightedLinks.has(link) ? base * 2 : 0.2;
-        }).linkOpacity(function(link) {
-            if (isDarkMode) {
-                if (!hasHighlight) return 0.5;
-                return highlightedLinks.has(link) ? 0.9 : 0.15;
-            }
-            if (!hasHighlight) return 0.2;
-            return highlightedLinks.has(link) ? 0.6 : 0.05;
         });
+
+        if (hasHighlight) {
+            Graph3D.linkOpacity(1).linkMaterial(function(link) {
+                var opacity;
+                if (isDarkMode) {
+                    opacity = highlightedLinks.has(link) ? 0.7 : 0.05;
+                } else {
+                    opacity = highlightedLinks.has(link) ? 0.5 : 0.03;
+                }
+                return new THREE.MeshLambertMaterial({
+                    transparent: true,
+                    opacity: opacity
+                });
+            });
+        } else {
+            Graph3D.linkOpacity(isDarkMode ? 0.3 : 0.2)
+                .linkMaterial(null);
+        }
     }
 
     // Dark mode
