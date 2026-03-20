@@ -50,7 +50,7 @@ class RDFLibBackend:
     """Graph backend backed by an rdflib Graph.  NOT YET FUNCTIONAL."""
 
     def __init__(self, base_uri: str = "http://example.org/") -> None:
-        # Deferred import — rdflib is already an optional dep for validation.
+        # Deferred import — rdflib is an optional dep (pip install crategraph[rdf]).
         from rdflib import Graph as RDFGraph
         from rdflib import Namespace
 

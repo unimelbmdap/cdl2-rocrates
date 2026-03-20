@@ -344,11 +344,11 @@ inspect = [
 ohrm = [
     { name = "pandas" },
 ]
+rdf = [
+    { name = "rdflib" },
+]
 rustworkx = [
     { name = "rustworkx" },
-]
-validation = [
-    { name = "rdflib" },
 ]
 
 [package.dev-dependencies]
@@ -372,10 +372,10 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pyvis", specifier = ">=0.3" },
     { name = "rapidfuzz", specifier = ">=3.0" },
-    { name = "rdflib", marker = "extra == 'validation'", specifier = ">=7.0" },
+    { name = "rdflib", marker = "extra == 'rdf'", specifier = ">=7.0" },
     { name = "rustworkx", marker = "extra == 'rustworkx'", specifier = ">=0.15" },
 ]
-provides-extras = ["validation", "rustworkx", "cypher", "inspect", "ohrm"]
+provides-extras = ["rdf", "rustworkx", "cypher", "inspect", "ohrm"]
 
 [package.metadata.requires-dev]
 dev = [

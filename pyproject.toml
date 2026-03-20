@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-validation = ["rdflib>=7.0"]
+rdf = ["rdflib>=7.0"]
 rustworkx = ["rustworkx>=0.15"]
 cypher = ["grand-cypher>=1.0"]
 inspect = ["markitdown[all]>=0.1"]

@@ -222,7 +222,7 @@ All extension points use abstract base classes defined in `crategraph.core.inter
 
 | Extra       | Package          | Unlocks                          |
 |-------------|------------------|----------------------------------|
-| `validation`| rdflib           | RDF/schema.org validation        |
+| `rdf`       | rdflib           | RDF/schema.org validation, RiC-O reader |
 | `rustworkx` | rustworkx        | High-performance graph backend   |
 | `cypher`    | grand-cypher     | Cypher query support             |
 | `inspect`   | markitdown[all]  | File content inspection          |

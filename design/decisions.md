@@ -4,7 +4,7 @@ Rationale behind key architectural choices in crategraph. Companion to [api-desi
 
 ## Backend: NetworkX Primary, RDFLib Optional
 
-**Decision:** Parse JSON-LD directly as JSON, build a NetworkX graph. RDFLib is an optional dependency used only for validation.
+**Decision:** Parse JSON-LD directly as JSON, build a NetworkX graph. RDFLib is an optional dependency used for validation and RDF-based readers (e.g. RiC-O).
 
 **Why not RDFLib as primary?** Cultural collections are often converted from legacy databases and may not be fully RDF-compliant. RDFLib is strict — malformed crates fail at parse time, before the user can see the data. A key use case is *surfacing data quality issues visually*, which requires loading messy data first.
 
