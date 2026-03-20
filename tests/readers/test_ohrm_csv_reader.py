@@ -16,7 +16,7 @@ class TestOHRMCsvReaderConfig:
     """Unit tests — no real data needed."""
 
     def test_is_csv_graph_reader(self):
-        from crategraph.readers.csv import CsvGraphReader
+        from crategraph.readers.shared.csv_loader import CsvGraphReader
 
         reader = OHRMCsvReader()
         assert isinstance(reader, CsvGraphReader)

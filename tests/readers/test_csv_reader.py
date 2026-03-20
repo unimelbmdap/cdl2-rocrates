@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from crategraph.readers.csv import (
-    CsvGraphReader,
+from crategraph.readers.shared.csv_loader import CsvGraphReader
+from crategraph.readers.shared.tabular import (
     EdgeDef,
     FileEntityDef,
     LinkedMetadataDef,
