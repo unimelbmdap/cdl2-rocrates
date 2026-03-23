@@ -234,7 +234,7 @@ class ROCrateReader(Reader):
             if isinstance(self._inline_relations, list) and key not in self._inline_relations:
                 continue
             for target_id in self._extract_id_refs(value):
-                if graph._backend.has_node(target_id):
+                if target_id in graph._graph:
                     relationships.append(
                         Relationship(source=entity_id, target=target_id, type=key)
                     )

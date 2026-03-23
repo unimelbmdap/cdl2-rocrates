@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import warnings
 from unittest.mock import patch
 
 import networkx as nx
@@ -11,17 +10,15 @@ import pytest
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
 from crategraph.core.query import (
-    CypherQueryWarning,
     _build_nx_graph,
     _normalise_cypher,
     run_cypher,
 )
 
 
-def _sample_graph(*, backend=None) -> Graph:
+def _sample_graph() -> Graph:
     """Build a small test graph with entities and relationships."""
-    kwargs = {"backend": backend} if backend else {}
-    g = Graph(**kwargs)
+    g = Graph()
     g._add_node(Entity(id="#alice", types=["Person"], properties={"name": "Alice", "age": "30"}))
     g._add_node(Entity(id="#bob", types=["Person"], properties={"name": "Bob", "age": "25"}))
     g._add_node(Entity(id="#paper", types=["Document"], properties={"name": "Research Paper"}))
@@ -159,38 +156,6 @@ class TestGraphQueryMethod:
         assert len(alice_only) == 1
         expanded = alice_only.expand()
         assert len(expanded) > 1
-
-
-class TestBackendWarning:
-    def test_no_warning_for_networkx(self):
-        from crategraph.core.backends import networkx_backend
-
-        g = _sample_graph(backend=networkx_backend())
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
-            g.query("MATCH (a:Person) RETURN a")
-        cypher_warnings = [w for w in caught if issubclass(w.category, CypherQueryWarning)]
-        assert len(cypher_warnings) == 0
-
-    def test_warning_for_rustworkx(self):
-        pytest.importorskip("rustworkx")
-        from crategraph.core.backends import rustworkx_backend
-
-        g = _sample_graph(backend=rustworkx_backend())
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
-            g.query("MATCH (a:Person) RETURN a")
-        cypher_warnings = [w for w in caught if issubclass(w.category, CypherQueryWarning)]
-        assert len(cypher_warnings) == 1
-        assert "NetworkX" in str(cypher_warnings[0].message)
-
-    def test_rustworkx_query_still_works(self):
-        pytest.importorskip("rustworkx")
-        from crategraph.core.backends import rustworkx_backend
-
-        g = _sample_graph(backend=rustworkx_backend())
-        result = g.query("MATCH (a:Person) RETURN a")
-        assert len(result) == 2
 
 
 class TestNormaliseCypher:

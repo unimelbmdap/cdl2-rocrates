@@ -4,7 +4,7 @@ This page describes how crategraph is structured, to help contributors orient th
 
 ## High-Level Design
 
-crategraph is a **plugin-oriented graph library** for exploring RO-Crate metadata. The central object is `Graph` (with its convenience subclass `Crate`), which holds entities and relationships in memory and delegates storage to a swappable backend. Everything else — reading data in, rendering it out, inspecting files, validating quality — is handled by **plugin subsystems** defined as abstract base classes.
+crategraph is a **plugin-oriented graph library** for exploring RO-Crate metadata. The central object is `Graph` (with its convenience subclass `Crate`), which holds entities and relationships in memory and stores them in a NetworkX graph. Everything else — reading data in, rendering it out, inspecting files, validating quality — is handled by **plugin subsystems** defined as abstract base classes.
 
 ```
                         ┌──────────────┐
@@ -13,10 +13,10 @@ crategraph is a **plugin-oriented graph library** for exploring RO-Crate metadat
                         └──────┬───────┘
                                │ populate
                                ▼
-┌───────────┐     ┌────────────────────────────┐     ┌─────────────┐
-│ Backends  │◄────│      Graph  /  Crate       │────►│  Renderers  │
-│ (nx, rwx) │     │                            │     │ (2D/3D/SVG) │
-└───────────┘     │  entities · relationships  │     └─────────────┘
+                  ┌────────────────────────────┐     ┌─────────────┐
+                  │      Graph  /  Crate       │────►│  Renderers  │
+                  │                            │     │ (2D/3D/SVG) │
+                  │  entities · relationships  │     └─────────────┘
                   │  select · where · pattern  │
                   │  expand · search · query   │     ┌─────────────┐
                   │  merge · collapse · detect │────►│ Inspectors  │
@@ -44,10 +44,6 @@ crategraph/
 │   ├── analysis.py        # summary(), most_connected(), detect_communities()
 │   ├── query.py           # Optional Cypher query support (via grand-cypher)
 │   ├── interfaces.py      # ABCs: Reader, Writer, Renderer, Validator, Inspector
-│   └── backends/          # Swappable graph storage engines
-│       ├── networkx.py    # NetworkX backend (default, always available)
-│       ├── rustworkx.py   # Rustworkx backend (optional, high-performance)
-│       └── rdflib.py      # RDFLib backend (experimental)
 ├── readers/               # Data loaders
 │   └── rocrate.py         # ROCrateReader — parses ro-crate-metadata.json
 ├── renderers/             # Visualisation outputs
@@ -129,18 +125,6 @@ Writers serialise a `Graph` to an external format.
 
 **Contribution ideas:** JSON-LD export, GEXF export, CSV/tabular export, Neo4j import format.
 
-### Backends
-
-**ABC:** `GraphBackend` — `add_node()`, `add_edge()`, `has_node()`, `successors()`, `predecessors()`, `subgraph()`
-
-Backends provide the underlying graph storage engine. The public API is identical regardless of which backend is active.
-
-**Current implementations:**
-
-- `NetworkXBackend` (`core/backends/networkx.py`) — wraps `nx.MultiDiGraph`. Default, always available. Handles tens of thousands of nodes comfortably.
-- `RustworkxBackend` (`core/backends/rustworkx.py`) — wraps `rx.PyDiGraph`. Optional high-performance alternative. Maintains an internal `_id_to_index` mapping since rustworkx uses integer indices.
-- `RDFLibBackend` (`core/backends/rdflib.py`) — experimental and incomplete.
-
 ### Analysis and Query
 
 These modules live in `core/` and extend `Graph` with analytical capabilities:
@@ -152,7 +136,7 @@ These modules live in `core/` and extend `Graph` with analytical capabilities:
 
 A typical workflow moves data through the system like this:
 
-1. **Load:** a `Reader` parses a source (e.g. an RO-Crate directory) into `Entity` and `Relationship` objects, stored in a `Graph` backed by a `GraphBackend`.
+1. **Load:** a `Reader` parses a source (e.g. an RO-Crate directory) into `Entity` and `Relationship` objects, stored in a `Graph`.
 2. **Explore:** the user filters and transforms the graph using chainable methods (`select`, `where`, `pattern`, `expand`, `search`, `query`). Each returns a new `Graph`.
 3. **Visualise:** a `Renderer` takes the current graph and produces output (HTML, SVG, or in-memory object).
 4. **Inspect:** an `Inspector` examines a file referenced by an entity and returns a `FileInfo` with content and metadata.
@@ -172,6 +156,5 @@ For the rationale behind key architectural choices — why NetworkX over RDFLib,
 | Add a file inspector                | `core/interfaces.py:Inspector`, then `inspectors/markitdown.py` |
 | Implement validation                | `core/interfaces.py:Validator` and `core/models.py:ValidationReport` |
 | Add an export format                | `core/interfaces.py:Writer`                               |
-| Improve graph performance           | `core/backends/` — implement or optimise a `GraphBackend` |
 | Add analytical features             | `core/analysis.py` and `core/graph.py`                    |
 | Work on query support               | `core/query.py`                                           |

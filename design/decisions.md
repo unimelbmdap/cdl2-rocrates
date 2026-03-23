@@ -2,17 +2,15 @@
 
 Rationale behind key architectural choices in crategraph. Companion to [api-design.md](api-design.md).
 
-## Backend: NetworkX Primary, RDFLib Optional
+## Backend: NetworkX Direct
 
-**Decision:** Parse JSON-LD directly as JSON, build a NetworkX graph. RDFLib is an optional dependency used for validation and RDF-based readers (e.g. RiC-O).
+**Decision:** `Graph` owns an `nx.MultiDiGraph` directly. There is no swappable backend abstraction. RDFLib is an optional dependency used for RDF-based readers (e.g. RiC-O) and future RDF export writers, not as a graph engine.
 
-**Why not RDFLib as primary?** Cultural collections are often converted from legacy databases and may not be fully RDF-compliant. RDFLib is strict — malformed crates fail at parse time, before the user can see the data. A key use case is *surfacing data quality issues visually*, which requires loading messy data first.
+**History:** The project originally had a `GraphBackend` ABC with NetworkX, rustworkx, and RDFLib implementations. This was removed because the abstraction only covered storage (add/query nodes and edges) while the algorithm layer (Cypher queries, community detection, connected components) imported NetworkX directly. A non-NetworkX backend could be plugged in for storage but was silently ignored by every analytical operation.
 
-**Why not a hybrid?** Considered parsing via RDFLib where possible and falling back to JSON for non-compliant crates, but this creates two code paths with subtly different behaviour. Simpler to commit to one approach.
+**Why not RDFLib as a backend?** RDF export is a serialisation concern (Writer), not a storage concern. Forcing crates through RDF validation at load time would either drop data or hide quality issues — both unacceptable when surfacing data quality is a core use case.
 
-**Backend abstraction:** The `GraphBackend` ABC abstracts storage so the engine can be swapped without changing the public API. NetworkX is the default; rustworkx is available as an optional high-performance alternative. An experimental RDFLib backend exists but is incomplete.
-
-**Scaling:** NetworkX is purely in-memory. This handles tens of thousands of nodes comfortably, which covers expected use cases. If scale becomes an issue, rustworkx provides a significant speedup, or the backend abstraction allows plugging in something more substantial.
+**Scaling:** NetworkX handles tens of thousands of nodes comfortably. If a specific algorithm becomes a bottleneck, rustworkx can be used locally within that function without a full backend abstraction. See [roadmap.md](roadmap.md) for requirements of a full backend abstraction if ever needed.
 
 ## Data Models: Dataclasses + Pydantic
 

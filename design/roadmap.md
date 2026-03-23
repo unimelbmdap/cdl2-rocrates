@@ -63,6 +63,26 @@ Archipelago crates have dozens of zero-edge isolate nodes that add visual noise.
 
 The `data_entity_fraction` finding reveals LDaCA crates are 63% data entities while OHRM crates are ~0%. The doc recommends filtering out data entities for LDaCA structural analysis and notes OHRM crates are already entirely contextual. `Entity.has_data` exists but there's no convenience like `crate.select(contextual_only=True)` or `crate.data_entities` / `crate.contextual_entities` properties to make the split easy.
 
+## Graph Engine Abstraction
+
+The `GraphBackend` ABC was removed because it only abstracted storage while the algorithm layer (Cypher queries, community detection, connected components) imported NetworkX directly, bypassing the backend. A non-NetworkX backend could be plugged in for storage but was silently ignored by every analytical operation.
+
+The RDFLib backend was reconsidered: RDF export is better served by a Writer (serialisation concern) than a backend (storage concern). This avoids forcing messy real-world crates through RDF validation at load time, which would either drop data or hide quality issues — both unacceptable when surfacing data quality is a core use case. rustworkx was never used outside uncommitted benchmarks.
+
+**Trade-offs accepted:**
+- No swappable graph engine. NetworkX is the only backend.
+- If NetworkX becomes a bottleneck, targeted optimisation (caching, lazy evaluation, or selective use of rustworkx for specific algorithms) is the first response — not a full engine swap.
+
+**Requirements for a full backend abstraction (if ever needed):**
+
+A genuine swappable backend would need to abstract both storage *and* algorithms:
+1. The backend interface would need to expose algorithm operations (shortest path, centrality, community detection, connected components), not just CRUD.
+2. Cypher query support would need a backend-agnostic path (grand-cypher is NetworkX-specific).
+3. Every analytical function in `analysis.py` and `query.py` would need to go through the abstraction rather than importing NetworkX directly.
+4. The subgraph operation would need to preserve backend type through filtering chains.
+
+This is a significantly larger undertaking than the original ABC, which is why it should only be pursued when there's a concrete performance or capability requirement driving it — not speculatively.
+
 ## Plugin Implementations
 
 Extension points that exist as ABCs but have no concrete implementations yet:

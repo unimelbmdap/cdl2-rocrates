@@ -4,23 +4,23 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+import networkx as nx
 from rapidfuzz import fuzz
 
 from crategraph.core import analysis as analysis_mod
-from crategraph.core.backends import default_backend
 from crategraph.core.models import Entity, Relationship
 from crategraph.core.types import TypeRegistry
 
 if TYPE_CHECKING:
-    from crategraph.core.interfaces import GraphBackend
     from crategraph.core.models import FileInfo, ViewInfo
 
 
 class Graph:
     """The central object for loading, querying, and visualising graphs.
 
-    By default uses the best available backend (rustworkx if installed,
-    otherwise NetworkX).  Pass an explicit *backend* to override.
+    Uses a NetworkX ``MultiDiGraph`` internally for graph storage and
+    traversal.  ``MultiDiGraph`` supports directed edges and multiple
+    edges between the same node pair, both required by the data model.
     """
 
     def __init__(
@@ -28,14 +28,13 @@ class Graph:
         *,
         source: str | None = None,
         metadata: dict[str, Any] | None = None,
-        backend: GraphBackend | None = None,
     ) -> None:
         self.source = source
         self.metadata: dict[str, Any] = metadata if metadata is not None else {}
         self._entities: dict[str, Entity] = {}
         self._relationships: list[Relationship] = []
         self._source_names: set[str] = set()
-        self._backend: GraphBackend = backend if backend is not None else default_backend()
+        self._graph: nx.MultiDiGraph = nx.MultiDiGraph()
         self._root: Graph = self  # reference to the root/full graph for expand()
         self._simplification_k: int | None = None
 
@@ -604,8 +603,7 @@ class Graph:
             r for r in self._relationships if r.source in surviving and r.target in surviving
         ]
         sub._source_names = set(self._source_names)
-        new_backend = self._backend.subgraph(surviving, sub._entities, sub._relationships)
-        sub._backend = new_backend
+        sub._graph = self._graph.subgraph(surviving).copy()
         sub._root = self._root
         return sub
 
@@ -632,7 +630,6 @@ class Graph:
         collapsed = Graph(
             source=self.source,
             metadata=dict(self.metadata),
-            backend=type(self._backend)(),
         )
         for entity in self._entities.values():
             collapsed._add_node(entity)
@@ -958,7 +955,7 @@ class Graph:
 
         return run_cypher(self, cypher)
 
-    # --- Private backend abstraction ---
+    # --- Private graph helpers ---
 
     def _add_node(self, entity: Entity) -> None:
         """Add or replace an entity in the graph."""
@@ -967,12 +964,12 @@ class Graph:
             from pathlib import PurePosixPath
 
             self._source_names.add(PurePosixPath(entity.source).name)
-        self._backend.add_node(entity.id, entity=entity)
+        self._graph.add_node(entity.id, entity=entity)
 
     def _add_edge(self, relationship: Relationship) -> None:
         """Add a relationship to the graph."""
         self._relationships.append(relationship)
-        self._backend.add_edge(
+        self._graph.add_edge(
             relationship.source,
             relationship.target,
             key=relationship.type,
@@ -986,18 +983,13 @@ class Graph:
 
     def _neighbours(self, node_id: str) -> set[str]:
         """Return IDs of all nodes adjacent to *node_id* (in either direction)."""
-        if not self._backend.has_node(node_id):
+        if node_id not in self._graph:
             return set()
-        return self._backend.successors(node_id) | self._backend.predecessors(node_id)
+        return set(self._graph.successors(node_id)) | set(self._graph.predecessors(node_id))
 
     def _subgraph(self, node_ids: set[str]) -> Graph:
         """Return a new Graph containing only the specified nodes and their mutual edges."""
         root = self._root
-        new_backend = self._backend.subgraph(
-            node_ids,
-            self._entities,
-            self._relationships,
-        )
         sub = Graph.__new__(Graph)
         sub.source = self.source
         sub.metadata = dict(self.metadata)
@@ -1006,6 +998,7 @@ class Graph:
             r for r in self._relationships if r.source in node_ids and r.target in node_ids
         ]
         sub._source_names = set(self._source_names)
-        sub._backend = new_backend
+        sub._graph = self._graph.subgraph(node_ids).copy()
         sub._root = root
+        sub._simplification_k = None
         return sub
