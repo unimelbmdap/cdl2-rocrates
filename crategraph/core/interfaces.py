@@ -1,4 +1,4 @@
-"""ABCs: Reader, Writer, Validator, Renderer, and internal GraphBackend."""
+"""ABCs: Reader, Writer, Validator, Renderer, Inspector, and Viewer."""
 
 from __future__ import annotations
 
@@ -8,57 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
-    from crategraph.core.models import Entity, FileInfo, Relationship, ValidationReport, ViewInfo
-
-
-# --- Internal backend ABC ---
-
-
-class GraphBackend(ABC):
-    """Base class for graph storage engines (NetworkX, rustworkx, etc.).
-
-    All identifiers are string-based — backends that use integer indices
-    (e.g. rustworkx) must maintain their own internal mapping.
-    """
-
-    @abstractmethod
-    def add_node(self, node_id: str, entity: Entity) -> None:
-        """Add or replace a node."""
-
-    @abstractmethod
-    def add_edge(self, source: str, target: str, key: str, relationship: Relationship) -> None:
-        """Add a directed edge."""
-
-    @abstractmethod
-    def has_node(self, node_id: str) -> bool:
-        """Return True if *node_id* exists in the graph."""
-
-    @abstractmethod
-    def successors(self, node_id: str) -> set[str]:
-        """Return IDs of all direct successors of *node_id*."""
-
-    @abstractmethod
-    def predecessors(self, node_id: str) -> set[str]:
-        """Return IDs of all direct predecessors of *node_id*."""
-
-    def subgraph(
-        self,
-        node_ids: set[str],
-        entities: dict[str, Entity],
-        relationships: list[Relationship],
-    ) -> GraphBackend:
-        """Return a new backend containing only *node_ids* and mutual edges.
-
-        Default: loop add_node/add_edge. Backends may override for speed.
-        """
-        new = type(self)()
-        for nid in node_ids:
-            if nid in entities:
-                new.add_node(nid, entities[nid])
-        for rel in relationships:
-            if rel.source in node_ids and rel.target in node_ids:
-                new.add_edge(rel.source, rel.target, rel.type, rel)
-        return new
+    from crategraph.core.models import Entity, FileInfo, ValidationReport, ViewInfo
 
 
 class Reader(ABC):
