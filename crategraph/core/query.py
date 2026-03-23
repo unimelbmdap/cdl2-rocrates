@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import re
-import warnings
 from typing import TYPE_CHECKING
 
 import networkx as nx
@@ -13,10 +12,6 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
-
-
-class CypherQueryWarning(UserWarning):
-    """Emitted when a Cypher query triggers a temporary NetworkX conversion."""
 
 
 def _build_nx_graph(graph: Graph) -> nx.MultiDiGraph:
@@ -43,28 +38,6 @@ def _build_nx_graph(graph: Graph) -> nx.MultiDiGraph:
             nxg.add_edge(rel.source, rel.target, **attrs)
 
     return nxg
-
-
-def _get_nx_graph(graph: Graph) -> nx.MultiDiGraph:
-    """Get or build a NetworkX graph for Cypher querying.
-
-    Always builds a fresh graph with ``__labels__`` set, since the
-    internal NetworkX backend graph doesn't have them by default.
-    Emits a ``CypherQueryWarning`` when the backend is not NetworkX.
-    """
-    from crategraph.core.backends.networkx import NetworkXBackend
-
-    if not isinstance(graph._backend, NetworkXBackend):
-        n_entities = len(graph._entities)
-        warnings.warn(
-            f"Cypher queries use NetworkX internally. Converting {n_entities} "
-            f"entities from the current backend to a temporary NetworkX graph. "
-            f"This is faster with the NetworkX backend.",
-            CypherQueryWarning,
-            stacklevel=3,
-        )
-
-    return _build_nx_graph(graph)
 
 
 def _extract_node_ids(result: dict, graph: Graph) -> set[str]:
@@ -150,7 +123,7 @@ def run_cypher(graph: Graph, cypher: str) -> Graph:
         raise ImportError(msg) from None
 
     cypher = _normalise_cypher(cypher)
-    nxg = _get_nx_graph(graph)
+    nxg = _build_nx_graph(graph)
     result = GrandCypher(nxg).run(cypher)
 
     matched_ids = _extract_node_ids(result, graph)
