@@ -15,18 +15,17 @@ Overview of `crategraph`'s design principles and current API surface. For the ra
 
 ## Architecture
 
-The public API abstracts away the graph storage backend. The current implementation uses **NetworkX as the primary backend** with an optional rustworkx backend for performance. RDFLib is available as an optional dependency for validation, not for core operations. See [decisions.md](decisions.md) for the reasoning.
+The core uses **NetworkX** (`nx.MultiDiGraph`) directly for graph storage and traversal. See [decisions.md](decisions.md) for the reasoning.
 
 ```
 crategraph/
-├── core/           # Graph class, data models, backends, analysis
+├── core/           # Graph class, data models, query, analysis
 │   ├── graph.py    # Graph + Crate classes (public API surface)
 │   ├── models.py   # Entity, Relationship (frozen dataclasses)
 │   ├── types.py    # TypeRegistry (fuzzy type discovery)
 │   ├── analysis.py # summary, most_connected, detect_communities
 │   ├── query.py    # Cypher query support (optional)
 │   ├── interfaces.py # ABCs: Reader, Writer, Renderer, Validator, Inspector
-│   └── backends/   # NetworkX, rustworkx, rdflib (experimental)
 ├── readers/        # ROCrateReader
 ├── renderers/      # Pyvis (2D), ForceGraph3D (3D), SVG (static)
 ├── inspectors/     # MarkItDown file inspector
@@ -223,6 +222,5 @@ All extension points use abstract base classes defined in `crategraph.core.inter
 | Extra       | Package          | Unlocks                          |
 |-------------|------------------|----------------------------------|
 | `rdf`       | rdflib           | RDF/schema.org validation, RiC-O reader |
-| `rustworkx` | rustworkx        | High-performance graph backend   |
 | `cypher`    | grand-cypher     | Cypher query support             |
 | `inspect`   | markitdown[all]  | File content inspection          |

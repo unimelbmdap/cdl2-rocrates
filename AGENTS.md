@@ -26,7 +26,7 @@ Read the linked documents before making changes.
 
 ```
 crategraph/
-├── core/           # Graph, models, backends, query, interfaces
+├── core/           # Graph, models, query, interfaces
 ├── readers/        # Data loaders (ROCrateReader, CsvGraphReader, OHRMCsvReader)
 ├── renderers/      # Visualisation (Pyvis 2D, ForceGraph3D, SVG)
 ├── inspectors/     # File inspection (MarkItDown)
