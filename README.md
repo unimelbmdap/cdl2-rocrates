@@ -34,6 +34,31 @@ The project focuses on use-case driven development, prioritising specific resear
 
 This work builds on existing University of Melbourne projects and external collaborations that have developed specialised RO-Crate tools and workflows, including work derived from former Online Heritage Resource Manager projects.
 
+## Quick Start
+
+After cloning the repo, you can start exploring immediately — no manual install step needed. `uv run` creates an isolated environment and installs the package automatically on first use.
+
+**Interactive Python shell:**
+
+```bash
+uv run --all-extras python
+```
+
+```python
+>>> from crategraph import Crate
+>>> crate = Crate("tests/fixtures/minimal-crate/")
+>>> crate.entities
+>>> crate.relationships
+```
+
+**Jupyter notebook:**
+
+```bash
+uv run --all-extras --with jupyter jupyter notebook
+```
+
+Save notebooks in the `notebooks/` directory — it's gitignored so scratch work won't end up in the repo.
+
 ## Development Setup
 
 ### Prerequisites

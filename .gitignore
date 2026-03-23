@@ -182,6 +182,7 @@ pyrightconfig.json
 # Local data and generated outputs (not tracked)
 /data/
 /examples/
+/notebooks/
 /docs/plans/
 /docs/superpowers
 /benchmarks/
