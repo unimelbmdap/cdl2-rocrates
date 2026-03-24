@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RO CREATE</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0a0c; overflow: hidden; font-family: -apple-system, system-ui, sans-serif; }
+        #canvas3d { display: block; cursor: grab; }
+        #canvas3d:active { cursor: grabbing; }
+
+        .exhibition-title {
+            position: fixed;
+            z-index: 50;
+            color: rgba(216, 218, 222, 0.15);
+            font-size: 72px;
+            font-weight: 800;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            font-family: -apple-system, system-ui, sans-serif;
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-select: none;
+            white-space: nowrap;
+        }
+        #title-left {
+            left: 12px;
+            top: 50%%;
+            transform: translateY(-50%%) rotate(-90deg);
+        }
+        #title-right {
+            right: 12px;
+            top: 50%%;
+            transform: translateY(-50%%) rotate(90deg);
+        }
+        .title-italic {
+            font-style: italic;
+        }
+
+        #info {
+            position: fixed; bottom: 20px; left: 50%%; transform: translateX(-50%%);
+            color: #555; font-size: 11px; letter-spacing: 0.05em;
+        }
+
+        /* Confirmation dialog */
+        #confirm-dialog {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0);
+            pointer-events: none;
+            transition: background 0.6s ease;
+        }
+        #confirm-dialog.visible {
+            background: rgba(0, 0, 0, 0.7);
+            pointer-events: auto;
+        }
+        #confirm-panel {
+            background: #18181b;
+            border: 1px solid #2a2a2e;
+            border-radius: 10px;
+            padding: 24px;
+            max-width: 480px;
+            width: 90%%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            transform: scale(0.92);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        #confirm-dialog.visible #confirm-panel {
+            opacity: 1;
+            transform: scale(1);
+        }
+        #confirm-panel img {
+            width: 100%%;
+            border-radius: 6px;
+            border: 1px solid #2a2a2e;
+            margin-bottom: 16px;
+        }
+        #confirm-label {
+            color: #d8dade;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        #confirm-meta {
+            color: #7a7e85;
+            font-size: 12px;
+            font-family: ui-monospace, monospace;
+            margin-bottom: 20px;
+        }
+        #confirm-panel .btn-row {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        #confirm-panel button {
+            font-family: -apple-system, system-ui, sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            padding: 10px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+        #btn-explore {
+            background: rgba(60, 140, 200, 0.85);
+            border: 1px solid rgba(100, 170, 230, 0.5);
+            color: #fff;
+        }
+        #btn-explore:hover {
+            background: rgba(70, 160, 220, 0.95);
+            box-shadow: 0 0 16px rgba(80, 160, 255, 0.3);
+        }
+        #btn-cancel {
+            background: #222225;
+            border: 1px solid #3a3a3e;
+            color: #7a7e85;
+        }
+        #btn-cancel:hover {
+            color: #d8dade;
+            border-color: #555;
+        }
+
+        /* Crate view overlay */
+        #crate-view {
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            background: #0a0a0c;
+            display: none;
+            opacity: 0;
+            transition: opacity 1.2s ease;
+        }
+        #crate-view.visible {
+            opacity: 1;
+        }
+        #crate-iframe {
+            width: 100%%;
+            height: 100%%;
+            border: none;
+        }
+        #exit-crate-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 400;
+            background: rgba(200, 60, 60, 0.85);
+            border: 1px solid rgba(255, 100, 100, 0.5);
+            color: #fff;
+            font-family: ui-monospace, monospace;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            padding: 10px 22px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.25s;
+            text-transform: uppercase;
+        }
+        #exit-crate-btn:hover {
+            background: rgba(220, 70, 70, 0.95);
+            box-shadow: 0 0 16px rgba(255, 80, 80, 0.4);
+        }
+
+        #demo-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(60, 140, 200, 0.85);
+            border: 1px solid rgba(100, 170, 230, 0.5);
+            color: #fff;
+            font-family: ui-monospace, monospace;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            padding: 10px 22px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.25s;
+            text-transform: uppercase;
+        }
+        #demo-btn:hover {
+            background: rgba(70, 160, 220, 0.95);
+            box-shadow: 0 0 16px rgba(80, 160, 255, 0.3);
+        }
+        #demo-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas3d"></canvas>
+    <div id="title-left" class="exhibition-title">RO <span class="title-italic">Create</span></div>
+    <div id="title-right" class="exhibition-title">RO <span class="title-italic">Create</span></div>
+    <div id="info">drag to rotate &middot; click card to explore</div>
+    <button id="demo-btn" onclick="startDemo()">Demo</button>
+
+    <div id="confirm-dialog">
+        <div id="confirm-panel">
+            <img id="confirm-img" src="" alt="Crate preview">
+            <div id="confirm-label"></div>
+            <div id="confirm-meta"></div>
+            <div class="btn-row">
+                <button id="btn-explore">Explore Crate</button>
+                <button id="btn-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="crate-view">
+        <iframe id="crate-iframe"></iframe>
+        <button id="exit-crate-btn" onclick="exitCrateView()">Exit</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TrackballControls.js"></script>
+
+    <script>
+    var cards = %(cards_json)s;
+    var pendingCard = null;
+    var demoActive = false;
+    var demoCamera = null;
+    var demoControls = null;
+    var cubeFaceSize = 0;
+    var demoSafetyTimer = null;
+
+    function easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    // Orbit camera around origin with mixed-axis movement for natural feel.
+    // waypoints: array of { yaw, pitch, duration } — yaw/pitch in radians, relative deltas.
+    function animateCameraPath(waypoints, onComplete) {
+        var distance = demoCamera.position.length();
+        // Compute starting spherical coords.
+        var pos = demoCamera.position;
+        var currentYaw = Math.atan2(pos.x, pos.z);
+        var currentPitch = Math.asin(Math.max(-1, Math.min(1, pos.y / distance)));
+        var wpIndex = 0;
+
+        function runSegment() {
+            if (wpIndex >= waypoints.length) {
+                if (onComplete) onComplete();
+                return;
+            }
+            var wp = waypoints[wpIndex];
+            var startYaw = currentYaw;
+            var startPitch = currentPitch;
+            var startTime = performance.now();
+
+            function tick() {
+                if (!demoActive) return;
+                var elapsed = performance.now() - startTime;
+                var t = Math.min(elapsed / wp.duration, 1);
+                var eased = easeInOutCubic(t);
+
+                var yaw = startYaw + wp.yaw * eased;
+                var pitch = startPitch + wp.pitch * eased;
+                // Clamp pitch to avoid flipping.
+                pitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, pitch));
+
+                demoCamera.position.set(
+                    distance * Math.cos(pitch) * Math.sin(yaw),
+                    distance * Math.sin(pitch),
+                    distance * Math.cos(pitch) * Math.cos(yaw)
+                );
+                demoCamera.lookAt(0, 0, 0);
+
+                if (t < 1) {
+                    requestAnimationFrame(tick);
+                } else {
+                    currentYaw = startYaw + wp.yaw;
+                    currentPitch = startPitch + wp.pitch;
+                    wpIndex++;
+                    runSegment();
+                }
+            }
+            tick();
+        }
+        runSegment();
+    }
+
+    function initGallery() {
+      var canvas = document.getElementById("canvas3d");
+      var scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a0a0c);
+
+      var camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+      var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+
+      var controls = new THREE.TrackballControls(camera, canvas);
+      controls.rotateSpeed = 2.0;
+      controls.noZoom = true;
+      controls.noPan = true;
+      controls.dynamicDampingFactor = 0.15;
+      controls.staticMoving = false;
+
+
+      // --- Cube layout ---
+      // 3 columns x 4 rows per face (landscape cards fit a wider grid).
+      var totalCards = cards.length;
+      var cols = 3;
+      var rows = 4;
+      var cardsPerFace = cols * rows;
+
+      var cardW = 4.0;
+      var cardH = 2.8;
+      var gap = 0.6;
+      var stepX = cardW + gap;
+      var stepY = cardH + gap + 0.8;
+      var padding = 2.0;
+      var faceSize = Math.max(cols * stepX, rows * stepY) + padding;
+      var half = faceSize / 2;
+
+      var loader = new THREE.TextureLoader();
+      var cubeGroup = new THREE.Group();
+      var clickTargets = [];
+
+      // Face definitions: position and rotation.
+      var faces = [
+        { pos: [0, 0, half],  rot: null },                          // Front
+        { pos: [0, 0, -half], rot: { axis: "Y", angle: Math.PI } }, // Back
+        { pos: [half, 0, 0],  rot: { axis: "Y", angle: Math.PI / 2 } },   // Right
+        { pos: [-half, 0, 0], rot: { axis: "Y", angle: -Math.PI / 2 } },  // Left
+        { pos: [0, half, 0],  rot: { axis: "X", angle: -Math.PI / 2 } },  // Top
+        { pos: [0, -half, 0], rot: { axis: "X", angle: Math.PI / 2 } },   // Bottom
+      ];
+
+      var slotIndex = 0;
+
+      faces.forEach(function (faceDef) {
+        var faceGroup = new THREE.Group();
+        faceGroup.position.set(faceDef.pos[0], faceDef.pos[1], faceDef.pos[2]);
+        if (faceDef.rot) {
+          if (faceDef.rot.axis === "X") faceGroup.rotateX(faceDef.rot.angle);
+          if (faceDef.rot.axis === "Y") faceGroup.rotateY(faceDef.rot.angle);
+        }
+
+        for (var s = 0; s < cardsPerFace; s++) {
+          // Wrap around to fill all slots.
+          var cardIdx = slotIndex %% totalCards;
+          var card = cards[cardIdx];
+          slotIndex++;
+
+          var col = s %% cols;
+          var row = Math.floor(s / cols);
+          var x = (col - (cols - 1) / 2) * stepX;
+          var y = -(row - (rows - 1) / 2) * stepY;
+
+          var cardGroup = new THREE.Group();
+          cardGroup.position.set(x, y, 0.5);
+
+          // Thumbnail plane.
+          var tex = loader.load(card.snapshot);
+          tex.minFilter = THREE.LinearFilter;
+          var mat = new THREE.MeshBasicMaterial({ map: tex, transparent: false, side: THREE.DoubleSide });
+          var geo = new THREE.PlaneGeometry(cardW, cardH);
+          var mesh = new THREE.Mesh(geo, mat);
+          mesh.userData.cardIndex = cardIdx;
+          cardGroup.add(mesh);
+          clickTargets.push(mesh);
+
+          // Dark backing panel.
+          var backGeo = new THREE.PlaneGeometry(cardW + 0.15, cardH + 1.0);
+          var backMat = new THREE.MeshBasicMaterial({ color: 0x18181b, side: THREE.DoubleSide });
+          var back = new THREE.Mesh(backGeo, backMat);
+          back.position.set(0, -0.35, -0.02);
+          cardGroup.add(back);
+
+          // Border outline.
+          var edges = new THREE.EdgesGeometry(backGeo);
+          var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x2a2a2e }));
+          line.position.copy(back.position);
+          cardGroup.add(line);
+
+          // Label — canvas texture.
+          var labelCanvas = document.createElement("canvas");
+          labelCanvas.width = 512;
+          labelCanvas.height = 64;
+          var ctx = labelCanvas.getContext("2d");
+          ctx.fillStyle = "#d8dade";
+          ctx.font = "bold 22px -apple-system, system-ui, sans-serif";
+          ctx.fillText(card.label, 8, 24);
+          ctx.fillStyle = "#7a7e85";
+          ctx.font = "16px ui-monospace, monospace";
+          ctx.fillText(card.meta, 8, 50);
+
+          var labelTex = new THREE.CanvasTexture(labelCanvas);
+          labelTex.minFilter = THREE.LinearFilter;
+          var labelMat = new THREE.MeshBasicMaterial({ map: labelTex, transparent: true });
+          var labelGeo = new THREE.PlaneGeometry(cardW, cardH * 0.2);
+          var labelMesh = new THREE.Mesh(labelGeo, labelMat);
+          labelMesh.position.set(0, -cardH / 2 - 0.15, 0.01);
+          cardGroup.add(labelMesh);
+
+          faceGroup.add(cardGroup);
+        }
+
+        cubeGroup.add(faceGroup);
+      });
+
+      scene.add(cubeGroup);
+
+      // Semi-transparent cube shell.
+      var shellGeo = new THREE.BoxGeometry(faceSize, faceSize, faceSize);
+      var shellMat = new THREE.MeshBasicMaterial({
+        color: 0x0e0e10,
+        transparent: true,
+        opacity: 0.85,
+        side: THREE.FrontSide,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: 2,
+        polygonOffsetUnit: 2,
+      });
+      var shell = new THREE.Mesh(shellGeo, shellMat);
+      shell.renderOrder = -1;
+      scene.add(shell);
+
+      // Cube edge wireframe — thick cylinders along each edge.
+      var edgeRadius = 0.08;
+      var edgeColour = 0xcccccc;
+      var edgeMat = new THREE.MeshBasicMaterial({ color: edgeColour });
+      var h = half;
+      var cubeEdges = [
+        [[-h, -h, -h], [h, -h, -h]],
+        [[h, -h, -h], [h, -h, h]],
+        [[h, -h, h], [-h, -h, h]],
+        [[-h, -h, h], [-h, -h, -h]],
+        [[-h, h, -h], [h, h, -h]],
+        [[h, h, -h], [h, h, h]],
+        [[h, h, h], [-h, h, h]],
+        [[-h, h, h], [-h, h, -h]],
+        [[-h, -h, -h], [-h, h, -h]],
+        [[h, -h, -h], [h, h, -h]],
+        [[h, -h, h], [h, h, h]],
+        [[-h, -h, h], [-h, h, h]],
+      ];
+      cubeEdges.forEach(function (e) {
+        var a = new THREE.Vector3(e[0][0], e[0][1], e[0][2]);
+        var b = new THREE.Vector3(e[1][0], e[1][1], e[1][2]);
+        var mid = a.clone().add(b).multiplyScalar(0.5);
+        var len = a.distanceTo(b);
+        var cylGeo = new THREE.CylinderGeometry(edgeRadius, edgeRadius, len, 6);
+        var cyl = new THREE.Mesh(cylGeo, edgeMat);
+        cyl.position.copy(mid);
+        var dir = b.clone().sub(a).normalize();
+        cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+        scene.add(cyl);
+      });
+
+      // Fixed camera distance — no zoom.
+      camera.position.set(0, 0, faceSize * 1.8);
+      controls.target.set(0, 0, 0);
+      controls.update();
+
+      // Resize handler.
+      window.addEventListener("resize", function () {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      // Expose for demo.
+      demoCamera = camera;
+      demoControls = controls;
+      cubeFaceSize = faceSize;
+
+      // Render loop.
+      function animate() {
+        requestAnimationFrame(animate);
+        if (!demoActive) controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // --- Click handling: single click → confirmation dialog ---
+      var raycaster = new THREE.Raycaster();
+      var mouse = new THREE.Vector2();
+      var pointerDownPos = { x: 0, y: 0 };
+      var dragThreshold = 5;
+
+      canvas.addEventListener("pointerdown", function (event) {
+        pointerDownPos.x = event.clientX;
+        pointerDownPos.y = event.clientY;
+      });
+
+      canvas.addEventListener("click", function (event) {
+        // Ignore drags.
+        var dx = event.clientX - pointerDownPos.x;
+        var dy = event.clientY - pointerDownPos.y;
+        if (Math.sqrt(dx * dx + dy * dy) > dragThreshold) return;
+
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+
+        var hits = raycaster.intersectObjects(clickTargets);
+        if (hits.length === 0) return;
+
+        var cardIdx = hits[0].object.userData.cardIndex;
+        var card = cards[cardIdx];
+        if (!card || !card.graphFile) return;
+
+        showConfirmDialog(card);
+      });
+    }
+
+    // --- Confirmation dialog ---
+    function showConfirmDialog(card) {
+      pendingCard = card;
+      document.getElementById("confirm-img").src = card.snapshot;
+      document.getElementById("confirm-label").textContent = card.label;
+      document.getElementById("confirm-meta").textContent = card.meta;
+      document.getElementById("confirm-dialog").classList.add("visible");
+    }
+
+    function hideConfirmDialog() {
+      document.getElementById("confirm-dialog").classList.remove("visible");
+      pendingCard = null;
+    }
+
+    document.getElementById("btn-explore").addEventListener("click", function () {
+      if (pendingCard) {
+        enterCrateView(pendingCard);
+        hideConfirmDialog();
+      }
+    });
+
+    document.getElementById("btn-cancel").addEventListener("click", hideConfirmDialog);
+
+    // Close dialog on backdrop click.
+    document.getElementById("confirm-dialog").addEventListener("click", function (e) {
+      if (e.target === this) hideConfirmDialog();
+    });
+
+    // Close dialog on Escape key.
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        if (demoActive) {
+          endDemo();
+          return;
+        }
+        if (document.getElementById("crate-view").classList.contains("visible")) {
+          exitCrateView();
+        } else if (document.getElementById("confirm-dialog").classList.contains("visible")) {
+          hideConfirmDialog();
+        }
+      }
+    });
+
+    // --- Enter / Exit crate view ---
+    function enterCrateView(card) {
+      var overlay = document.getElementById("crate-view");
+      var iframe = document.getElementById("crate-iframe");
+      var viewerUrl = "crate-viewer.html?graph=" + encodeURIComponent(card.graphFile) +
+                      "&title=" + encodeURIComponent(card.label) +
+                      "&bg=" + encodeURIComponent("#000000");
+      iframe.src = viewerUrl;
+      overlay.style.display = "block";
+
+      // Trigger reflow then fade in.
+      void overlay.offsetWidth;
+      overlay.classList.add("visible");
+    }
+
+    function exitCrateView() {
+      var overlay = document.getElementById("crate-view");
+      overlay.classList.remove("visible");
+
+      setTimeout(function () {
+        overlay.style.display = "none";
+        document.getElementById("crate-iframe").src = "about:blank";
+      }, 1200);
+    }
+
+    // --- Demo tour ---
+    function startDemo() {
+      var btn = document.getElementById("demo-btn");
+      btn.disabled = true;
+      demoActive = true;
+      demoControls.enabled = false;
+
+      // Pick a visually interesting card (prefer index 22 = Braided Channels, 576 nodes).
+      var demoCard = null;
+      var preferredIndex = 22;
+      if (cards[preferredIndex] && cards[preferredIndex].graphFile) {
+        demoCard = cards[preferredIndex];
+      } else {
+        for (var i = 0; i < cards.length; i++) {
+          if (cards[i].graphFile) { demoCard = cards[i]; break; }
+        }
+      }
+      if (!demoCard) { endDemo(); return; }
+
+      // Safety timeout — force end if something stalls.
+      demoSafetyTimer = setTimeout(function () { endDemo(); }, 35000);
+
+      // Phase 1: Extended mixed-axis cube rotation (~7s).
+      // Multiple waypoints with varied yaw/pitch for organic movement.
+      animateCameraPath([
+        { yaw: Math.PI * 0.3,  pitch: Math.PI * 0.1,   duration: 2000 },
+        { yaw: Math.PI * 0.15, pitch: -Math.PI * 0.15,  duration: 1800 },
+        { yaw: -Math.PI * 0.2, pitch: Math.PI * 0.08,  duration: 1600 },
+        { yaw: Math.PI * 0.1,  pitch: -Math.PI * 0.03, duration: 1600 },
+      ], function () {
+        if (!demoActive) return;
+
+        // Phase 2: Show confirmation dialog, pause, enter crate.
+        showConfirmDialog(demoCard);
+
+        // Register ready listener BEFORE entering crate so we don't miss it.
+        var readyFired = false;
+        var onReady = function (event) {
+          if (!event.data || event.data.type !== "crate-viewer-ready") return;
+          if (readyFired) return;
+          readyFired = true;
+          window.removeEventListener("message", onReady);
+          if (!demoActive) return;
+          sendDemoCommands();
+        };
+        window.addEventListener("message", onReady);
+
+        // Fallback: if ready message never arrives, proceed after 4s.
+        setTimeout(function () {
+          if (!readyFired) {
+            readyFired = true;
+            window.removeEventListener("message", onReady);
+            if (demoActive) sendDemoCommands();
+          }
+        }, 4000);
+
+        function sendDemoCommands() {
+          // Give the force layout a moment to stabilise.
+          setTimeout(function () {
+            if (!demoActive) return;
+            var iframe = document.getElementById("crate-iframe");
+            try {
+              iframe.contentWindow.postMessage(
+                { type: "demo-zoom", factor: 0.65, durationMs: 1500 }, "*"
+              );
+            } catch (e) { /* cross-origin guard */ }
+
+            setTimeout(function () {
+              if (!demoActive) return;
+              try {
+                iframe.contentWindow.postMessage(
+                  { type: "demo-rotate", degrees: 360, durationMs: 8000 }, "*"
+                );
+              } catch (e) { /* cross-origin guard */ }
+            }, 1800);
+          }, 1500);
+        }
+
+        setTimeout(function () {
+          if (!demoActive) return;
+          enterCrateView(demoCard);
+          hideConfirmDialog();
+        }, 1500);
+      });
+
+      // Listen for rotate-complete from iframe.
+      var onRotateComplete = function (event) {
+        if (!event.data || event.data.type !== "demo-rotate-complete") return;
+        window.removeEventListener("message", onRotateComplete);
+        if (!demoActive) return;
+
+        // Phase 4: Exit crate view.
+        exitCrateView();
+
+        // Phase 5: Final cube rotation — different direction, eases to stop.
+        setTimeout(function () {
+          if (!demoActive) return;
+          animateCameraPath([
+            { yaw: -Math.PI * 0.25, pitch: -Math.PI * 0.06, duration: 1500 },
+            { yaw: Math.PI * 0.1, pitch: Math.PI * 0.03, duration: 1500 },
+          ], function () {
+            endDemo();
+          });
+        }, 1300);
+      };
+      window.addEventListener("message", onRotateComplete);
+    }
+
+    function endDemo() {
+      demoActive = false;
+      if (demoSafetyTimer) {
+        clearTimeout(demoSafetyTimer);
+        demoSafetyTimer = null;
+      }
+
+      // Clean up any open overlays.
+      hideConfirmDialog();
+      var crateOverlay = document.getElementById("crate-view");
+      if (crateOverlay.classList.contains("visible")) {
+        exitCrateView();
+      }
+
+      // Restore controls.
+      if (demoControls) {
+        demoControls.enabled = true;
+        demoControls.target.set(0, 0, 0);
+        demoControls.update();
+      }
+      document.getElementById("demo-btn").disabled = false;
+    }
+
+    initGallery();
+    </script>
+</body>
+</html>

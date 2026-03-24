@@ -3,5 +3,5 @@ gallery-*.html
 heatmap-grid.html
 *.pdf
 snapshots/
-crate-explorer/output/
+crate-explorer/output*/
 __pycache__/

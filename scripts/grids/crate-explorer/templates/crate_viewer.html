@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crate Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                         'Helvetica Neue', Arial, sans-serif;
+        }
+
+        #graph-3d {
+            width: 100%;
+            height: 100vh;
+        }
+
+        #controls-container {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 2000;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .control-button {
+            background: rgba(40, 40, 40, 0.95);
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #f0f0f0;
+            transition: all 0.3s;
+        }
+
+        .control-button:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        }
+
+        .control-button.light {
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+        }
+
+        #rotate-control {
+            background: rgba(40, 40, 40, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        #rotate-control.light {
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+        }
+
+        #rotate-control input[type="checkbox"] {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+
+        #rotate-control label {
+            cursor: pointer;
+            margin: 0;
+            user-select: none;
+        }
+
+        #details-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(40, 40, 40, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 16px;
+            max-width: 350px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 2000;
+            display: none;
+            color: #e0e0e0;
+        }
+
+        #details-panel h6 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #f0f0f0;
+            border-bottom: 2px solid #444;
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .detail-row {
+            padding: 4px 0;
+            font-size: 13px;
+            color: #ccc;
+            padding-left: 8px;
+            margin-bottom: 2px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #999;
+            font-size: 12px;
+        }
+
+        .neighbour-item {
+            padding: 4px 0;
+            font-size: 13px;
+            color: #ccc;
+            border-left: 3px solid #7DBAED;
+            padding-left: 8px;
+            margin-bottom: 2px;
+        }
+
+        #loading-msg {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #888;
+            font-size: 14px;
+            font-family: ui-monospace, monospace;
+        }
+
+        #legend {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 2000;
+            background: rgba(20, 20, 20, 0.85);
+            border: 1px solid #2a2a2e;
+            border-radius: 8px;
+            padding: 14px 18px;
+            max-height: 45vh;
+            overflow-y: auto;
+            display: none;
+            font-size: 14px;
+            color: #d8dade;
+        }
+        #legend-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            letter-spacing: 0.05em;
+            color: #7a7e85;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 3px 0;
+        }
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="graph-3d"></div>
+    <div id="details-panel"></div>
+    <div id="legend"><div id="legend-title">Types</div></div>
+    <div id="loading-msg">Loading graph data&hellip;</div>
+    <div id="controls-container">
+        <button id="dark-mode-toggle" class="control-button"
+                onclick="toggleDarkMode()">Light Mode</button>
+    </div>
+
+    <!-- Dependencies -->
+    <script src="https://unpkg.com/three@0.159.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three-spritetext@1.8.2/dist/three-spritetext.min.js"></script>
+    <script src="https://unpkg.com/3d-force-graph@1.73.2/dist/3d-force-graph.min.js"></script>
+
+    <script>
+    // State
+    var graphData = null;
+    var Graph3D = null;
+    var isDarkMode = true;
+    var isRotating = false;
+    var rotationAnimationId = null;
+    var highlightedNodes = new Set();
+    var highlightedLinks = new Set();
+    var nodeColourMap = {};
+    var colourEdgesBySource = false;
+
+    // HTML escaping to prevent XSS from entity data.
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(String(text)));
+        return div.innerHTML;
+    }
+
+    // Tooltip builder
+    function buildTooltip(title, properties) {
+        var html = '<div style="color: #f0f0f0; background: rgba(30,30,30,0.95); ' +
+                   'padding: 8px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">' +
+                   '<b style="font-size: 14px;">' + escapeHtml(title) + '</b>';
+
+        if (properties && Object.keys(properties).length > 0) {
+            html += '<br/><span style="font-size: 12px;">';
+            for (var key in properties) {
+                html += escapeHtml(key) + ': ' + escapeHtml(properties[key]) + '<br/>';
+            }
+            html += '</span>';
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    // Fetch graph JSON from query param and initialise.
+    document.addEventListener('DOMContentLoaded', function() {
+        var params = new URLSearchParams(window.location.search);
+        var graphFile = params.get('graph');
+        var title = params.get('title');
+        var bgOverride = params.get('bg');
+
+        if (title) {
+            document.title = title;
+        }
+
+        if (!graphFile) {
+            document.getElementById('loading-msg').textContent = 'No graph file specified.';
+            return;
+        }
+
+        fetch(graphFile)
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                graphData = data;
+                document.getElementById('loading-msg').style.display = 'none';
+                if (bgOverride) {
+                    document.getElementById('dark-mode-toggle').style.display = 'none';
+                }
+                // Populate legend if typeColours is present.
+                if (data.typeColours) {
+                    var legend = document.getElementById('legend');
+                    var types = Object.keys(data.typeColours).sort();
+                    types.forEach(function(t) {
+                        var item = document.createElement('div');
+                        item.className = 'legend-item';
+                        item.innerHTML = '<div class="legend-swatch" style="background:' +
+                            data.typeColours[t] + '"></div><span>' + t + '</span>';
+                        legend.appendChild(item);
+                    });
+                    if (types.length > 0) {
+                        legend.style.display = 'block';
+                    }
+                }
+                initGraph();
+            })
+            .catch(function(err) {
+                document.getElementById('loading-msg').textContent =
+                    'Failed to load graph: ' + err.message;
+            });
+    });
+
+    function initGraph() {
+        if (!graphData || !graphData.nodes || graphData.nodes.length === 0) {
+            document.getElementById('graph-3d').innerHTML =
+                '<div style="padding: 20px; color: #ccc;">No network data available</div>';
+            return;
+        }
+
+        // Build a colour lookup map so linkColor works before d3-force resolves references.
+        graphData.nodes.forEach(function(n) { nodeColourMap[n.id] = n.color; });
+
+        var graphEl = document.getElementById('graph-3d');
+        Graph3D = ForceGraph3D()(graphEl)
+            .graphData(graphData)
+
+            // Nodes — minimal hover label with type from colour reverse-lookup.
+            .nodeLabel(function(node) {
+                var name = node.name || node.id;
+                // Clean Python list notation from names.
+                if (name.charAt(0) === '[' && name.charAt(name.length - 1) === ']') {
+                    name = name.slice(1, -1).replace(/^['"]|['"]$/g, '');
+                }
+                var parts = ['<b>' + name + '</b>'];
+                // Reverse-lookup type from typeColours map.
+                var tc = graphData.typeColours || {};
+                for (var t in tc) {
+                    if (tc[t] === node.color) { parts.push(t); break; }
+                }
+                parts.push(node.degree + ' connections');
+                return '<div style="font-size:12px;padding:4px 8px;background:rgba(20,20,20,0.9);color:#d8dade;border-radius:4px;border:1px solid #3a3a3e;">' + parts.join('<br>') + '</div>';
+            })
+            .nodeVal(function(node) { return node.val / 2; })
+            .nodeColor(function(node) { return node.color; })
+            .nodeOpacity(0.9)
+            .nodeResolution(16)
+
+            // Links
+            .linkLabel(function() { return ''; })
+            .linkWidth(function(link) { return link.width || 0.4; })
+            .linkColor(function(link) {
+                var fallback = isDarkMode ? '#7DBAED' : '#5B9BD5';
+                if (!colourEdgesBySource) return fallback;
+                var srcId = link.source.id !== undefined ? link.source.id : link.source;
+                return nodeColourMap[srcId] || fallback;
+            })
+            .linkCurvature(0.25)
+            .linkCurveRotation(0)
+            .linkDirectionalArrowLength(0)
+            .linkOpacity(0.3)
+
+            // Scene
+            .backgroundColor(bgOverride || '#1a1a1a')
+
+            // Interaction
+            .onNodeHover(function(node) {
+                graphEl.style.cursor = node ? 'pointer' : 'default';
+            })
+            .onNodeClick(function(node) {
+                if (node) showNodeDetails(node);
+            })
+            .onBackgroundClick(function() {
+                hideNodeDetails();
+            });
+
+        // Tweak physics — reduce centre gravity, increase repulsion to spread nodes out.
+        Graph3D.d3Force('charge').strength(-250);
+        Graph3D.d3Force('center').strength(0.01);
+        var linkForce = Graph3D.d3Force('link');
+        if (linkForce) {
+            linkForce.distance(120);
+        }
+
+        // Notify parent frame that the graph is ready for demo commands.
+        if (window.parent !== window) {
+            window.parent.postMessage({ type: 'crate-viewer-ready' }, '*');
+        }
+    }
+
+    // Node click: show details + highlight neighbourhood
+    function showNodeDetails(node) {
+        if (!Graph3D || !graphData) return;
+
+        highlightedNodes.clear();
+        highlightedLinks.clear();
+        highlightedNodes.add(node.id);
+
+        var neighbours = [];
+        graphData.links.forEach(function(link) {
+            var otherNodeId = null;
+            var direction = '';
+
+            if ((link.source.id !== undefined ? link.source.id : link.source) === node.id) {
+                otherNodeId = link.target.id !== undefined ? link.target.id : link.target;
+                direction = 'to';
+            } else if ((link.target.id !== undefined ? link.target.id : link.target) === node.id) {
+                otherNodeId = link.source.id !== undefined ? link.source.id : link.source;
+                direction = 'from';
+            }
+
+            if (otherNodeId !== null) {
+                highlightedNodes.add(otherNodeId);
+                highlightedLinks.add(link);
+
+                var otherNode = graphData.nodes.find(function(n) { return n.id === otherNodeId; });
+                if (otherNode) {
+                    neighbours.push({
+                        name: otherNode.name,
+                        direction: direction,
+                        linkProperties: link.properties || {}
+                    });
+                }
+            }
+        });
+
+        applyHighlighting();
+        updateDetailsPanel(node, neighbours);
+    }
+
+    function updateDetailsPanel(node, neighbours) {
+        var panel = document.getElementById('details-panel');
+        if (!panel) return;
+
+        var html = '<h6><span>' + escapeHtml(node.name) + '</span>' +
+            '<button onclick="hideNodeDetails()" ' +
+            'style="background: none; border: none; font-size: 18px; ' +
+            'cursor: pointer; color: #999; padding: 0; line-height: 1;">&times;</button></h6>';
+
+        if (node.properties && Object.keys(node.properties).length > 0) {
+            for (var key in node.properties) {
+                html += '<div class="detail-row"><span class="detail-label">' +
+                    escapeHtml(key) + ':</span> ' + escapeHtml(node.properties[key]) + '</div>';
+            }
+        }
+
+        html += '<div class="detail-row"><span class="detail-label">Connections:</span> ' +
+            node.degree + '</div>';
+
+        if (neighbours.length > 0) {
+            html += '<div style="margin-top: 12px; border-top: 1px solid #444; padding-top: 8px;">';
+            html += '<div style="font-size: 12px; font-weight: 600; color: #999; ' +
+                'text-transform: uppercase; margin-bottom: 4px;">Neighbours</div>';
+            neighbours.forEach(function(n) {
+                var arrow = n.direction === 'to' ? '&rarr;' : '&larr;';
+                html += '<div class="neighbour-item">' + arrow + ' ' + escapeHtml(n.name) + '</div>';
+            });
+            html += '</div>';
+        }
+
+        panel.innerHTML = html;
+        panel.style.display = 'block';
+    }
+
+    function hideNodeDetails() {
+        highlightedNodes.clear();
+        highlightedLinks.clear();
+        applyHighlighting();
+
+        var panel = document.getElementById('details-panel');
+        if (panel) panel.style.display = 'none';
+    }
+
+    // Highlighting
+    function applyHighlighting() {
+        if (!Graph3D) return;
+
+        var hasHighlight = highlightedNodes.size > 0;
+
+        Graph3D.nodeColor(function(node) {
+            if (!hasHighlight) return node.color;
+            if (highlightedNodes.has(node.id)) return node.color;
+            return isDarkMode ? '#505050' : '#d0d0d0';
+        });
+
+        Graph3D.linkColor(function(link) {
+            var fallback = isDarkMode ? '#7DBAED' : '#5B9BD5';
+            var srcColour = fallback;
+            if (colourEdgesBySource) {
+                var srcId = link.source.id !== undefined ? link.source.id : link.source;
+                srcColour = nodeColourMap[srcId] || fallback;
+            }
+            if (!hasHighlight) return srcColour;
+            if (highlightedLinks.has(link)) return srcColour;
+            return isDarkMode ? '#606060' : '#e8e8e8';
+        }).linkWidth(function(link) {
+            var base = link.width || 0.4;
+            if (!hasHighlight) return base;
+            return highlightedLinks.has(link) ? base * 2 : 0.2;
+        });
+
+        if (hasHighlight) {
+            Graph3D.linkOpacity(1).linkMaterial(function(link) {
+                var opacity;
+                if (isDarkMode) {
+                    opacity = highlightedLinks.has(link) ? 0.7 : 0.05;
+                } else {
+                    opacity = highlightedLinks.has(link) ? 0.5 : 0.03;
+                }
+                return new THREE.MeshLambertMaterial({
+                    transparent: true,
+                    opacity: opacity
+                });
+            });
+        } else {
+            Graph3D.linkOpacity(isDarkMode ? 0.3 : 0.2)
+                .linkMaterial(null);
+        }
+    }
+
+    // Dark mode
+    function toggleDarkMode() {
+        if (!Graph3D) return;
+        isDarkMode = !isDarkMode;
+
+        var button = document.getElementById('dark-mode-toggle');
+        var rotateControl = document.getElementById('rotate-control');
+
+        if (isDarkMode) {
+            Graph3D.backgroundColor(bgOverride || '#1a1a1a');
+            button.textContent = 'Light Mode';
+            button.classList.remove('light');
+            rotateControl.classList.remove('light');
+        } else {
+            Graph3D.backgroundColor('#f5f5f5');
+            button.textContent = 'Dark Mode';
+            button.classList.add('light');
+            rotateControl.classList.add('light');
+        }
+
+        Graph3D.refresh();
+        applyHighlighting();
+    }
+
+    // Auto-rotation
+    function toggleRotation() {
+        if (!Graph3D) return;
+        isRotating = document.getElementById('rotate-checkbox').checked;
+        if (isRotating) startRotation();
+        else stopRotation();
+    }
+
+    function startRotation() {
+        var initialPos = Graph3D.cameraPosition();
+        var distance = Math.sqrt(
+            initialPos.x * initialPos.x + initialPos.y * initialPos.y + initialPos.z * initialPos.z
+        );
+        var initialY = initialPos.y;
+        var angle = Math.atan2(initialPos.x, initialPos.z) * 180 / Math.PI;
+
+        function rotate() {
+            if (!isRotating) return;
+            angle += 0.3;
+
+            Graph3D.cameraPosition({
+                x: distance * Math.sin(angle * Math.PI / 180),
+                y: initialY,
+                z: distance * Math.cos(angle * Math.PI / 180)
+            }, null, 0);
+
+            rotationAnimationId = requestAnimationFrame(rotate);
+        }
+
+        rotate();
+    }
+
+    function stopRotation() {
+        if (rotationAnimationId) {
+            cancelAnimationFrame(rotationAnimationId);
+            rotationAnimationId = null;
+        }
+    }
+
+    // Listen for demo commands from parent frame.
+    window.addEventListener('message', function(event) {
+        var data = event.data;
+        if (!data || !data.type) return;
+
+        if (data.type === 'demo-zoom') {
+            if (!Graph3D) return;
+            var pos = Graph3D.cameraPosition();
+            var dist = Math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
+            var newDist = dist * (data.factor || 0.7);
+            var angle = Math.atan2(pos.x, pos.z);
+            Graph3D.cameraPosition(
+                { x: newDist * Math.sin(angle), y: pos.y, z: newDist * Math.cos(angle) },
+                null,
+                data.durationMs || 1000
+            );
+        }
+
+        if (data.type === 'demo-rotate') {
+            if (!Graph3D) return;
+            var startPos = Graph3D.cameraPosition();
+            var distance = Math.sqrt(
+                startPos.x * startPos.x + startPos.y * startPos.y + startPos.z * startPos.z
+            );
+            var startAngle = Math.atan2(startPos.x, startPos.z) * 180 / Math.PI;
+            var startY = startPos.y;
+            var totalDeg = data.degrees || 360;
+            var duration = data.durationMs || 10000;
+            var rotateStart = performance.now();
+
+            function demoRotateTick() {
+                var elapsed = performance.now() - rotateStart;
+                var t = Math.min(elapsed / duration, 1);
+                var eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                var angleDeg = startAngle + totalDeg * eased;
+
+                Graph3D.cameraPosition({
+                    x: distance * Math.sin(angleDeg * Math.PI / 180),
+                    y: startY,
+                    z: distance * Math.cos(angleDeg * Math.PI / 180)
+                }, null, 0);
+
+                if (t < 1) {
+                    requestAnimationFrame(demoRotateTick);
+                } else if (window.parent !== window) {
+                    window.parent.postMessage({ type: 'demo-rotate-complete' }, '*');
+                }
+            }
+            demoRotateTick();
+        }
+
+        if (data.type === 'demo-stop') {
+            stopRotation();
+        }
+    });
+    </script>
+</body>
+</html>
