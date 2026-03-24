@@ -112,15 +112,10 @@ def run_cypher(graph: Graph, cypher: str) -> Graph:
         relationships.
 
     Raises:
-        ImportError: If grand-cypher is not installed.
         ValueError: If the query returns only scalar/aggregate values
             (no node references).
     """
-    try:
-        from grandcypher import GrandCypher
-    except ImportError:
-        msg = "Cypher queries require grand-cypher. Install it with: uv add crategraph[cypher]"
-        raise ImportError(msg) from None
+    from grandcypher import GrandCypher
 
     cypher = _normalise_cypher(cypher)
     nxg = _build_nx_graph(graph)

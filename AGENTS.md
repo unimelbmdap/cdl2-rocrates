@@ -18,7 +18,7 @@ Read the linked documents before making changes.
 
 - **Australian English** spelling in all custom names and comments (`analyse`, `colour`, `organisation`). Keep original spelling for external library APIs.
 - **Immutable Graph** — every filtering/transformation returns a new `Graph`. No in-place mutation.
-- **Plugin architecture** via ABCs defined in `crategraph/core/interfaces.py` (Reader, Writer, Renderer, Validator, Inspector).
+- **Plugin architecture** via ABCs defined in `crategraph/core/interfaces.py` (Reader, Writer, Renderer, Validator, Inspector, Viewer).
 - **Chainable API** — `crate.select(...).where(...).expand(...)`.
 - **Code style** — Ruff formatting and linting enforced via pre-commit hooks (see `.pre-commit-config.yaml`).
 
@@ -26,12 +26,13 @@ Read the linked documents before making changes.
 
 ```
 crategraph/
-├── core/           # Graph, models, query, interfaces
-├── readers/        # Data loaders (ROCrateReader, CsvGraphReader, OHRMCsvReader)
-├── renderers/      # Visualisation (Pyvis 2D, ForceGraph3D, SVG)
+├── core/           # Graph, Corpus, models, query, analysis, interfaces
+├── readers/        # Data loaders (ROCrateReader, OHRMCsvReader, OHRMSqlReader)
+│   └── shared/     # Base classes (TabularGraphReader, CsvGraphReader, SqlGraphReader)
+├── renderers/      # Visualisation (Pyvis 2D, ForceGraph3D, SVG, Sigma.js)
 ├── inspectors/     # File inspection (MarkItDown)
 ├── validators/     # Data quality checks (planned)
-├── viewers/        # Viewer subsystem
+├── viewers/        # Rich file previews (DefaultViewer)
 └── writers/        # Export/serialisation (planned)
 tests/              # Mirrors source layout
 docs/               # MkDocs source (Material theme)

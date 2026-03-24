@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
 import networkx as nx
 import pytest
 
@@ -209,13 +207,3 @@ class TestShorthandIntegration:
         with caplog.at_level(logging.DEBUG, logger="crategraph.core.query"):
             g.query("(a:Person)")
         assert "Expanded pattern shorthand" in caplog.text
-
-
-class TestMissingDependency:
-    def test_import_error_with_install_instructions(self):
-        g = _sample_graph()
-        with (
-            patch.dict("sys.modules", {"grandcypher": None}),
-            pytest.raises(ImportError, match=r"uv add crategraph\[cypher\]"),
-        ):
-            g.query("MATCH (a) RETURN a")

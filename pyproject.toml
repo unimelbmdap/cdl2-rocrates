@@ -9,6 +9,7 @@ description = "Researcher-friendly tools for loading, exploring, and visualising
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "grand-cypher>=1.0",
     "markupsafe>=2.1",
     "networkx>=3.2",
     "pydantic>=2.0",
@@ -18,7 +19,6 @@ dependencies = [
 
 [project.optional-dependencies]
 rdf = ["rdflib>=7.0"]
-cypher = ["grand-cypher>=1.0"]
 inspect = ["markitdown[all]>=0.1"]
 ohrm = ["pandas>=2.0"]
 

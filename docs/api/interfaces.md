@@ -21,3 +21,7 @@ Abstract base classes for extending crategraph. Implement these to add support f
 ## Inspector
 
 ::: crategraph.core.interfaces.Inspector
+
+## Viewer
+
+::: crategraph.core.interfaces.Viewer

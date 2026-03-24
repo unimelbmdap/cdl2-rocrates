@@ -39,22 +39,34 @@ crategraph/
 ├── __init__.py            # Public entry point: Crate class + re-exports
 ├── core/                  # The heart of the library
 │   ├── graph.py           # Graph and Crate classes (public API surface)
-│   ├── models.py          # Entity, Relationship, FileInfo (immutable dataclasses)
+│   ├── models.py          # Entity, Relationship, FileInfo, ViewInfo (dataclasses + Pydantic)
 │   ├── types.py           # TypeRegistry — fuzzy type discovery
-│   ├── analysis.py        # summary(), most_connected(), detect_communities()
-│   ├── query.py           # Optional Cypher query support (via grand-cypher)
-│   ├── interfaces.py      # ABCs: Reader, Writer, Renderer, Validator, Inspector
+│   ├── analysis.py        # summary(), most_connected(), profile(), detect_communities()
+│   ├── corpus.py          # Corpus — batch profiling across multiple crates
+│   ├── query.py           # Cypher query support (via grand-cypher)
+│   ├── interfaces.py      # ABCs: Reader, Writer, Renderer, Validator, Inspector, Viewer
 ├── readers/               # Data loaders
-│   └── rocrate.py         # ROCrateReader — parses ro-crate-metadata.json
+│   ├── rocrate.py         # ROCrateReader — parses ro-crate-metadata.json
+│   ├── ohrm_csv.py        # OHRMCsvReader — OHRM CSV database exports
+│   ├── ohrm_sql.py        # OHRMSqlReader — OHRM SQLite databases
+│   └── shared/            # Base classes for tabular readers
+│       ├── tabular.py     # TabularGraphReader ABC
+│       ├── csv_loader.py  # CsvGraphReader (pandas-backed)
+│       ├── sql_loader.py  # SqlGraphReader (sqlite3-backed)
+│       └── ohrm_tables.py # OHRM schema definitions
 ├── renderers/             # Visualisation outputs
 │   ├── _colours.py        # Shared colour palette and colour-map resolution
 │   ├── pyvis.py           # PyvisRenderer — interactive 2D (vis.js)
 │   ├── svg.py             # SvgRenderer — static SVG with force layout
 │   ├── forcegraph3d.py    # ForceGraph3DRenderer — interactive 3D (Three.js)
+│   ├── sigma.py           # SigmaRenderer — WebGL via sigma.js + ForceAtlas2
 │   └── templates/         # HTML templates for browser-based renderers
 ├── inspectors/            # File content inspection
 │   ├── __init__.py        # Inspector registry and find_inspector()
 │   └── markitdown.py      # MarkItDownInspector — converts files to markdown
+├── viewers/               # Rich file previews
+│   ├── __init__.py        # Viewer registry and find_viewer()
+│   └── default.py         # DefaultViewer — images, CSV tables, audio, etc.
 ├── validators/            # Data quality checks (planned, ABC only)
 └── writers/               # Export/serialisation (planned, ABC only)
 ```
@@ -72,8 +84,11 @@ Readers parse external data sources and populate a `Graph` with entities and rel
 **Current implementations:**
 
 - `ROCrateReader` (`readers/rocrate.py`) — parses `ro-crate-metadata.json` directly as JSON (not via RDFLib). Uses a two-pass approach: first creates entity nodes, then extracts relationship edges. Supports configurable inline relation extraction.
+- `OHRMCsvReader` (`readers/ohrm_csv.py`) — reads OHRM CSV database exports using the shared tabular reader infrastructure. Requires `crategraph[ohrm]` (pandas).
+- `OHRMSqlReader` (`readers/ohrm_sql.py`) — reads OHRM SQLite databases via the shared SQL loader. Requires `crategraph[ohrm]`.
+- `TabularGraphReader` (`readers/shared/tabular.py`) — abstract base for table-driven readers, with `CsvGraphReader` and `SqlGraphReader` as concrete loaders.
 
-**Contribution ideas:** readers for other formats (GEXF, GraphML, CSV-based entity lists).
+**Contribution ideas:** readers for other formats (GEXF, GraphML, RiC-O via RDFLib).
 
 ### Renderers
 
@@ -86,6 +101,7 @@ Renderers take a `Graph` and produce a visual output. Common parameters include 
 - `PyvisRenderer` (`renderers/pyvis.py`) — interactive 2D HTML network using pyvis/vis.js. Node sizing by degree. Hides labels on large graphs.
 - `SvgRenderer` (`renderers/svg.py`) — static SVG with a custom Fruchterman–Reingold force layout. Includes post-layout overlap removal. Also used by `glimpse()`.
 - `ForceGraph3DRenderer` (`renderers/forcegraph3d.py`) — 3D interactive via a bundled HTML template using the 3d-force-graph (Three.js) library.
+- `SigmaRenderer` (`renderers/sigma.py`) — WebGL-accelerated rendering via sigma.js with ForceAtlas2 client-side layout. Handles large graphs efficiently.
 
 All renderers share colour assignment via `_colours.py:resolve_colour_map()`, which supports colouring by any entity attribute and automatic community detection.
 
@@ -104,6 +120,18 @@ Inspectors examine data files referenced by entities and return structured infor
 The inspector registry (`inspectors/__init__.py`) maintains an ordered list of inspector classes. `find_inspector(entity)` returns the first inspector whose `supports()` method matches.
 
 **Contribution ideas:** specialised inspectors for tabular data (CSV/Excel previews), image metadata (EXIF), audio/video metadata, or geospatial files.
+
+### Viewers
+
+**ABC:** `Viewer` — `supports(entity) -> bool` and `view(path) -> ViewInfo`
+
+Viewers produce rich HTML previews of data files referenced by entities — images displayed inline, CSVs as HTML tables, audio with playback controls.
+
+**Current implementations:**
+
+- `DefaultViewer` (`viewers/default.py`) — handles images, CSV/TSV tables, audio, video, text, and HTML files with format-specific rendering.
+
+The viewer registry (`viewers/__init__.py`) works like the inspector registry: `find_viewer(entity)` returns the first viewer whose `supports()` method matches.
 
 ### Validators
 
@@ -129,8 +157,9 @@ Writers serialise a `Graph` to an external format.
 
 These modules live in `core/` and extend `Graph` with analytical capabilities:
 
-- `analysis.py` — `summary()` (entity/relationship counts with bar chart), `most_connected()` (degree ranking), `detect_communities()` (Louvain algorithm), `merge_by_primary_type()` (used by `glimpse()`).
-- `query.py` — optional Cypher query support via `grand-cypher`. Supports shorthand patterns that auto-expand to full `MATCH ... RETURN` queries.
+- `analysis.py` — `summary()` (entity/relationship counts with bar chart), `most_connected()` (degree ranking), `profile()` (structural metrics: density, components, degree stats), `detect_communities()` (Louvain algorithm), `merge_by_primary_type()` (used by `glimpse()`).
+- `corpus.py` — `Corpus` class for batch profiling across multiple crates. Accepts glob patterns, profiles each crate independently, returns `CorpusProfile` with optional DataFrame export.
+- `query.py` — Cypher query support via `grand-cypher`. Supports shorthand patterns that auto-expand to full `MATCH ... RETURN` queries.
 
 ## Data Flow
 
@@ -139,9 +168,10 @@ A typical workflow moves data through the system like this:
 1. **Load:** a `Reader` parses a source (e.g. an RO-Crate directory) into `Entity` and `Relationship` objects, stored in a `Graph`.
 2. **Explore:** the user filters and transforms the graph using chainable methods (`select`, `where`, `pattern`, `expand`, `search`, `query`). Each returns a new `Graph`.
 3. **Visualise:** a `Renderer` takes the current graph and produces output (HTML, SVG, or in-memory object).
-4. **Inspect:** an `Inspector` examines a file referenced by an entity and returns a `FileInfo` with content and metadata.
-5. **Validate** *(planned)*: a `Validator` checks the graph against quality rules and returns a `ValidationReport`.
-6. **Export** *(planned)*: a `Writer` serialises the graph to a file.
+4. **View:** a `Viewer` produces a rich HTML preview of a file (images, tables, audio players).
+5. **Inspect:** an `Inspector` examines a file referenced by an entity and returns a `FileInfo` with content and metadata.
+6. **Validate** *(planned)*: a `Validator` checks the graph against quality rules and returns a `ValidationReport`.
+7. **Export** *(planned)*: a `Writer` serialises the graph to a file.
 
 ## Design Decisions
 
@@ -154,6 +184,7 @@ For the rationale behind key architectural choices — why NetworkX over RDFLib,
 | Add a new data format               | `core/interfaces.py:Reader`, then `readers/rocrate.py` as a reference |
 | Build a new visualisation           | `core/interfaces.py:Renderer`, then any file in `renderers/` |
 | Add a file inspector                | `core/interfaces.py:Inspector`, then `inspectors/markitdown.py` |
+| Add a file viewer                   | `core/interfaces.py:Viewer`, then `viewers/default.py`    |
 | Implement validation                | `core/interfaces.py:Validator` and `core/models.py:ValidationReport` |
 | Add an export format                | `core/interfaces.py:Writer`                               |
 | Add analytical features             | `core/analysis.py` and `core/graph.py`                    |

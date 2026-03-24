@@ -89,7 +89,7 @@ Extension points that exist as ABCs but have no concrete implementations yet:
 
 - **Writers** — serialisation to JSON-LD, GEXF, Gephi-ready formats (with pre-computed layout and styling)
 - **Validators** — RDF/schema.org compliance checking, crate structure validation. Should report issues without blocking usage.
-- **Additional readers** — GEXF, CSV, NetworkX graph import
+- **Additional readers** — GEXF, RiC-O (via RDFLib), NetworkX graph import
 
 ## Interoperability
 

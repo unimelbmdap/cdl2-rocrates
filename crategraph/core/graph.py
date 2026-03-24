@@ -935,8 +935,6 @@ class Graph:
     def query(self, cypher: str) -> Graph:
         """Run a Cypher query and return a subgraph of matched entities.
 
-        Requires ``grand-cypher`` — install via ``uv add crategraph[cypher]``.
-
         Args:
             cypher: A Cypher query string, or a bare pattern shorthand.
 

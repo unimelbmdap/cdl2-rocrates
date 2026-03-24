@@ -327,6 +327,7 @@ name = "crategraph"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "grand-cypher" },
     { name = "markupsafe" },
     { name = "networkx" },
     { name = "pydantic" },
@@ -335,9 +336,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-cypher = [
-    { name = "grand-cypher" },
-]
 inspect = [
     { name = "markitdown", extra = ["all"] },
 ]
@@ -361,7 +359,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "grand-cypher", marker = "extra == 'cypher'", specifier = ">=1.0" },
+    { name = "grand-cypher", specifier = ">=1.0" },
     { name = "markitdown", extras = ["all"], marker = "extra == 'inspect'", specifier = ">=0.1" },
     { name = "markupsafe", specifier = ">=2.1" },
     { name = "networkx", specifier = ">=3.2" },
@@ -371,7 +369,7 @@ requires-dist = [
     { name = "rapidfuzz", specifier = ">=3.0" },
     { name = "rdflib", marker = "extra == 'rdf'", specifier = ">=7.0" },
 ]
-provides-extras = ["rdf", "cypher", "inspect", "ohrm"]
+provides-extras = ["rdf", "inspect", "ohrm"]
 
 [package.metadata.requires-dev]
 dev = [

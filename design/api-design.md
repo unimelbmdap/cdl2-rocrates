@@ -19,16 +19,19 @@ The core uses **NetworkX** (`nx.MultiDiGraph`) directly for graph storage and tr
 
 ```
 crategraph/
-├── core/           # Graph class, data models, query, analysis
+├── core/           # Graph class, data models, query, analysis, corpus
 │   ├── graph.py    # Graph + Crate classes (public API surface)
-│   ├── models.py   # Entity, Relationship (frozen dataclasses)
+│   ├── models.py   # Entity, Relationship, FileInfo, ViewInfo, validation models
 │   ├── types.py    # TypeRegistry (fuzzy type discovery)
-│   ├── analysis.py # summary, most_connected, detect_communities
-│   ├── query.py    # Cypher query support (optional)
-│   ├── interfaces.py # ABCs: Reader, Writer, Renderer, Validator, Inspector
-├── readers/        # ROCrateReader
-├── renderers/      # Pyvis (2D), ForceGraph3D (3D), SVG (static)
+│   ├── analysis.py # summary, most_connected, profile, detect_communities
+│   ├── corpus.py   # Corpus (batch profiling across multiple crates)
+│   ├── query.py    # Cypher query support (via grand-cypher)
+│   ├── interfaces.py # ABCs: Reader, Writer, Renderer, Validator, Inspector, Viewer
+├── readers/        # ROCrateReader, OHRMCsvReader, OHRMSqlReader
+│   └── shared/     # TabularGraphReader, CsvGraphReader, SqlGraphReader
+├── renderers/      # Pyvis (2D), ForceGraph3D (3D), SVG (static), Sigma (WebGL)
 ├── inspectors/     # MarkItDown file inspector
+├── viewers/        # Rich file previews (DefaultViewer)
 ├── validators/     # (planned)
 └── writers/        # (planned)
 ```
@@ -114,7 +117,7 @@ authored = crate.pattern(from_type="Person", via="author", to_type="CreativeWork
 # expand() — grow outward from current selection
 neighbourhood = people.expand(depth=2, entity_types=["Organisation"])
 
-# query() — Cypher queries (requires crategraph[cypher])
+# query() — Cypher queries (via grand-cypher)
 result = crate.query("MATCH (p:Person)-[:author]->(w) RETURN p, w")
 result = crate.query("(:Person)-[:knows]->(:Person)")  # shorthand
 ```
@@ -197,30 +200,47 @@ class Relationship:
     type: str                            # relationship type
     properties: dict[str, Any]
     id: str | None = None                # set if reified
+
+@dataclass(frozen=True)
+class FileInfo:                          # inspect() result
+    path: str
+    content: str
+    title: str | None
+    size_bytes: int
+    media_type: str | None
+
+@dataclass(frozen=True)
+class ViewInfo:                          # view() result
+    path: str
+    html: str
+    title: str | None
+    size_bytes: int
+    media_type: str | None
 ```
 
 **User-facing (Pydantic):**
 
-- `FileInfo` — inspection result (path, content, title, size_bytes, media_type)
 - `ValidationIssue` — severity + message + entity_id
 - `ValidationReport` — list of issues with `.is_valid` property
+- `SelectOptions` — parameters for structural filtering via `Graph.select()`
 
 ## Plugin Interfaces
 
 All extension points use abstract base classes defined in `crategraph.core.interfaces`:
 
-| Interface   | Methods                              | Implementations          |
-|-------------|--------------------------------------|--------------------------|
-| `Reader`    | `can_read(path)`, `read(path)`       | ROCrateReader            |
-| `Writer`    | `write(graph, path)`                 | (planned)                |
-| `Renderer`  | `render(graph, **kwargs)`            | Pyvis, ForceGraph3D, SVG |
-| `Validator` | `validate(graph)` → ValidationReport | (planned)                |
-| `Inspector` | `supports(entity)`, `inspect(path)`  | MarkItDownInspector      |
+| Interface   | Methods                              | Implementations                            |
+|-------------|--------------------------------------|--------------------------------------------|
+| `Reader`    | `can_read(path)`, `read(path)`       | ROCrateReader, OHRMCsvReader, OHRMSqlReader |
+| `Writer`    | `write(graph, path)`                 | (planned)                                  |
+| `Renderer`  | `render(graph, **kwargs)`            | Pyvis, ForceGraph3D, SVG, Sigma            |
+| `Validator` | `validate(graph)` → ValidationReport | (planned)                                  |
+| `Inspector` | `supports(entity)`, `inspect(path)`  | MarkItDownInspector                        |
+| `Viewer`    | `supports(entity)`, `view(path)`     | DefaultViewer                              |
 
 ## Optional Dependencies
 
 | Extra       | Package          | Unlocks                          |
 |-------------|------------------|----------------------------------|
-| `rdf`       | rdflib           | RDF/schema.org validation, RiC-O reader |
-| `cypher`    | grand-cypher     | Cypher query support             |
+| `rdf`       | rdflib           | RDF/schema.org validation (planned) |
 | `inspect`   | markitdown[all]  | File content inspection          |
+| `ohrm`      | pandas           | OHRM CSV/SQL readers, Corpus DataFrames |

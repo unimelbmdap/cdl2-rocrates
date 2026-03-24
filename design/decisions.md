@@ -4,7 +4,7 @@ Rationale behind key architectural choices in crategraph. Companion to [api-desi
 
 ## Backend: NetworkX Direct
 
-**Decision:** `Graph` owns an `nx.MultiDiGraph` directly. There is no swappable backend abstraction. RDFLib is an optional dependency used for RDF-based readers (e.g. RiC-O) and future RDF export writers, not as a graph engine.
+**Decision:** `Graph` owns an `nx.MultiDiGraph` directly. There is no swappable backend abstraction. RDFLib is an optional dependency reserved for future validation and RDF-based readers (e.g. RiC-O), not as a graph engine.
 
 **History:** The project originally had a `GraphBackend` ABC with NetworkX, rustworkx, and RDFLib implementations. This was removed because the abstraction only covered storage (add/query nodes and edges) while the algorithm layer (Cypher queries, community detection, connected components) imported NetworkX directly. A non-NetworkX backend could be plugged in for storage but was silently ignored by every analytical operation.
 
@@ -14,15 +14,15 @@ Rationale behind key architectural choices in crategraph. Companion to [api-desi
 
 ## Data Models: Dataclasses + Pydantic
 
-**Decision:** Frozen dataclasses for internal models (`Entity`, `Relationship`), Pydantic for user-facing models where validation and serialisation matter (`FileInfo`, `ValidationReport`).
+**Decision:** Frozen dataclasses for internal models (`Entity`, `Relationship`) and result types (`FileInfo`, `ViewInfo`). Pydantic for user-facing models where validation and serialisation matter (`ValidationReport`, `SelectOptions`).
 
-**Why frozen dataclasses?** The immutable-results principle means entities and relationships should not be mutated after creation. `frozen=True` enforces this at the language level. Dataclasses are stdlib, lightweight, and sufficient for simple containers.
+**Why frozen dataclasses?** The immutable-results principle means entities and relationships should not be mutated after creation. `frozen=True` enforces this at the language level. Dataclasses are stdlib, lightweight, and sufficient for simple containers. Inspection and viewer results (`FileInfo`, `ViewInfo`) also use frozen dataclasses — they're immutable result objects, not configuration.
 
-**Why Pydantic for user-facing models?** Automatic validation, type coercion, and JSON serialisation. Useful for configuration, validation reports, and inspection results. Pydantic is already a dependency (used in the core), so there's no cost to using it where it adds value.
+**Why Pydantic for validation and configuration models?** Automatic validation, type coercion, and JSON serialisation. Useful for validation reports and structured option types. Pydantic is already a dependency (used in the core), so there's no cost to using it where it adds value.
 
 ## Plugin Contracts: ABCs not Protocols
 
-**Decision:** Extension points (Reader, Writer, Renderer, Validator, Inspector) use abstract base classes.
+**Decision:** Extension points (Reader, Writer, Renderer, Validator, Inspector, Viewer) use abstract base classes.
 
 **Why not Protocols?** Protocols (structural typing) are more Pythonic and friendlier for third-party plugins — contributors don't need to import base classes. But ABCs are better for enforcing contracts and providing helpful error messages when methods are missing. For an early-stage project with few third-party plugins, explicitness wins. Protocols can be adopted later if there's community demand.
 
@@ -40,10 +40,11 @@ Rationale behind key architectural choices in crategraph. Companion to [api-desi
 
 **Decision:** The method is `visualise()`, using Australian English consistent with the project's spelling conventions.
 
-Three built-in renderers cover different use cases:
+Four built-in renderers cover different use cases:
 - **Pyvis ("2d")** — interactive network exploration in notebooks
 - **3d-force-graph ("3d")** — immersive 3D exploration, good for presentations
 - **SVG ("svg")** — static output for documents and reproducible figures
+- **Sigma.js ("sigma")** — WebGL-accelerated rendering for large graphs via ForceAtlas2 layout
 
 The `glimpse()` method provides a one-call type-level overview by merging nodes by type and rendering as SVG.
 

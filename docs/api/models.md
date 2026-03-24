@@ -12,6 +12,14 @@
 
 ::: crategraph.core.models.FileInfo
 
+## ViewInfo
+
+::: crategraph.core.models.ViewInfo
+
+## SelectOptions
+
+::: crategraph.core.models.SelectOptions
+
 ## ValidationReport
 
 ::: crategraph.core.models.ValidationReport
