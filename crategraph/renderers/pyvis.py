@@ -23,6 +23,32 @@ def _node_size(degree: int, max_degree: int) -> int:
     return 6 + int(39 * math.sqrt(normalised))
 
 
+def _try_layout(graph: Graph) -> dict[str, tuple[float, float]] | None:
+    """Attempt server-side layout; return ``None`` to fall back to client-side physics."""
+    if not graph._entities:
+        return None
+    try:
+        raw = graph.layout()
+    except ImportError:
+        return None
+
+    # Scale raw positions to a pixel range suitable for vis.js.
+    xs = [p[0] for p in raw.values()]
+    ys = [p[1] for p in raw.values()]
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+    range_x = max_x - min_x or 1.0
+    range_y = max_y - min_y or 1.0
+    spread = 3000.0
+    return {
+        nid: (
+            (p[0] - min_x) / range_x * spread - spread / 2,
+            (p[1] - min_y) / range_y * spread - spread / 2,
+        )
+        for nid, p in raw.items()
+    }
+
+
 class PyvisRenderer(Renderer):
     """Render a ``Graph`` as an interactive pyvis network."""
 
@@ -64,6 +90,9 @@ class PyvisRenderer(Renderer):
         # Colour mapping.
         colour_map = resolve_colour_map(graph, colour_by)
 
+        # Try server-side layout; fall back to client-side physics.
+        positions = _try_layout(graph)
+
         # Pre-compute size values.
         size_values: dict[str, float] = {}
         if size_by == "connections":
@@ -100,13 +129,18 @@ class PyvisRenderer(Renderer):
             is_large = len(graph._entities) > 30
             node_label = "" if is_large else str(label)
 
-            net.add_node(
-                eid,
-                label=node_label,
-                color=colour,
-                size=size,
-                title=title,
-            )
+            node_opts: dict[str, Any] = {
+                "label": node_label,
+                "color": colour,
+                "size": size,
+                "title": title,
+            }
+            if positions and eid in positions:
+                node_opts["x"] = positions[eid][0]
+                node_opts["y"] = positions[eid][1]
+                node_opts["physics"] = False
+
+            net.add_node(eid, **node_opts)
 
         # Add edges.
         for rel in graph._relationships:
@@ -125,9 +159,12 @@ class PyvisRenderer(Renderer):
                     edge_opts["arrows"] = ""
                 net.add_edge(rel.source, rel.target, **edge_opts)
 
-        # Sensible physics defaults.
-        net.set_options("""{
-            "physics": {
+        # Physics: disabled when layout is pre-computed, otherwise use
+        # Barnes-Hut with stabilisation.
+        if positions:
+            physics_json = '{"enabled": false}'
+        else:
+            physics_json = """{
                 "enabled": true,
                 "barnesHut": {
                     "gravitationalConstant": -8000,
@@ -138,16 +175,18 @@ class PyvisRenderer(Renderer):
                 "stabilization": {
                     "iterations": 300
                 }
-            },
-            "edges": {
-                "arrows": {"to": {"enabled": true, "scaleFactor": 0.3}},
-                "smooth": {"type": "continuous"}
-            },
-            "interaction": {
+            }"""
+        net.set_options(f"""{{
+            "physics": {physics_json},
+            "edges": {{
+                "arrows": {{"to": {{"enabled": true, "scaleFactor": 0.3}}}},
+                "smooth": {{"type": "continuous"}}
+            }},
+            "interaction": {{
                 "hover": true,
                 "tooltipDelay": 100
-            }
-        }""")
+            }}
+        }}""")
 
         if filepath:
             net.save_graph(filepath)
