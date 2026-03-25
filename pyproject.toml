@@ -18,6 +18,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+fa2 = ["fa2>=1.1"]
 rdf = ["rdflib>=7.0"]
 inspect = ["markitdown[all]>=0.1"]
 ohrm = ["pandas>=2.0"]

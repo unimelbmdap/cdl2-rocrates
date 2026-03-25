@@ -158,6 +158,64 @@ class Graph:
         """Return a structural profile with density, components, degree stats."""
         return analysis_mod.profile(self)
 
+    # --- Layout ---
+
+    _FA2_FALLBACK_LIMIT = 2000
+
+    def layout(self) -> dict[str, tuple[float, float]]:
+        """Compute 2D node positions for visualisation.
+
+        Uses ForceAtlas2 (via the ``fa2`` package) when available, with
+        parameters matched to graphology's ``inferSettings()``.  Falls
+        back to NetworkX ``spring_layout`` for small graphs when ``fa2``
+        is not installed.
+
+        Install the fast backend with::
+
+            pip install crategraph[fa2]
+
+        Returns ``{entity_id: (x, y)}`` with raw coordinates (not scaled
+        to any canvas).
+        """
+        if not self._entities:
+            return {}
+
+        n = len(self._entities)
+        nx_undirected = self._graph.to_undirected()
+
+        try:
+            from fa2 import ForceAtlas2
+
+            # Match graphology-layout-forceatlas2's inferSettings():
+            #   barnesHutOptimize: order > 2000
+            #   strongGravityMode: true
+            #   gravity: 0.05
+            #   scalingRatio: 10
+            #   slowDown: 1 + Math.log(order)
+            fa2 = ForceAtlas2(
+                outboundAttractionDistribution=False,
+                barnesHutOptimize=n > 2000,
+                barnesHutTheta=0.5,
+                scalingRatio=10,
+                strongGravityMode=True,
+                gravity=0.05,
+                verbose=False,
+            )
+            iters = min(200, 50 + n // 100)
+            return fa2.forceatlas2_networkx_layout(nx_undirected, iterations=iters)
+        except ImportError:
+            pass
+
+        if n > self._FA2_FALLBACK_LIMIT:
+            msg = (
+                f"This graph has {n:,} nodes — the fallback spring layout "
+                f"will be extremely slow without the fa2 package.\n"
+                f"Install it with: pip install crategraph[fa2]"
+            )
+            raise ImportError(msg)
+
+        return nx.spring_layout(nx_undirected, seed=42)
+
     # --- Visualisation ---
 
     def visualise(

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-import random
 from importlib.resources import files
 from typing import TYPE_CHECKING, Any
 
@@ -45,8 +44,7 @@ def _node_size(degree: int, max_degree: int) -> float:
 class SigmaRenderer(Renderer):
     """Render a ``Graph`` as an interactive WebGL visualisation using Sigma.js.
 
-    Layout is computed client-side using ForceAtlas2. Supports synchronous
-    (default) and animated (web worker) modes via the ``animated`` parameter.
+    Layout is computed server-side via ``Graph.layout()``.
     """
 
     def graph_to_json(
@@ -69,8 +67,8 @@ class SigmaRenderer(Renderer):
         # Colour mapping.
         colour_map = resolve_colour_map(graph, colour_by)
 
-        # Deterministic random positions for initial layout seed.
-        rng = random.Random(42)
+        # Compute layout via Graph.layout() (FA2).
+        positions = graph.layout()
 
         # Build nodes.
         nodes = []
@@ -79,13 +77,14 @@ class SigmaRenderer(Renderer):
             size = _node_size(degree, max_degree) if size_by == "connections" else 6.0
 
             hex_colour = colour_map.get(eid, "#45B7D1")
+            x, y = positions[eid]
 
             nodes.append(
                 {
                     "id": eid,
                     "label": entity.name or eid[:30],
-                    "x": rng.uniform(-100, 100),
-                    "y": rng.uniform(-100, 100),
+                    "x": x,
+                    "y": y,
                     "size": size,
                     "color": _hex_to_rgba(hex_colour, 0.6),
                     "entityType": entity.type,
@@ -108,7 +107,7 @@ class SigmaRenderer(Renderer):
                         "id": f"e{i}",
                         "source": rel.source,
                         "target": rel.target,
-                        "color": _dim_hex(source_hex, 0.2),
+                        "color": _dim_hex(source_hex, 0.3),
                     }
                 )
 
@@ -187,7 +186,7 @@ class SigmaRenderer(Renderer):
         types = sorted({e.type for e in graph._entities.values()})
         type_colours = {t: PALETTE[i % len(PALETTE)] for i, t in enumerate(types)}
 
-        config = {"animated": animated, "simple": simple}
+        config = {"animated": animated, "simple": simple, "precomputed": True}
 
         template = self._load_template(variant="simple" if simple else "full")
         bundle = self._load_bundle()

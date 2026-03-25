@@ -449,7 +449,21 @@ function init() {
     btnTheme.addEventListener("click", toggleTheme);
   }
 
-  if (config.simple) {
+  if (config.precomputed) {
+    // Positions already computed server-side — skip FA2, render directly.
+    var renderer = createRenderer(graph, container);
+    currentGraph = graph;
+    currentRenderer = renderer;
+    var status = document.getElementById("status");
+    if (status) {
+      status.textContent =
+        graph.order +
+        " nodes, " +
+        graph.size +
+        " edges \u2014 pre-computed layout";
+    }
+    setupInteractions(graph, renderer, window.typeColours);
+  } else if (config.simple) {
     runSimpleLayout(graph, container);
   } else if (config.animated) {
     runAnimatedLayout(graph, container, window.typeColours);

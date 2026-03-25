@@ -85,13 +85,9 @@ class SvgRenderer(Renderer):
         max_radius = max(radii.values()) if radii else 16.0 * scale
         pad = max(80.0 * scale, max_radius + 30.0 * scale)
 
-        positions = _compute_layout(
-            graph,
-            radii=radii,
-            pad=pad,
-            width=vb_w,
-            height=vb_h,
-        )
+        raw_positions = graph.layout()
+        positions = _scale_positions(raw_positions, pad=pad, width=vb_w, height=vb_h)
+        _resolve_overlaps(positions, radii, width=vb_w, height=vb_h, pad=pad)
         colour_map = resolve_colour_map(graph, colour_by)
         svg = _build_svg(
             graph,
@@ -144,106 +140,31 @@ def _empty_svg(
 # ---------------------------------------------------------------------------
 
 
-def _compute_layout(
-    graph: Graph,
+def _scale_positions(
+    raw: dict[str, tuple[float, float]],
     *,
-    radii: dict[str, float] | None = None,
     width: float = 1200,
     height: float = 900,
     pad: float = 80,
 ) -> dict[str, tuple[float, float]]:
-    """Compute node positions via a size-aware force-directed layout.
-
-    Uses Fruchterman-Reingold-style repulsion/attraction with a deterministic
-    seed.  Node radii are used to boost repulsion so circles don't overlap.
-    """
-    import random as _random
-
-    nodes = list(graph._entities.keys())
-    if not nodes:
+    """Scale raw layout positions to canvas coordinates with padding."""
+    if not raw:
         return {}
 
-    radii = radii or {}
-    edges = [(r.source, r.target) for r in graph._relationships]
-
-    # Seed for determinism.
-    rng = _random.Random(42)
-    pos: dict[str, list[float]] = {n: [rng.uniform(-1, 1), rng.uniform(-1, 1)] for n in nodes}
-
-    k = 2.0 / max(1.0, math.sqrt(len(nodes)))  # ideal spring length
-    # Normalise radii into layout-space so they influence repulsion.
-    canvas_span = min(width, height) - 2 * pad
-    r_scale = 2.0 / max(canvas_span, 1.0)
-    layout_radii = {n: radii.get(n, 16.0) * r_scale for n in nodes}
-
-    iterations = 80
-    temperature = 1.5
-
-    for _step in range(iterations):
-        disp: dict[str, list[float]] = {n: [0.0, 0.0] for n in nodes}
-
-        # Repulsion between all pairs (size-aware).
-        for i, a in enumerate(nodes):
-            ra = layout_radii[a]
-            for b in nodes[i + 1 :]:
-                rb = layout_radii[b]
-                dx = pos[a][0] - pos[b][0]
-                dy = pos[a][1] - pos[b][1]
-                dist = max(math.sqrt(dx * dx + dy * dy), 0.001)
-                # Extra repulsion when nodes overlap: treat combined radii
-                # as a minimum separation distance.
-                min_sep = (ra + rb) * 1.2
-                effective_dist = max(dist - min_sep, 0.001)
-                force = k * k / effective_dist
-                fx = dx / dist * force
-                fy = dy / dist * force
-                disp[a][0] += fx
-                disp[a][1] += fy
-                disp[b][0] -= fx
-                disp[b][1] -= fy
-
-        # Attraction along edges.
-        for src, tgt in edges:
-            dx = pos[src][0] - pos[tgt][0]
-            dy = pos[src][1] - pos[tgt][1]
-            dist = max(math.sqrt(dx * dx + dy * dy), 0.001)
-            force = dist * dist / k
-            fx = dx / dist * force
-            fy = dy / dist * force
-            disp[src][0] -= fx
-            disp[src][1] -= fy
-            disp[tgt][0] += fx
-            disp[tgt][1] += fy
-
-        # Apply displacements with temperature cap.
-        for n in nodes:
-            dx, dy = disp[n]
-            mag = max(math.sqrt(dx * dx + dy * dy), 0.001)
-            scale = min(mag, temperature) / mag
-            pos[n][0] += dx * scale
-            pos[n][1] += dy * scale
-
-        temperature *= 0.95
-
-    # Scale to canvas coordinates with padding.
-    xs = [p[0] for p in pos.values()]
-    ys = [p[1] for p in pos.values()]
+    xs = [p[0] for p in raw.values()]
+    ys = [p[1] for p in raw.values()]
     min_x, max_x = min(xs), max(xs)
     min_y, max_y = min(ys), max(ys)
     range_x = max_x - min_x or 1.0
     range_y = max_y - min_y or 1.0
 
-    result = {
+    return {
         nid: (
             pad + (p[0] - min_x) / range_x * (width - 2 * pad),
             pad + (p[1] - min_y) / range_y * (height - 2 * pad),
         )
-        for nid, p in pos.items()
+        for nid, p in raw.items()
     }
-
-    # Post-layout overlap removal: iteratively push apart overlapping circles.
-    _resolve_overlaps(result, radii, width=width, height=height, pad=pad)
-    return result
 
 
 def _resolve_overlaps(
