@@ -26,6 +26,7 @@ ohrm = ["pandas>=2.0"]
 [dependency-groups]
 dev = [
     "hypothesis>=6.0",
+    "mkdocs-jupyter>=0.25",
     "mkdocs-material>=9.6.21",
     "mkdocstrings-python>=1.14.1",
     "mkdocstrings>=0.30.1",
