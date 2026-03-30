@@ -1,14 +1,14 @@
-"""Analysis methods (summary, most_connected) mixed into Graph."""
+"""Analysis methods (summary, most_connected, coverage) mixed into Graph."""
 
 from __future__ import annotations
 
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
-    from crategraph.core.models import Entity
+    from crategraph.core.models import CoverageResult, Entity
 
 
 @dataclass
@@ -310,6 +310,113 @@ def profile(graph: Graph) -> GraphProfile:
         isolate_count=isolate_count,
         source=graph.source,
     )
+
+
+def coverage(
+    graph: Graph,
+    *,
+    inline_relations: bool | list[str] = False,
+    min_occurrences: int = 5,
+) -> list[CoverageResult]:
+    """Analyse relationship coverage across entity types.
+
+    Discovers structural patterns ``(relationship_type, source_type,
+    target_type)`` and measures what fraction of each entity type
+    participates.  Partial coverage suggests data quality gaps — entities
+    that should be connected but aren't.
+
+    Args:
+        inline_relations: Include inline ``@id`` references.
+            ``False`` (default) analyses reified relationships only.
+            ``True`` includes all inline patterns.
+            A list of property names includes only those inline types.
+        min_occurrences: Minimum relationship count for a triple to be
+            considered a pattern worth reporting.
+
+    Returns a flat list of :class:`CoverageResult` sorted by
+    ``fraction`` ascending (worst coverage first).
+    """
+    from crategraph.core.models import CoveragePattern, CoverageResult
+
+    # Step 1 — Discover patterns: group by (rel_type, src_type, tgt_type, reified).
+    pattern_rels = defaultdict(list)
+    pattern_sources = defaultdict(set)
+    pattern_targets = defaultdict(set)
+
+    for rel in graph._relationships:
+        src_entity = graph._entities.get(rel.source)
+        tgt_entity = graph._entities.get(rel.target)
+        if src_entity is None or tgt_entity is None:
+            continue
+
+        src_type = src_entity.types[0] if src_entity.types else "Unknown"
+        tgt_type = tgt_entity.types[0] if tgt_entity.types else "Unknown"
+        reified = rel.id is not None
+        key = (rel.type, src_type, tgt_type, reified)
+
+        pattern_rels[key].append(rel.type)
+        pattern_sources[key].add(rel.source)
+        pattern_targets[key].add(rel.target)
+
+    # Step 2 — Filter by inline_relations parameter.
+    if inline_relations is False:
+        # Keep only reified patterns.
+        pattern_rels = {k: v for k, v in pattern_rels.items() if k[3]}
+    elif isinstance(inline_relations, list):
+        # Keep reified + inline patterns whose rel type is in the list.
+        allowed = set(inline_relations)
+        pattern_rels = {k: v for k, v in pattern_rels.items() if k[3] or k[0] in allowed}
+    # inline_relations=True → keep everything.
+
+    # Step 3 — Filter by min_occurrences.
+    pattern_rels = {k: v for k, v in pattern_rels.items() if len(v) >= min_occurrences}
+
+    # Step 4 — Measure coverage for each surviving pattern.
+    # Pre-compute entity counts by primary type.
+    type_counts: Counter[str] = Counter()
+    for entity in graph._entities.values():
+        primary = entity.types[0] if entity.types else "Unknown"
+        type_counts[primary] += 1
+
+    results: list[CoverageResult] = []
+    for key in pattern_rels:
+        rel_type, src_type, tgt_type, reified = key
+        occurrences = len(pattern_rels[key])
+
+        pat = CoveragePattern(
+            relationship_type=rel_type,
+            source_type=src_type,
+            target_type=tgt_type,
+            occurrences=occurrences,
+            reified=reified,
+        )
+
+        # Source side.
+        results.append(
+            CoverageResult(
+                pattern=pat,
+                side="source",
+                entity_type=src_type,
+                reached=len(pattern_sources[key]),
+                total=type_counts[src_type],
+            )
+        )
+
+        # Target side.
+        results.append(
+            CoverageResult(
+                pattern=pat,
+                side="target",
+                entity_type=tgt_type,
+                reached=len(pattern_targets[key]),
+                total=type_counts[tgt_type],
+            )
+        )
+
+    # Step 5 — Sort by fraction ascending (worst coverage first).
+    results.sort(key=lambda r: r.fraction)
+
+    return results
 
 
 def detect_communities(

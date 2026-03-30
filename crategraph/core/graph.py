@@ -12,7 +12,7 @@ from crategraph.core.models import Entity, Relationship
 from crategraph.core.types import TypeRegistry
 
 if TYPE_CHECKING:
-    from crategraph.core.models import FileInfo, ViewInfo
+    from crategraph.core.models import CoverageResult, FileInfo, ViewInfo
 
 
 class Graph:
@@ -157,6 +157,31 @@ class Graph:
     def profile(self) -> analysis_mod.GraphProfile:
         """Return a structural profile with density, components, degree stats."""
         return analysis_mod.profile(self)
+
+    def _coverage(
+        self,
+        *,
+        inline_relations: bool | list[str] = False,
+        min_occurrences: int = 5,
+    ) -> list[CoverageResult]:
+        """Analyse relationship coverage across entity types.
+
+        Discovers structural patterns ``(relationship_type, source_type,
+        target_type)`` and measures what fraction of each entity type
+        participates.  Partial coverage suggests data quality gaps.
+
+        Args:
+            inline_relations: Include inline ``@id`` references.
+                ``False`` = reified only. ``True`` = all.
+                A list of property names includes only those inline types.
+            min_occurrences: Minimum relationship count for a triple to
+                be considered a pattern worth reporting.
+        """
+        return analysis_mod.coverage(
+            self,
+            inline_relations=inline_relations,
+            min_occurrences=min_occurrences,
+        )
 
     # --- Layout ---
 

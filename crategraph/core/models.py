@@ -71,6 +71,52 @@ class Relationship:
         return f"Relationship({self.source!r} --{self.type}--> {self.target!r})"
 
 
+# --- Coverage analysis models ---
+
+
+@dataclass(frozen=True)
+class CoveragePattern:
+    """A discovered ``(relationship_type, source_type, target_type)`` triple."""
+
+    relationship_type: str
+    source_type: str
+    target_type: str
+    occurrences: int
+    reified: bool
+
+
+@dataclass(frozen=True)
+class CoverageResult:
+    """Coverage measurement for one side of one pattern.
+
+    If a relationship type connects some entities of a type, the unreached
+    ones are likely data quality gaps rather than intentionally unlinked.
+    """
+
+    pattern: CoveragePattern
+    side: str  # "source" or "target"
+    entity_type: str
+    reached: int
+    total: int
+
+    @property
+    def fraction(self) -> float:
+        """Fraction of entities reached (0.0-1.0)."""
+        return self.reached / self.total if self.total > 0 else 0.0
+
+    @property
+    def unreached(self) -> int:
+        """Number of entities not reached by this pattern."""
+        return self.total - self.reached
+
+    def __repr__(self) -> str:
+        return (
+            f"CoverageResult({self.pattern.relationship_type} "
+            f"{self.side}: {self.reached}/{self.total} "
+            f"{self.entity_type} ({self.fraction:.0%}))"
+        )
+
+
 # --- User-facing models (Pydantic) ---
 
 
