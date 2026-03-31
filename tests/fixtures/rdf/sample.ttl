@@ -1,0 +1,25 @@
+@prefix ex: <http://example.org/> .
+@prefix crm: <http://www.cidoc-crm.org/cidoc-crm/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:person1 a crm:E21_Person ;
+    rdfs:label "Alice Smith" ;
+    ex:birthYear 1990 ;
+    ex:active true ;
+    ex:memberOf ex:org1 .
+
+ex:person2 a crm:E21_Person ;
+    rdfs:label "Bob Jones"@en ;
+    ex:birthDate "1985-03-15"^^xsd:date ;
+    ex:memberOf ex:org1 ;
+    ex:knows ex:person1 .
+
+ex:org1 a crm:E74_Group ;
+    rdfs:label "Research Lab" ;
+    ex:founded 2010 .
+
+ex:event1 a crm:E5_Event ;
+    rdfs:label "Conference 2023" ;
+    crm:P14_carried_out_by ex:person1, ex:person2 ;
+    ex:usedTool ex:external_tool .
