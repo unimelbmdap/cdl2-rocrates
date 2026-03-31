@@ -8,7 +8,7 @@ literal metadata for round-trip fidelity.
 from __future__ import annotations
 
 import warnings  # noqa: F401
-from pathlib import Path  # noqa: F401
+from pathlib import Path
 from typing import Any
 
 from rdflib import DCTERMS, FOAF, RDF, RDFS, XSD, BNode, Literal, Namespace, URIRef  # noqa: F401
@@ -75,7 +75,13 @@ class RdfReader(Reader):
     # --- Public API (Reader ABC) ---
 
     def can_read(self, path: str) -> bool:
-        raise NotImplementedError
+        """Return True if *path* is an RDF file or directory containing one."""
+        p = Path(path)
+        if p.is_file():
+            return p.suffix.lower() in _RDF_EXTENSIONS
+        if p.is_dir():
+            return any(f.suffix.lower() in _RDF_EXTENSIONS for f in p.iterdir() if f.is_file())
+        return False
 
     def read(self, path: str) -> Graph:
         raise NotImplementedError

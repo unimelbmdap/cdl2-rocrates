@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from rdflib import XSD, Literal
 
 from crategraph.readers.rdf import RdfReader
+
+FIXTURES = Path(__file__).parent.parent / "fixtures"
+RDF_FIXTURE = FIXTURES / "rdf" / "sample.ttl"
 
 
 class TestToCurie:
@@ -58,3 +63,35 @@ class TestConvertLiteral:
         lit = Literal("hello", lang="en")
         result = RdfReader._convert_literal(lit)
         assert result == {"value": "hello", "lang": "en"}
+
+
+class TestCanRead:
+    def test_turtle_file(self):
+        assert RdfReader().can_read(str(RDF_FIXTURE))
+
+    def test_rdf_extension(self, tmp_path: Path):
+        (tmp_path / "data.rdf").write_text("<rdf/>")
+        assert RdfReader().can_read(str(tmp_path / "data.rdf"))
+
+    def test_jsonld_extension(self, tmp_path: Path):
+        (tmp_path / "data.jsonld").write_text("{}")
+        assert RdfReader().can_read(str(tmp_path / "data.jsonld"))
+
+    def test_nt_extension(self, tmp_path: Path):
+        (tmp_path / "data.nt").write_text("")
+        assert RdfReader().can_read(str(tmp_path / "data.nt"))
+
+    def test_non_rdf_extension(self, tmp_path: Path):
+        (tmp_path / "data.csv").write_text("a,b")
+        assert not RdfReader().can_read(str(tmp_path / "data.csv"))
+
+    def test_nonexistent_path(self):
+        assert not RdfReader().can_read("/nonexistent/file.ttl")
+
+    def test_directory_with_ttl(self, tmp_path: Path):
+        (tmp_path / "data.ttl").write_text("")
+        assert RdfReader().can_read(str(tmp_path))
+
+    def test_directory_without_rdf(self, tmp_path: Path):
+        (tmp_path / "data.csv").write_text("")
+        assert not RdfReader().can_read(str(tmp_path))
