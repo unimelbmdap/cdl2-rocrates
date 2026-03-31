@@ -22,6 +22,12 @@
 | `tests/readers/test_rdf.py` | Unit + integration tests for RdfReader |
 | `tests/fixtures/rdf/sample.ttl` | Small synthetic Turtle fixture (~20 triples) |
 
+### Modified files
+
+| File | Change |
+|------|--------|
+| `.github/workflows/test.yml:28` | Add `--extra rdf` so CI installs rdflib for RDF reader tests |
+
 ### Existing files (no modifications needed)
 
 | File | Note |
@@ -265,6 +271,16 @@ class RdfReader(Reader):
                 if local:
                     return f"{prefix}:{local}"
         return uri
+
+    @staticmethod
+    def _node_id(node: Node) -> str:
+        """Return a consistent string ID for an RDF node.
+
+        URIRefs → full URI string.  BNodes → ``_:`` prefix + rdflib ID.
+        """
+        if isinstance(node, BNode):
+            return f"_:{node}"
+        return str(node)
 
     # --- Literal conversion ---
 
@@ -547,26 +563,27 @@ Replace the `read` stub and add supporting methods in `crategraph/readers/rdf.py
         dangling_rel_count = 0
 
         for subject in subjects:
+            source_id = self._node_id(subject)
             for pred, obj in rdf.predicate_objects(subject):
                 if pred == RDF.type:
                     continue
                 pred_str = str(pred)
                 if pred_str in self._exclude_predicates:
                     continue
-                if isinstance(obj, URIRef):
-                    obj_str = str(obj)
+                if isinstance(obj, (URIRef, BNode)):
+                    target_id = self._node_id(obj)
                     rel = Relationship(
-                        source=str(subject),
-                        target=obj_str,
+                        source=source_id,
+                        target=target_id,
                         type=self._to_curie(pred_str, namespaces),
                     )
-                    if obj_str in existing_ids:
+                    if target_id in existing_ids:
                         relationships.append(rel)
                     elif self._include_dangling_targets:
-                        dangling_uris.add(obj_str)
+                        dangling_uris.add(target_id)
                         relationships.append(rel)
                     else:
-                        dangling_uris.add(obj_str)
+                        dangling_uris.add(target_id)
                         dangling_rel_count += 1
 
         # Create stub entities for dangling targets when requested.
@@ -599,9 +616,7 @@ Replace the `read` stub and add supporting methods in `crategraph/readers/rdf.py
         source: str,
     ) -> Entity:
         """Build an Entity from all triples about *subject*."""
-        subject_str = str(subject)
-        if isinstance(subject, BNode):
-            subject_str = f"_:{subject}"
+        subject_str = self._node_id(subject)
 
         types: list[str] = []
         type_uris: list[str] = []
@@ -1057,7 +1072,79 @@ git commit -m "test(rdf): add CHAD-KG integration tests"
 
 ---
 
-### Task 10: Final Lint and Full Test Suite
+### Task 10: Directory `read()` Test
+
+**Files:**
+- Modify: `tests/readers/test_rdf.py`
+
+- [ ] **Step 1: Write directory read test**
+
+Append to `tests/readers/test_rdf.py`:
+
+```python
+class TestDirectoryRead:
+    """RdfReader.read() — directory with multiple RDF files."""
+
+    def test_merges_files_in_directory(self, tmp_path: Path):
+        (tmp_path / "a.ttl").write_text(
+            '@prefix ex: <http://example.org/> .\n'
+            'ex:alice a ex:Person ; ex:knows ex:bob .\n'
+        )
+        (tmp_path / "b.ttl").write_text(
+            '@prefix ex: <http://example.org/> .\n'
+            'ex:bob a ex:Person .\n'
+        )
+        g = RdfReader().read(str(tmp_path))
+        ids = {e.id for e in g.entities}
+        assert "http://example.org/alice" in ids
+        assert "http://example.org/bob" in ids
+        assert len(g.relationships) == 1
+        assert g.source.endswith(str(tmp_path.name))
+```
+
+- [ ] **Step 2: Run test to verify it passes**
+
+Run: `uv run pytest tests/readers/test_rdf.py::TestDirectoryRead -v`
+Expected: PASS.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add tests/readers/test_rdf.py
+git commit -m "test(rdf): add directory read() merge test"
+```
+
+---
+
+### Task 11: Update CI Workflow
+
+**Files:**
+- Modify: `.github/workflows/test.yml:28`
+
+- [ ] **Step 1: Add `--extra rdf` to CI install step**
+
+In `.github/workflows/test.yml`, change line 28 from:
+
+```yaml
+        run: uv sync --extra inspect
+```
+
+to:
+
+```yaml
+        run: uv sync --extra inspect --extra rdf
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add .github/workflows/test.yml
+git commit -m "ci: add rdf extra to test workflow for RdfReader tests"
+```
+
+---
+
+### Task 12: Final Lint and Full Test Suite
 
 **Files:**
 - Possibly modify: `crategraph/readers/rdf.py` (lint fixes)
