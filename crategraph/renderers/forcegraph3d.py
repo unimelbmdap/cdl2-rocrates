@@ -137,8 +137,8 @@ class ForceGraph3DRenderer(Renderer):
             colour_by=colour_by,
             size_by=size_by,
         )
-        # Mark JSON as safe — json.dumps() output is secure for <script> embedding.
-        json_str = Markup(json.dumps(graph_json))
+        # Escape '</script>' sequences before embedding JSON in a script block.
+        json_str = Markup(json.dumps(graph_json).replace("</", "<\\/"))
 
         template = _load_template()
         html = template % {

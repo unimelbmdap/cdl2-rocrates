@@ -181,7 +181,7 @@ class ROCrateReader(Reader):
         if isinstance(raw_type, str):
             stripped = raw_type.strip()
             return [stripped] if stripped else ["Unknown"]
-        return "Unknown"
+        return ["Unknown"]
 
     def _is_reified_relationship(self, raw_type: str | list[str]) -> bool:
         if isinstance(raw_type, list):
@@ -234,7 +234,7 @@ class ROCrateReader(Reader):
             if isinstance(self._inline_relations, list) and key not in self._inline_relations:
                 continue
             for target_id in self._extract_id_refs(value):
-                if target_id in graph._graph:
+                if target_id in graph._entities:
                     relationships.append(
                         Relationship(source=entity_id, target=target_id, type=key)
                     )

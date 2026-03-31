@@ -91,6 +91,14 @@ class TestSelectByConnectivity:
         # Only entities with 1 or fewer connections.
         assert all(len(g._neighbours(e.id)) <= 1 for e in result.entities)
 
+    def test_connectivity_ignores_missing_endpoints(self):
+        g = Graph()
+        g._add_node(Entity(id="#a", types=["Person"], properties={"name": "Alice"}))
+        with pytest.warns(UserWarning, match="missing endpoint"):
+            g._add_edge(Relationship(source="#a", target="#missing", type="knows"))
+        result = g.select(min_connections=1)
+        assert len(result) == 0
+
 
 class TestSelectById:
     def test_select_existing_id(self):
@@ -137,3 +145,29 @@ class TestSelectTimeRange:
         g = _build_graph()
         with pytest.raises(ValueError, match="Start of range"):
             g.select(time_range=(1901, 1837))
+
+    def test_time_range_filters_year_properties(self):
+        g = Graph()
+        g._add_node(Entity(id="#a", types=["Event"], properties={"year": 1900}))
+        g._add_node(Entity(id="#b", types=["Event"], properties={"year": 2000}))
+        result = g.select(time_range=(1800, 1950))
+        assert {e.id for e in result.entities} == {"#a"}
+
+    def test_time_range_matches_overlapping_start_end_dates(self):
+        g = Graph()
+        g._add_node(
+            Entity(
+                id="#a",
+                types=["Membership"],
+                properties={"startDate": "1910-01-01", "endDate": "1920-12-31"},
+            )
+        )
+        g._add_node(
+            Entity(
+                id="#b",
+                types=["Membership"],
+                properties={"startDate": "1930-01-01", "endDate": "1940-12-31"},
+            )
+        )
+        result = g.select(time_range=(1915, 1925))
+        assert {e.id for e in result.entities} == {"#a"}

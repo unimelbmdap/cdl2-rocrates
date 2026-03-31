@@ -202,6 +202,19 @@ class TestForceGraph3DRenderer:
             assert "800px" in content
             assert "50%" in content
 
+    def test_embedded_json_escapes_script_breakout(self):
+        g = Graph()
+        g._add_node(
+            Entity(
+                id="#x",
+                types=["Person"],
+                properties={"name": "</script><script>alert(1)</script>"},
+            )
+        )
+        html = ForceGraph3DRenderer().render(g).data
+        assert "</script><script>alert(1)</script>" not in html
+        assert "<\\/script><script>alert(1)<\\/script>" in html
+
 
 class TestBidirectionalLinks:
     def test_bidirectional_link_has_flag(self):

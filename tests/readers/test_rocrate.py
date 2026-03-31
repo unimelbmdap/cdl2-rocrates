@@ -150,6 +150,14 @@ class TestReadErrors:
             reader.read(str(tmp_path))
 
 
+class TestTypeNormalisation:
+    def test_none_type_becomes_unknown_list(self):
+        reader = ROCrateReader()
+        entity = reader._parse_entity({"@id": "#x", "@type": None}, source="fixture")
+        assert entity is not None
+        assert entity.types == ["Unknown"]
+
+
 class TestInlineRelationsDefault:
     """inline_relations=True (default) — all inline refs become edges."""
 

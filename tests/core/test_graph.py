@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
 
@@ -56,6 +58,15 @@ class TestAddEdge:
         g._add_edge(r1)
         g._add_edge(r2)
         assert len(g._relationships) == 2
+
+    def test_missing_endpoint_is_skipped(self):
+        g = Graph()
+        g._add_node(Entity(id="#a", types=["Person"]))
+        r = Relationship(source="#a", target="#missing", type="author")
+        with pytest.warns(UserWarning, match="missing endpoint"):
+            g._add_edge(r)
+        assert len(g._relationships) == 0
+        assert "#missing" not in g._graph
 
 
 class TestNeighbours:
