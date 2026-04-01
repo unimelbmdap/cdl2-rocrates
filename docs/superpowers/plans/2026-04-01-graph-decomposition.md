@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-04-01-graph-decomposition-design.md`
 
+**Note:** Line numbers in this plan reference the file state before any edits. After each task modifies `graph.py`, subsequent line numbers will have shifted. Anchor on method names and section markers (e.g. `# --- Transform methods ---`), not line numbers.
+
 ---
 
 ## File Structure
@@ -454,10 +456,10 @@ Replace with these delegations (insert after the `_coverage` method, before `# -
         return filtering.query(self, cypher)
 ```
 
-- [ ] **Step 3: Run full test suite**
+- [ ] **Step 3: Run targeted test suite** (excludes tests requiring optional deps `markitdown`/`fa2`)
 
 Run: `uv run pytest -x --ignore=tests/inspectors --ignore=tests/renderers/test_sigma.py --ignore=tests/renderers/test_svg.py`
-Expected: All tests pass.
+Expected: All tests pass. Note: a full-suite run with `uv sync --extra inspect --extra rdf --extra fa2` should be done as a final gate.
 
 - [ ] **Step 4: Commit**
 
@@ -736,10 +738,10 @@ Replace with these delegations (insert after the filtering delegations):
 
 Note: `detect_communities` already delegates to `analysis_mod` — it stays as-is, just moves up next to the other transform delegations.
 
-- [ ] **Step 3: Run full test suite**
+- [ ] **Step 3: Run targeted test suite** (excludes tests requiring optional deps `markitdown`/`fa2`)
 
 Run: `uv run pytest -x --ignore=tests/inspectors --ignore=tests/renderers/test_sigma.py --ignore=tests/renderers/test_svg.py`
-Expected: All tests pass.
+Expected: All tests pass. Note: a full-suite run with `uv sync --extra inspect --extra rdf --extra fa2` should be done as a final gate.
 
 - [ ] **Step 4: Commit**
 
@@ -767,7 +769,6 @@ node positions, and accessing data files referenced by entities.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -829,9 +830,8 @@ def visualise(
     **kwargs: Any,
 ) -> Any:
     """Render the graph as a network visualisation."""
-    from crategraph.core.transforms import collapse_edges as _collapse_edges
-
-    render_graph = _collapse_edges(graph) if collapse_edges else graph
+    # Use method dispatch (not direct function call) to preserve subclass overrides.
+    render_graph = graph.collapse_edges() if collapse_edges else graph
 
     if renderer == "2d":
         from crategraph.renderers.pyvis import PyvisRenderer
@@ -1042,10 +1042,10 @@ Run: `uv run ruff format crategraph/core/`
 Run: `wc -l crategraph/core/graph.py`
 Expected: ~450 lines (down from ~1160).
 
-- [ ] **Step 4: Run full test suite one more time**
+- [ ] **Step 4: Run targeted test suite one more time**
 
 Run: `uv run pytest -x --ignore=tests/inspectors --ignore=tests/renderers/test_sigma.py --ignore=tests/renderers/test_svg.py`
-Expected: All tests pass, no regressions.
+Expected: All tests pass, no regressions. For full coverage, run with all optional extras installed.
 
 - [ ] **Step 5: Commit any lint fixes**
 
