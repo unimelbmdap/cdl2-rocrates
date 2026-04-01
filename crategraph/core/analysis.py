@@ -192,6 +192,17 @@ class GraphProfile:
         return f"<pre style='font-size:13px; line-height:1.4'>{escape(repr(self))}</pre>"
 
 
+def _skewness(values: list[int | float], mean: float) -> float:
+    """Fisher-Pearson skewness coefficient (avoids scipy dependency)."""
+    n = len(values)
+    if n < 3:
+        return 0.0
+    std = (sum((v - mean) ** 2 for v in values) / n) ** 0.5
+    if std == 0:
+        return 0.0
+    return sum((v - mean) ** 3 for v in values) / (n * std**3)
+
+
 def profile(graph: Graph) -> GraphProfile:
     """Return a structural profile of the graph."""
     from statistics import median
@@ -253,15 +264,7 @@ def profile(graph: Graph) -> GraphProfile:
         max_deg = max(degrees)
         mean_deg = sum(degrees) / len(degrees)
         med_deg = float(median(degrees))
-        # Skewness: Fisher-Pearson (avoid scipy dependency).
-        if len(degrees) >= 3:
-            std = (sum((d - mean_deg) ** 2 for d in degrees) / len(degrees)) ** 0.5
-            if std > 0:
-                skew = sum((d - mean_deg) ** 3 for d in degrees) / (len(degrees) * std**3)
-            else:
-                skew = 0.0
-        else:
-            skew = 0.0
+        skew = _skewness(degrees, mean_deg)
     else:
         max_deg = 0
         mean_deg = 0.0

@@ -877,30 +877,27 @@ class Graph:
         root = self._root
         current = set(self._entities.keys())
 
+        # Build adjacency index once: node → list of neighbour IDs.
+        adjacency: dict[str, list[str]] = {}
+        for rel in root._relationships:
+            if rel.source not in root._entities or rel.target not in root._entities:
+                continue
+            if via is not None and rel.type != via:
+                continue
+            adjacency.setdefault(rel.source, []).append(rel.target)
+            adjacency.setdefault(rel.target, []).append(rel.source)
+
+        entity_type_set = set(entity_types) if entity_types is not None else None
+
         for _ in range(depth):
             new_neighbours: set[str] = set()
             for eid in current:
-                for rel in root._relationships:
-                    if rel.source == eid:
-                        candidate = rel.target
-                    elif rel.target == eid:
-                        candidate = rel.source
-                    else:
-                        continue
-
-                    if via is not None and rel.type != via:
-                        continue
-
-                    if candidate not in root._entities:
-                        continue
-
-                    if entity_types is not None and not set(entity_types).intersection(
+                for candidate in adjacency.get(eid, ()):
+                    if entity_type_set is not None and not entity_type_set.intersection(
                         root._entities[candidate].types
                     ):
                         continue
-
                     new_neighbours.add(candidate)
-
             current |= new_neighbours
 
         return root._subgraph(current)
