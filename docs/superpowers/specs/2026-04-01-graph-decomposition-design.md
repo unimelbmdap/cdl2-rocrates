@@ -8,7 +8,9 @@
 Split `crategraph/core/graph.py` (~1160 lines) into four focused modules
 by extracting method implementations into `filtering.py`, `transforms.py`,
 and `presentation.py`. Graph remains the public facade with thin
-delegation methods. No public API changes.
+delegation methods. No documented public API changes. Class-private
+constants and helpers (e.g. `_TEMPORAL_RANGE_PAIRS`, `_extract_year`)
+move off the class — these are internal and intentionally non-stable.
 
 ## Motivation
 
@@ -156,10 +158,12 @@ functions with `graph` as the first parameter. Class methods like
 
 ### Import considerations
 
-The extracted modules import `Graph` for type annotations only
-(`TYPE_CHECKING`). `Graph` imports the extracted modules lazily inside
-delegation methods. This avoids circular imports — the same pattern
-used by `analysis.py` today.
+The extracted modules import `Graph` under `TYPE_CHECKING` for type
+annotations. When a function needs to *instantiate* a `Graph` at runtime
+(e.g. `collapse_edges` building a new graph, or `merge_nodes` creating
+one), it uses a local import inside the function body — the same pattern
+`analysis.py` already uses at line 501. `Graph` imports the extracted
+modules lazily inside delegation methods. This avoids circular imports.
 
 ## Risks
 
@@ -175,6 +179,7 @@ used by `analysis.py` today.
 ## Success criteria
 
 - `graph.py` drops to ~450 lines
-- No public API changes — all existing tests pass without modification
+- No documented public API changes — all existing tests pass without
+  modification. Class-private names may move but are not stable API.
 - Each new module has a clear docstring explaining its purpose
 - `ruff check` and `ruff format` pass
