@@ -20,13 +20,17 @@ The core uses **NetworkX** (`nx.MultiDiGraph`) directly for graph storage and tr
 ```
 crategraph/
 ├── core/           # Graph class, data models, query, analysis, corpus
-│   ├── graph.py    # Graph + Crate classes (public API surface)
-│   ├── models.py   # Entity, Relationship, FileInfo, ViewInfo, validation models
-│   ├── types.py    # TypeRegistry (fuzzy type discovery)
-│   ├── analysis.py # summary, most_connected, profile, detect_communities
-│   ├── corpus.py   # Corpus (batch profiling across multiple crates)
-│   ├── query.py    # Cypher query support (via grand-cypher)
-│   ├── interfaces.py # ABCs: Reader, Writer, Renderer, Validator, Inspector, Viewer
+│   ├── graph.py       # Graph class — public facade, state, and plumbing
+│   ├── filtering.py   # select, where, search, expand, pattern, query
+│   ├── transforms.py  # merge_nodes, simplify, collapse_edges
+│   ├── presentation.py # layout, visualise, glimpse, inspect, view
+│   ├── analysis.py    # summary, most_connected, profile, detect_communities
+│   ├── models.py      # Entity, Relationship, FileInfo, ViewInfo, validation models
+│   ├── types.py       # TypeRegistry (fuzzy type discovery)
+│   ├── corpus.py      # Corpus (batch profiling across multiple crates)
+│   ├── query.py       # Cypher query support (via grand-cypher)
+│   ├── _files.py      # Entity file path resolution helpers
+│   ├── interfaces.py  # ABCs: Reader, Writer, Renderer, Validator, Inspector, Viewer
 ├── readers/        # ROCrateReader, OHRMCsvReader, OHRMSqlReader
 │   └── shared/     # TabularGraphReader, CsvGraphReader, SqlGraphReader
 ├── renderers/      # Pyvis (2D), ForceGraph3D (3D), SVG (static), Sigma (WebGL)

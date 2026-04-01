@@ -26,7 +26,7 @@ Read the linked documents before making changes.
 
 ```
 crategraph/
-├── core/           # Graph, Corpus, models, query, analysis, interfaces
+├── core/           # Graph facade, filtering, transforms, presentation, analysis, models
 ├── readers/        # Data loaders (ROCrateReader, OHRMCsvReader, OHRMSqlReader)
 │   └── shared/     # Base classes (TabularGraphReader, CsvGraphReader, SqlGraphReader)
 ├── renderers/      # Visualisation (Pyvis 2D, ForceGraph3D, SVG, Sigma.js)

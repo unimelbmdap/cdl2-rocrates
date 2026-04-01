@@ -38,12 +38,16 @@ crategraph is a **plugin-oriented graph library** for exploring RO-Crate metadat
 crategraph/
 ├── __init__.py            # Public entry point: Crate class + re-exports
 ├── core/                  # The heart of the library
-│   ├── graph.py           # Graph and Crate classes (public API surface)
+│   ├── graph.py           # Graph class — public facade, state, and plumbing
+│   ├── filtering.py       # select(), where(), search(), expand(), pattern(), query()
+│   ├── transforms.py      # merge_nodes(), simplify(), collapse_edges()
+│   ├── presentation.py    # layout(), visualise(), glimpse(), inspect(), view()
+│   ├── analysis.py        # summary(), most_connected(), profile(), detect_communities()
 │   ├── models.py          # Entity, Relationship, FileInfo, ViewInfo (dataclasses + Pydantic)
 │   ├── types.py           # TypeRegistry — fuzzy type discovery
-│   ├── analysis.py        # summary(), most_connected(), profile(), detect_communities()
 │   ├── corpus.py          # Corpus — batch profiling across multiple crates
 │   ├── query.py           # Cypher query support (via grand-cypher)
+│   ├── _files.py          # Entity file path resolution helpers
 │   ├── interfaces.py      # ABCs: Reader, Writer, Renderer, Validator, Inspector, Viewer
 ├── readers/               # Data loaders
 │   ├── rocrate.py         # ROCrateReader — parses ro-crate-metadata.json
@@ -187,5 +191,8 @@ For the rationale behind key architectural choices — why NetworkX over RDFLib,
 | Add a file viewer                   | `core/interfaces.py:Viewer`, then `viewers/default.py`    |
 | Implement validation                | `core/interfaces.py:Validator` and `core/models.py:ValidationReport` |
 | Add an export format                | `core/interfaces.py:Writer`                               |
-| Add analytical features             | `core/analysis.py` and `core/graph.py`                    |
-| Work on query support               | `core/query.py`                                           |
+| Add analytical features             | `core/analysis.py`                                        |
+| Add filtering or query methods      | `core/filtering.py`                                       |
+| Add graph transforms                | `core/transforms.py`                                      |
+| Add visualisation or file access    | `core/presentation.py`                                    |
+| Work on Cypher query support        | `core/query.py`                                           |
