@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 
+import pytest
 from rdflib import XSD, Literal
 
 from crategraph.readers.rdf import RdfReader
@@ -159,3 +161,218 @@ class TestReadEntities:
         person = next(e for e in g.entities if e.id == "http://example.org/person1")
         assert person.source is not None
         assert person.source.endswith("sample.ttl")
+
+
+class TestReadRelationships:
+    """RdfReader.read() — relationship construction."""
+
+    def _load(self):
+        return RdfReader().read(str(RDF_FIXTURE))
+
+    def test_relationship_count_excludes_dangling(self):
+        g = self._load()
+        # memberOf x2, knows x1, P14_carried_out_by x2 = 5
+        # usedTool → external_tool is dropped (dangling).
+        assert len(g.relationships) == 5
+
+    def test_relationship_type_is_curie(self):
+        g = self._load()
+        rel = next(r for r in g.relationships if "knows" in r.type)
+        assert rel.type == "ex:knows"
+
+    def test_relationship_source_and_target_are_full_uris(self):
+        g = self._load()
+        rel = next(r for r in g.relationships if "knows" in r.type)
+        assert rel.source == "http://example.org/person2"
+        assert rel.target == "http://example.org/person1"
+
+    def test_rdf_type_not_a_relationship(self):
+        g = self._load()
+        types = {r.type for r in g.relationships}
+        assert not any("type" in t.lower() and "rdf" in t.lower() for t in types)
+
+    def test_multiple_objects_create_multiple_relationships(self):
+        g = self._load()
+        carried = [r for r in g.relationships if "P14_carried_out_by" in r.type]
+        assert len(carried) == 2
+        targets = {r.target for r in carried}
+        assert targets == {
+            "http://example.org/person1",
+            "http://example.org/person2",
+        }
+
+    def test_relationship_id_is_none(self):
+        g = self._load()
+        for r in g.relationships:
+            assert r.id is None
+
+
+class TestDanglingTargets:
+    """RdfReader — include_dangling_targets behaviour."""
+
+    def test_default_drops_dangling_with_warning(self):
+        with pytest.warns(UserWarning, match=r"Dropped \d+ relationship"):
+            g = RdfReader().read(str(RDF_FIXTURE))
+        assert not any(e.id == "http://example.org/external_tool" for e in g.entities)
+        assert not any("usedTool" in r.type for r in g.relationships)
+
+    def test_default_records_dropped_count_in_metadata(self):
+        with pytest.warns(UserWarning):
+            g = RdfReader().read(str(RDF_FIXTURE))
+        assert g.metadata["dropped_dangling_count"] == 1
+
+    def test_include_creates_stub_with_external_flag(self):
+        g = RdfReader(include_dangling_targets=True).read(str(RDF_FIXTURE))
+        stub = next(e for e in g.entities if e.id == "http://example.org/external_tool")
+        assert stub.types == []
+        assert stub.properties["_external"] is True
+
+    def test_include_preserves_relationship(self):
+        g = RdfReader(include_dangling_targets=True).read(str(RDF_FIXTURE))
+        rel = next(r for r in g.relationships if "usedTool" in r.type)
+        assert rel.target == "http://example.org/external_tool"
+
+    def test_include_gives_six_total_relationships(self):
+        g = RdfReader(include_dangling_targets=True).read(str(RDF_FIXTURE))
+        assert len(g.relationships) == 6
+
+
+class TestNameResolution:
+    """RdfReader.read() — rdfs:label → properties['name']."""
+
+    def _load(self):
+        with pytest.warns(UserWarning):
+            return RdfReader().read(str(RDF_FIXTURE))
+
+    def test_plain_label_becomes_name(self):
+        g = self._load()
+        person = next(e for e in g.entities if e.id == "http://example.org/person1")
+        assert person.name == "Alice Smith"
+        assert person.properties["name"] == "Alice Smith"
+
+    def test_language_tagged_label_becomes_name(self):
+        g = self._load()
+        person = next(e for e in g.entities if e.id == "http://example.org/person2")
+        assert person.name == "Bob Jones"
+
+    def test_label_also_kept_under_original_key(self):
+        g = self._load()
+        person = next(e for e in g.entities if e.id == "http://example.org/person1")
+        assert person.properties["rdfs:label"] == "Alice Smith"
+
+    def test_deterministic_tiebreak_plain_over_tagged(self):
+        """Plain string wins over language-tagged at the same priority."""
+        result = RdfReader._pick_best_label([{"value": "Tagged", "lang": "en"}, "Plain"])
+        assert result == "Plain"
+
+    def test_deterministic_tiebreak_en_over_other_lang(self):
+        """English wins over other languages."""
+        result = RdfReader._pick_best_label(
+            [{"value": "French", "lang": "fr"}, {"value": "English", "lang": "en"}]
+        )
+        assert result == "English"
+
+    def test_deterministic_tiebreak_lexicographic(self):
+        """Lexicographic sort breaks ties within the same category."""
+        result = RdfReader._pick_best_label(["Zebra", "Apple"])
+        assert result == "Apple"
+
+
+class TestGraphMetadata:
+    """RdfReader.read() — Graph.metadata population."""
+
+    def _load(self):
+        with pytest.warns(UserWarning):
+            return RdfReader().read(str(RDF_FIXTURE))
+
+    def test_namespaces_populated(self):
+        g = self._load()
+        ns = g.metadata["namespaces"]
+        assert "crm" in ns
+        assert ns["crm"] == "http://www.cidoc-crm.org/cidoc-crm/"
+        assert "ex" in ns
+
+    def test_format_detected(self):
+        g = self._load()
+        assert g.metadata["format"] == "turtle"
+
+    def test_source_set(self):
+        g = self._load()
+        assert g.source is not None
+        assert g.source.endswith("sample.ttl")
+
+
+class TestExcludePredicates:
+    def test_excluded_predicate_not_in_relationships(self):
+        with pytest.warns(UserWarning):
+            reader = RdfReader(exclude_predicates=["http://example.org/memberOf"])
+            g = reader.read(str(RDF_FIXTURE))
+        member_rels = [r for r in g.relationships if "memberOf" in r.type]
+        assert len(member_rels) == 0
+        # knows, P14 x2 remain (usedTool dropped as dangling).
+        assert len(g.relationships) == 3
+
+
+CHAD_KG = Path(__file__).parent.parent.parent / "data" / "rdf" / "chad_kg.ttl"
+
+
+@pytest.mark.skipif(not CHAD_KG.exists(), reason="CHAD-KG fixture not present")
+class TestChadKgIntegration:
+    """Integration tests against the full CHAD-KG dataset (52K triples)."""
+
+    @pytest.fixture(scope="class")
+    def graph(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            return RdfReader().read(str(CHAD_KG))
+
+    def test_loads_many_entities(self, graph):
+        assert len(graph.entities) > 1_000
+
+    def test_loads_many_relationships(self, graph):
+        assert len(graph.relationships) > 1_000
+
+    def test_has_cidoc_types_as_curies(self, graph):
+        all_types = set()
+        for e in graph.entities:
+            all_types.update(e.types)
+        assert any(t.startswith("crm:") or t.startswith("crmdig:") for t in all_types)
+
+    def test_namespaces_include_cidoc(self, graph):
+        ns = graph.metadata["namespaces"]
+        assert "crm" in ns
+        assert "cidoc-crm" in ns.get("crm", "")
+
+    def test_entities_have_data_properties(self, graph):
+        with_props = [e for e in graph.entities if len(e.properties) > 1]
+        assert len(with_props) > 100
+
+    def test_dropped_dangling_count_recorded(self, graph):
+        assert graph.metadata.get("dropped_dangling_count", 0) > 0
+
+    def test_graph_is_queryable(self, graph):
+        """The loaded graph works with crategraph's standard select() API."""
+        all_types = set()
+        for e in graph.entities:
+            all_types.update(e.types)
+        some_type = next(t for t in all_types if t.startswith("crm:"))
+        result = graph.select(entity_types=[some_type])
+        assert len(result) >= 1
+
+
+class TestDirectoryRead:
+    """RdfReader.read() — directory with multiple RDF files."""
+
+    def test_merges_files_in_directory(self, tmp_path: Path):
+        (tmp_path / "a.ttl").write_text(
+            "@prefix ex: <http://example.org/> .\nex:alice a ex:Person ; ex:knows ex:bob .\n"
+        )
+        (tmp_path / "b.ttl").write_text(
+            "@prefix ex: <http://example.org/> .\nex:bob a ex:Person .\n"
+        )
+        g = RdfReader().read(str(tmp_path))
+        ids = {e.id for e in g.entities}
+        assert "http://example.org/alice" in ids
+        assert "http://example.org/bob" in ids
+        assert len(g.relationships) == 1
+        assert g.source.endswith(str(tmp_path.name))
