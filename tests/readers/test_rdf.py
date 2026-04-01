@@ -95,3 +95,67 @@ class TestCanRead:
     def test_directory_without_rdf(self, tmp_path: Path):
         (tmp_path / "data.csv").write_text("")
         assert not RdfReader().can_read(str(tmp_path))
+
+
+class TestReadEntities:
+    """RdfReader.read() — entity construction from the sample fixture."""
+
+    def _load(self):
+        return RdfReader().read(str(RDF_FIXTURE))
+
+    def test_loads_defined_subjects_only(self):
+        g = self._load()
+        # 4 defined subjects; dangling target (external_tool) dropped by default.
+        assert len(g.entities) == 4
+
+    def test_entity_id_is_full_uri(self):
+        g = self._load()
+        ids = {e.id for e in g.entities}
+        assert "http://example.org/person1" in ids
+
+    def test_entity_types_are_curies(self):
+        g = self._load()
+        person = next(e for e in g.entities if e.id == "http://example.org/person1")
+        assert person.types == ["crm:E21_Person"]
+
+    def test_type_uris_preserved_in_properties(self):
+        g = self._load()
+        person = next(e for e in g.entities if e.id == "http://example.org/person1")
+        assert person.properties["_type_uris"] == ["http://www.cidoc-crm.org/cidoc-crm/E21_Person"]
+
+    def test_plain_literal_stored_as_string(self):
+        g = self._load()
+        org = next(e for e in g.entities if e.id == "http://example.org/org1")
+        assert org.properties["rdfs:label"] == "Research Lab"
+
+    def test_integer_literal(self):
+        g = self._load()
+        person = next(e for e in g.entities if e.id == "http://example.org/person1")
+        assert person.properties["ex:birthYear"] == 1990
+
+    def test_boolean_literal(self):
+        g = self._load()
+        person = next(e for e in g.entities if e.id == "http://example.org/person1")
+        assert person.properties["ex:active"] is True
+
+    def test_typed_literal_preserves_datatype(self):
+        g = self._load()
+        person = next(e for e in g.entities if e.id == "http://example.org/person2")
+        assert person.properties["ex:birthDate"] == {
+            "value": "1985-03-15",
+            "datatype": "xsd:date",
+        }
+
+    def test_language_tagged_literal(self):
+        g = self._load()
+        person = next(e for e in g.entities if e.id == "http://example.org/person2")
+        assert person.properties["rdfs:label"] == {
+            "value": "Bob Jones",
+            "lang": "en",
+        }
+
+    def test_source_set_on_entities(self):
+        g = self._load()
+        person = next(e for e in g.entities if e.id == "http://example.org/person1")
+        assert person.source is not None
+        assert person.source.endswith("sample.ttl")

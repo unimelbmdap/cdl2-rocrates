@@ -7,17 +7,17 @@ literal metadata for round-trip fidelity.
 
 from __future__ import annotations
 
-import warnings  # noqa: F401
+import warnings
 from pathlib import Path
 from typing import Any
 
-from rdflib import DCTERMS, FOAF, RDF, RDFS, XSD, BNode, Literal, Namespace, URIRef  # noqa: F401
-from rdflib import Graph as RdfGraph  # noqa: F401
+from rdflib import DCTERMS, FOAF, RDF, RDFS, XSD, BNode, Literal, Namespace, URIRef
+from rdflib import Graph as RdfGraph
 from rdflib.term import Node
 
 from crategraph.core.graph import Graph
 from crategraph.core.interfaces import Reader
-from crategraph.core.models import Entity, Relationship  # noqa: F401
+from crategraph.core.models import Entity, Relationship
 
 # XSD types that map directly to Python primitives.
 _XSD_INT_TYPES = {
@@ -84,7 +84,219 @@ class RdfReader(Reader):
         return False
 
     def read(self, path: str) -> Graph:
-        raise NotImplementedError
+        """Read the RDF file or directory at *path* and return a populated Graph."""
+        p = Path(path)
+        rdf = RdfGraph()
+
+        if p.is_dir():
+            rdf_files = sorted(
+                f for f in p.iterdir() if f.is_file() and f.suffix.lower() in _RDF_EXTENSIONS
+            )
+            for f in rdf_files:
+                rdf.parse(str(f), format=self._format)
+            source = str(p.resolve())
+            detected_format = self._detect_format(str(rdf_files[0])) if rdf_files else None
+        else:
+            rdf.parse(str(p), format=self._format)
+            source = str(p.resolve())
+            detected_format = self._detect_format(str(p))
+
+        namespaces = {
+            prefix: str(uri)
+            for prefix, uri in rdf.namespaces()
+            if prefix  # skip the default empty prefix
+        }
+
+        graph = Graph(
+            source=source,
+            metadata={
+                "namespaces": namespaces,
+                "format": self._format or detected_format,
+                "base_uri": None,
+            },
+        )
+
+        # Collect all subjects that appear in the data.
+        subjects = set(rdf.subjects())
+
+        # First pass: build entities from subjects.
+        for subject in subjects:
+            entity = self._build_entity(subject, rdf, namespaces, source)
+            graph._add_node(entity)
+
+        # Second pass: build relationships and track dangling targets.
+        existing_ids = {e.id for e in graph.entities}
+        relationships: list[Relationship] = []
+        dangling_uris: set[str] = set()
+        dangling_rel_count = 0
+
+        for subject in subjects:
+            source_id = self._node_id(subject)
+            for pred, obj in rdf.predicate_objects(subject):
+                if pred == RDF.type:
+                    continue
+                pred_str = str(pred)
+                if pred_str in self._exclude_predicates:
+                    continue
+                if isinstance(obj, (URIRef, BNode)):
+                    target_id = self._node_id(obj)
+                    rel = Relationship(
+                        source=source_id,
+                        target=target_id,
+                        type=self._to_curie(pred_str, namespaces),
+                    )
+                    if target_id in existing_ids:
+                        relationships.append(rel)
+                    elif self._include_dangling_targets:
+                        dangling_uris.add(target_id)
+                        relationships.append(rel)
+                    else:
+                        dangling_uris.add(target_id)
+                        dangling_rel_count += 1
+
+        # Create stub entities for dangling targets when requested.
+        if self._include_dangling_targets:
+            for uri in dangling_uris:
+                graph._add_node(
+                    Entity(id=uri, types=[], properties={"_external": True}, source=source)
+                )
+
+        # Emit warning about dropped dangling relationships.
+        if not self._include_dangling_targets and dangling_rel_count > 0:
+            graph.metadata["dropped_dangling_count"] = dangling_rel_count
+            warnings.warn(
+                f"Dropped {dangling_rel_count} relationship(s) to "
+                f"{len(dangling_uris)} undefined target URI(s).",
+                stacklevel=2,
+            )
+
+        # Add relationships (after stubs exist).
+        for rel in relationships:
+            graph._add_edge(rel)
+
+        return graph
+
+    # --- Entity construction helpers ---
+
+    def _build_entity(
+        self,
+        subject: Node,
+        rdf: RdfGraph,
+        namespaces: dict[str, str],
+        source: str,
+    ) -> Entity:
+        """Build an Entity from all triples about *subject*."""
+        subject_str = self._node_id(subject)
+
+        types: list[str] = []
+        type_uris: list[str] = []
+        properties: dict[str, Any] = {}
+
+        for pred, obj in rdf.predicate_objects(subject):
+            pred_str = str(pred)
+
+            if pred_str in self._exclude_predicates:
+                continue
+
+            # rdf:type -> types list (as CURIEs).
+            if pred == RDF.type:
+                type_uri = str(obj)
+                type_uris.append(type_uri)
+                types.append(self._to_curie(type_uri, namespaces))
+                continue
+
+            # Skip URI-valued predicates — handled as relationships.
+            if isinstance(obj, (URIRef, BNode)):
+                continue
+
+            # Literal-valued predicate -> property.
+            if isinstance(obj, Literal):
+                key = self._to_curie(pred_str, namespaces)
+                value = self._convert_literal(obj)
+                # Accumulate multiple values as a list.
+                if key in properties:
+                    existing = properties[key]
+                    if isinstance(existing, list):
+                        existing.append(value)
+                    else:
+                        properties[key] = [existing, value]
+                else:
+                    properties[key] = value
+
+        # Store full type URIs for round-trip fidelity.
+        if type_uris:
+            properties["_type_uris"] = type_uris
+
+        # Resolve display name.
+        name = self._resolve_name(properties, namespaces)
+        if name is not None:
+            properties["name"] = name
+
+        return Entity(id=subject_str, types=types, properties=properties, source=source)
+
+    def _resolve_name(self, properties: dict[str, Any], namespaces: dict[str, str]) -> str | None:
+        """Pick the best display name from label-like properties.
+
+        Tie-break: un-tagged -> 'en' -> lexicographic lang -> lexicographic value.
+        """
+        label_preds = self._label_predicates or _DEFAULT_LABEL_PREDICATES
+        for label_pred in label_preds:
+            label_key = self._to_curie(str(label_pred), namespaces)
+            if label_key not in properties:
+                continue
+            raw = properties[label_key]
+            candidates = raw if isinstance(raw, list) else [raw]
+            return self._pick_best_label(candidates)
+        return None
+
+    @staticmethod
+    def _pick_best_label(candidates: list[Any]) -> str | None:
+        """Select the best label from a list of literal values.
+
+        Priority: plain string -> lang 'en' -> lowest lang tag -> lowest value.
+        """
+        plain: list[str] = []
+        en: list[str] = []
+        tagged: list[tuple[str, str]] = []  # (lang, value)
+
+        for c in candidates:
+            if isinstance(c, str):
+                plain.append(c)
+            elif isinstance(c, dict) and "value" in c:
+                if "lang" in c:
+                    if c["lang"] == "en":
+                        en.append(c["value"])
+                    else:
+                        tagged.append((c["lang"], c["value"]))
+                else:
+                    # Typed literal without lang — treat as plain.
+                    plain.append(str(c["value"]))
+            elif isinstance(c, (int, float, bool)):
+                plain.append(str(c))
+
+        if plain:
+            return sorted(plain)[0]
+        if en:
+            return sorted(en)[0]
+        if tagged:
+            tagged.sort()
+            return tagged[0][1]
+        return None
+
+    @staticmethod
+    def _detect_format(path: str) -> str | None:
+        """Guess RDF format from file extension."""
+        suffix = Path(path).suffix.lower()
+        return {
+            ".ttl": "turtle",
+            ".rdf": "xml",
+            ".owl": "xml",
+            ".xml": "xml",
+            ".nt": "nt",
+            ".nq": "nquads",
+            ".jsonld": "json-ld",
+            ".trig": "trig",
+        }.get(suffix)
 
     # --- URI helpers (static, tested directly) ---
 
