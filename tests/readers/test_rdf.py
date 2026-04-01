@@ -35,6 +35,14 @@ class TestToCurie:
         result = RdfReader._to_curie("urn:uuid:1234", {})
         assert result == "urn:uuid:1234"
 
+    def test_most_specific_prefix_wins(self):
+        ns = {
+            "ex": "http://example.org/",
+            "vocab": "http://example.org/vocab/",
+        }
+        result = RdfReader._to_curie("http://example.org/vocab/Thing", ns)
+        assert result == "vocab:Thing"
+
 
 class TestConvertLiteral:
     """RdfReader._convert_literal — RDF Literal → Python value."""
@@ -276,6 +284,13 @@ class TestNameResolution:
         """Lexicographic sort breaks ties within the same category."""
         result = RdfReader._pick_best_label(["Zebra", "Apple"])
         assert result == "Apple"
+
+    def test_empty_label_predicates_disables_name_resolution(self):
+        """label_predicates=[] should produce no 'name' property."""
+        with pytest.warns(UserWarning):
+            g = RdfReader(label_predicates=[]).read(str(RDF_FIXTURE))
+        person = next(e for e in g.entities if e.id == "http://example.org/person1")
+        assert "name" not in person.properties
 
 
 class TestGraphMetadata:

@@ -95,7 +95,8 @@ class RdfReader(Reader):
             for f in rdf_files:
                 rdf.parse(str(f), format=self._format)
             source = str(p.resolve())
-            detected_format = self._detect_format(str(rdf_files[0])) if rdf_files else None
+            formats = {self._detect_format(str(f)) for f in rdf_files} - {None}
+            detected_format = formats.pop() if len(formats) == 1 else "mixed" if formats else None
         else:
             rdf.parse(str(p), format=self._format)
             source = str(p.resolve())
@@ -239,7 +240,9 @@ class RdfReader(Reader):
 
         Tie-break: un-tagged -> 'en' -> lexicographic lang -> lexicographic value.
         """
-        label_preds = self._label_predicates or _DEFAULT_LABEL_PREDICATES
+        label_preds = (
+            _DEFAULT_LABEL_PREDICATES if self._label_predicates is None else self._label_predicates
+        )
         for label_pred in label_preds:
             label_key = self._to_curie(str(label_pred), namespaces)
             if label_key not in properties:
@@ -306,13 +309,19 @@ class RdfReader(Reader):
 
         Returns the CURIE if a prefix matches, otherwise the full URI.
         Never returns a bare local name — this ensures every key is
-        reversible to a full URI.
+        reversible to a full URI.  When multiple prefixes match, the
+        longest (most specific) namespace URI wins.
         """
+        best_prefix: str | None = None
+        best_ns: str = ""
         for prefix, ns_uri in namespaces.items():
-            if uri.startswith(ns_uri):
+            if uri.startswith(ns_uri) and len(ns_uri) > len(best_ns):
                 local = uri[len(ns_uri) :]
                 if local:
-                    return f"{prefix}:{local}"
+                    best_prefix = prefix
+                    best_ns = ns_uri
+        if best_prefix is not None:
+            return f"{best_prefix}:{uri[len(best_ns) :]}"
         return uri
 
     @staticmethod
