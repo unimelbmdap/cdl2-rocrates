@@ -195,6 +195,13 @@ class TestAnnotations:
         c_entity = simplified._entities["c"]
         assert c_entity.properties["simplified"] == {"Dataset": 1}
 
+    def test_internal_graph_nodes_use_updated_entities(self):
+        g = _triangle_with_tails()
+        simplified = g.simplify()
+        a_entity = simplified._entities["a"]
+        assert simplified._graph.nodes["a"]["entity"] is a_entity
+        assert simplified._graph.nodes["a"]["entity"].properties["simplified"] == {"File": 1}
+
     def test_no_annotation_when_no_neighbours_removed(self):
         """A node whose removed-neighbour count is zero gets no annotation."""
         entities = [Entity(id=f"q{i}", types=["Person"]) for i in range(4)]

@@ -5,12 +5,14 @@ from __future__ import annotations
 import math
 import re
 import warnings
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 from rapidfuzz import fuzz
 
 from crategraph.core import analysis as analysis_mod
+from crategraph.core._files import entity_raw_id, is_contextual_entity, resolve_entity_path
 from crategraph.core.models import Entity, Relationship
 from crategraph.core.types import TypeRegistry
 
@@ -371,52 +373,11 @@ class Graph:
             ValueError: If the entity is contextual (``#``-prefixed or URL).
             FileNotFoundError: If the referenced file doesn't exist on disk.
         """
-        from pathlib import Path as _Path
-
         from crategraph.core.models import FileInfo
         from crategraph.inspectors import find_inspector
 
-        # Resolve entity from string ID.
-        if isinstance(entity, str):
-            entity = self.get(entity)
-
-        # Reject contextual entities.
-        entity_id = entity.properties.get("raw_id", entity.id)
-        if (
-            entity_id.startswith("#")
-            or entity_id.startswith("http")
-            or entity_id == "./"
-            or entity.properties.get("_is_root")
-        ):
-            msg = (
-                f"Entity {entity.id!r} is a contextual entity "
-                f"— inspect() works with data entities that point to local files."
-            )
-            raise ValueError(msg)
-
-        # Resolve file path.
-        crate_root = entity.source or self.source
-        if crate_root is None:
-            msg = f"Cannot resolve file path for {entity.id!r} — no crate source directory is set."
-            raise ValueError(msg)
-
-        file_path = _Path(crate_root) / entity_id
-        crate_root_resolved = _Path(crate_root).resolve(strict=False)
-        try:
-            file_path_resolved = file_path.resolve(strict=False)
-            file_path_resolved.relative_to(crate_root_resolved)
-        except ValueError:
-            msg = (
-                f"Entity ID {entity_id!r} resolves outside the crate directory "
-                f"{str(crate_root_resolved)!r}."
-            )
-            raise ValueError(msg) from None
-        if not file_path.is_file():
-            msg = (
-                f"Cannot find file {entity_id!r} in crate at {crate_root!r}. "
-                f"Check the entity ID refers to a local file."
-            )
-            raise FileNotFoundError(msg)
+        entity = self._coerce_entity(entity)
+        entity_id, file_path = self._require_local_entity_file(entity, action="inspect")
 
         # Find an inspector.
         inspector = find_inspector(entity)
@@ -455,52 +416,11 @@ class Graph:
             ValueError: If the entity is contextual (``#``-prefixed or URL).
             FileNotFoundError: If the referenced file doesn't exist on disk.
         """
-        from pathlib import Path as _Path
-
         from crategraph.core.models import ViewInfo
         from crategraph.viewers import find_viewer
 
-        # Resolve entity from string ID.
-        if isinstance(entity, str):
-            entity = self.get(entity)
-
-        # Reject contextual entities.
-        entity_id = entity.properties.get("raw_id", entity.id)
-        if (
-            entity_id.startswith("#")
-            or entity_id.startswith("http")
-            or entity_id == "./"
-            or entity.properties.get("_is_root")
-        ):
-            msg = (
-                f"Entity {entity.id!r} is a contextual entity "
-                f"— view() works with data entities that point to local files."
-            )
-            raise ValueError(msg)
-
-        # Resolve file path.
-        crate_root = entity.source or self.source
-        if crate_root is None:
-            msg = f"Cannot resolve file path for {entity.id!r} — no crate source directory is set."
-            raise ValueError(msg)
-
-        file_path = _Path(crate_root) / entity_id
-        crate_root_resolved = _Path(crate_root).resolve(strict=False)
-        try:
-            file_path_resolved = file_path.resolve(strict=False)
-            file_path_resolved.relative_to(crate_root_resolved)
-        except ValueError:
-            msg = (
-                f"Entity ID {entity_id!r} resolves outside the crate directory "
-                f"{str(crate_root_resolved)!r}."
-            )
-            raise ValueError(msg) from None
-        if not file_path.is_file():
-            msg = (
-                f"Cannot find file {entity_id!r} in crate at {crate_root!r}. "
-                f"Check the entity ID refers to a local file."
-            )
-            raise FileNotFoundError(msg)
+        entity = self._coerce_entity(entity)
+        entity_id, file_path = self._require_local_entity_file(entity, action="view")
 
         # Find a viewer.
         viewer = find_viewer(entity)
@@ -685,25 +605,24 @@ class Graph:
             removed_direct[sid] = type_counts
 
         # Step 4 — build new Graph (mirrors _subgraph pattern).
-        sub = Graph.__new__(Graph)
-        sub.source = self.source
-        sub.metadata = dict(self.metadata)
-        sub._entities = {}
+        entities: dict[str, Entity] = {}
         for nid in surviving:
             entity = self._entities[nid]
             annotation = removed_direct[nid]
             if annotation:
                 new_props = {**entity.properties, "simplified": annotation}
-                sub._entities[nid] = replace(entity, properties=new_props)
+                entities[nid] = replace(entity, properties=new_props)
             else:
-                sub._entities[nid] = entity
-        sub._relationships = [
+                entities[nid] = entity
+
+        relationships = [
             r for r in self._relationships if r.source in surviving and r.target in surviving
         ]
-        sub._source_names = set(self._source_names)
-        sub._graph = self._graph.subgraph(surviving).copy()
-        sub._root = self._root
-        return sub
+        return self._build_derived_graph(
+            node_ids=surviving,
+            entities=entities,
+            relationships=relationships,
+        )
 
     def collapse_edges(self) -> Graph:
         """Collapse parallel edges between node pairs into single summary edges.
@@ -1170,18 +1089,74 @@ class Graph:
             return set()
         return set(self._graph.successors(node_id)) | set(self._graph.predecessors(node_id))
 
+    def _coerce_entity(self, entity: Entity | str) -> Entity:
+        """Resolve an entity object or ID string to an Entity."""
+        return self.get(entity) if isinstance(entity, str) else entity
+
+    def _require_local_entity_file(self, entity: Entity, *, action: str) -> tuple[str, Path]:
+        """Resolve and validate the local file path for an entity."""
+        entity_id = entity_raw_id(entity)
+        if is_contextual_entity(entity):
+            msg = (
+                f"Entity {entity.id!r} is a contextual entity "
+                f"— {action}() works with data entities that point to local files."
+            )
+            raise ValueError(msg)
+
+        crate_root = entity.source or self.source
+        if crate_root is None:
+            msg = f"Cannot resolve file path for {entity.id!r} — no crate source directory is set."
+            raise ValueError(msg)
+
+        file_path = resolve_entity_path(entity, fallback_source=self.source)
+        if file_path is None:
+            crate_root_resolved = Path(crate_root).resolve(strict=False)
+            msg = (
+                f"Entity ID {entity_id!r} resolves outside the crate directory "
+                f"{str(crate_root_resolved)!r}."
+            )
+            raise ValueError(msg)
+
+        if not file_path.is_file():
+            msg = (
+                f"Cannot find file {entity_id!r} in crate at {crate_root!r}. "
+                f"Check the entity ID refers to a local file."
+            )
+            raise FileNotFoundError(msg)
+
+        return entity_id, file_path
+
+    def _build_derived_graph(
+        self,
+        *,
+        node_ids: set[str],
+        entities: dict[str, Entity] | None = None,
+        relationships: list[Relationship] | None = None,
+        simplification_k: int | None = None,
+    ) -> Graph:
+        """Build a derived graph while keeping internal state aligned."""
+        derived = Graph.__new__(Graph)
+        derived.source = self.source
+        derived.metadata = dict(self.metadata)
+        derived._entities = (
+            entities
+            if entities is not None
+            else {nid: self._entities[nid] for nid in node_ids if nid in self._entities}
+        )
+        derived._relationships = (
+            relationships
+            if relationships is not None
+            else [r for r in self._relationships if r.source in node_ids and r.target in node_ids]
+        )
+        derived._source_names = set(self._source_names)
+        derived._graph = self._graph.subgraph(node_ids).copy()
+        for nid, entity in derived._entities.items():
+            if nid in derived._graph:
+                derived._graph.nodes[nid]["entity"] = entity
+        derived._root = self._root
+        derived._simplification_k = simplification_k
+        return derived
+
     def _subgraph(self, node_ids: set[str]) -> Graph:
         """Return a new Graph containing only the specified nodes and their mutual edges."""
-        root = self._root
-        sub = Graph.__new__(Graph)
-        sub.source = self.source
-        sub.metadata = dict(self.metadata)
-        sub._entities = {nid: self._entities[nid] for nid in node_ids if nid in self._entities}
-        sub._relationships = [
-            r for r in self._relationships if r.source in node_ids and r.target in node_ids
-        ]
-        sub._source_names = set(self._source_names)
-        sub._graph = self._graph.subgraph(node_ids).copy()
-        sub._root = root
-        sub._simplification_k = None
-        return sub
+        return self._build_derived_graph(node_ids=node_ids)

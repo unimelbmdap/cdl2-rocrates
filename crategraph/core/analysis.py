@@ -476,16 +476,16 @@ def detect_communities_transform(
     """
     from dataclasses import replace
 
-    from crategraph.core.graph import Graph as _Graph
-
     partition = detect_communities(graph, resolution=resolution, seed=seed)
-    new_graph = _Graph(source=graph.source, metadata=dict(graph.metadata))
+    entities = {}
     for eid, entity in graph._entities.items():
         new_props = {**entity.properties, "community": partition.get(eid, 0)}
-        new_graph._add_node(replace(entity, properties=new_props))
-    for rel in graph._relationships:
-        new_graph._add_edge(rel)
-    return new_graph
+        entities[eid] = replace(entity, properties=new_props)
+    return graph._build_derived_graph(
+        node_ids=set(graph._entities.keys()),
+        entities=entities,
+        relationships=list(graph._relationships),
+    )
 
 
 def merge_by_primary_type(graph: Graph) -> Graph:

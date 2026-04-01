@@ -243,6 +243,16 @@ class TestGraphDetectCommunities:
         g = _build_graph()
         assert len(g.detect_communities().relationships) == len(g.relationships)
 
+    def test_internal_graph_nodes_use_updated_entities(self):
+        g = _build_graph()
+        result = g.detect_communities()
+        for eid, entity in result._entities.items():
+            assert result._graph.nodes[eid]["entity"] is entity
+            assert (
+                result._graph.nodes[eid]["entity"].properties["community"]
+                == entity.properties["community"]
+            )
+
     def test_seed_deterministic(self):
         g = _build_graph()
         r1 = g.detect_communities(seed=42)

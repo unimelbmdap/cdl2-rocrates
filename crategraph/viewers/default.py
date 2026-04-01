@@ -9,6 +9,7 @@ from html import escape as _escape_html
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from crategraph.core._files import resolve_entity_path
 from crategraph.core.interfaces import Viewer
 from crategraph.core.models import ViewInfo
 
@@ -20,24 +21,6 @@ _MAX_TABLE_ROWS = 50
 
 # Maximum characters to show for text previews.
 _MAX_TEXT_CHARS = 5000
-
-
-def _resolve_entity_path(entity: Entity) -> Path | None:
-    """Resolve the file path for an entity, or None if not a data file."""
-    entity_id = entity.properties.get("raw_id", entity.id)
-    if entity_id.startswith("#") or entity_id.startswith("http"):
-        return None
-    if entity.source is None:
-        return None
-    crate_root = Path(entity.source)
-    file_path = crate_root / entity_id
-    crate_root_resolved = crate_root.resolve(strict=False)
-    try:
-        file_path_resolved = file_path.resolve(strict=False)
-        file_path_resolved.relative_to(crate_root_resolved)
-    except ValueError:
-        return None
-    return file_path_resolved
 
 
 def _view_image(path: Path, media_type: str) -> str:
@@ -148,7 +131,7 @@ class DefaultViewer(Viewer):
 
     def supports(self, entity: Entity) -> bool:
         """Return True if the entity points to an existing local file."""
-        path = _resolve_entity_path(entity)
+        path = resolve_entity_path(entity)
         if path is None:
             return False
         return path.is_file()
