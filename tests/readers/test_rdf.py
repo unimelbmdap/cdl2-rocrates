@@ -391,3 +391,15 @@ class TestDirectoryRead:
         assert "http://example.org/bob" in ids
         assert len(g.relationships) == 1
         assert g.source.endswith(str(tmp_path.name))
+
+    def test_mixed_directory_formats_report_mixed_metadata(self, tmp_path: Path):
+        (tmp_path / "a.ttl").write_text(
+            "@prefix ex: <http://example.org/> .\nex:alice a ex:Person .\n"
+        )
+        (tmp_path / "b.nt").write_text(
+            "<http://example.org/bob> "
+            "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> "
+            "<http://example.org/Person> .\n"
+        )
+        g = RdfReader().read(str(tmp_path))
+        assert g.metadata["format"] == "mixed"
