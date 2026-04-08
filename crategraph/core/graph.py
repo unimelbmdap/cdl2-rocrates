@@ -9,9 +9,7 @@ from typing import TYPE_CHECKING, Any
 import networkx as nx
 
 from crategraph.core import (
-    analysis as analysis_mod,
-)
-from crategraph.core import (
+    analysis,
     filtering,
     presentation,
     transforms,
@@ -153,19 +151,19 @@ class Graph:
 
     # --- Analysis methods (delegated to core/analysis.py) ---
 
-    def summary(self) -> analysis_mod.GraphSummary:
+    def summary(self) -> analysis.GraphSummary:
         """Return a structured summary of type/relationship counts."""
-        return analysis_mod.summary(self)
+        return analysis.summary(self)
 
     def most_connected(
         self, *, n: int = 10, entity_types: list[str] | None = None
     ) -> list[tuple[Entity, int]]:
         """Return the top *n* entities by number of connections."""
-        return analysis_mod.most_connected(self, n=n, entity_types=entity_types)
+        return analysis.most_connected(self, n=n, entity_types=entity_types)
 
-    def profile(self) -> analysis_mod.GraphProfile:
+    def profile(self) -> analysis.GraphProfile:
         """Return a structural profile with density, components, degree stats."""
-        return analysis_mod.profile(self)
+        return analysis.profile(self)
 
     def _coverage(
         self,
@@ -186,7 +184,7 @@ class Graph:
             min_occurrences: Minimum relationship count for a triple to
                 be considered a pattern worth reporting.
         """
-        return analysis_mod.coverage(
+        return analysis.coverage(
             self,
             inline_relations=inline_relations,
             min_occurrences=min_occurrences,
@@ -242,7 +240,7 @@ class Graph:
 
         Uses the Louvain algorithm via :func:`analysis.detect_communities`.
         """
-        return analysis_mod.detect_communities_transform(
+        return analysis.detect_communities_transform(
             self,
             resolution=resolution,
             seed=seed,
