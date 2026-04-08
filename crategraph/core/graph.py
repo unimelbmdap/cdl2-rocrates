@@ -8,7 +8,14 @@ from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 
-from crategraph.core import analysis as analysis_mod
+from crategraph.core import (
+    analysis as analysis_mod,
+)
+from crategraph.core import (
+    filtering,
+    presentation,
+    transforms,
+)
 from crategraph.core._files import entity_raw_id, is_contextual_entity, resolve_entity_path
 from crategraph.core.models import Entity, Relationship
 from crategraph.core.types import TypeRegistry
@@ -189,8 +196,6 @@ class Graph:
 
     def layout(self) -> dict[str, tuple[float, float]]:
         """Compute 2D node positions for visualisation."""
-        from crategraph.core import presentation
-
         return presentation.layout(self)
 
     def visualise(
@@ -206,8 +211,6 @@ class Graph:
         **kwargs: Any,
     ) -> Any:
         """Render the graph as a network visualisation."""
-        from crategraph.core import presentation
-
         return presentation.visualise(
             self,
             renderer=renderer,
@@ -222,20 +225,14 @@ class Graph:
 
     def glimpse(self, *, filepath: str | None = None) -> Any:
         """Inline snapshot of the type-level graph structure."""
-        from crategraph.core import presentation
-
         return presentation.glimpse(self, filepath=filepath)
 
     def inspect(self, entity: Entity | str) -> FileInfo:
         """Inspect the data file associated with an entity."""
-        from crategraph.core import presentation
-
         return presentation.inspect(self, entity)
 
     def view(self, entity: Entity | str) -> ViewInfo:
         """View the data file associated with an entity."""
-        from crategraph.core import presentation
-
         return presentation.view(self, entity)
 
     # --- Transform methods ---
@@ -253,8 +250,6 @@ class Graph:
 
     def merge_nodes(self, *, by: str) -> Graph:
         """Aggregate nodes by a property, returning a collapsed graph."""
-        from crategraph.core import transforms
-
         return transforms.merge_nodes(self, by=by)
 
     def simplify(
@@ -263,14 +258,10 @@ class Graph:
         min_connections: int | None = None,
     ) -> Graph:
         """Remove peripheral nodes to reveal the structural backbone."""
-        from crategraph.core import transforms
-
         return transforms.simplify(self, min_connections=min_connections)
 
     def collapse_edges(self) -> Graph:
         """Collapse parallel edges between node pairs into single summary edges."""
-        from crategraph.core import transforms
-
         return transforms.collapse_edges(self)
 
     # --- Filtering methods (delegated to core/filtering.py) ---
@@ -287,8 +278,6 @@ class Graph:
         id: str | None = None,
     ) -> Graph:
         """Filter by graph structure — type, time, source, connectivity."""
-        from crategraph.core import filtering
-
         return filtering.select(
             self,
             entity_types=entity_types,
@@ -302,8 +291,6 @@ class Graph:
 
     def where(self, **kwargs: Any) -> Graph:
         """Filter by entity property values."""
-        from crategraph.core import filtering
-
         return filtering.where(self, **kwargs)
 
     def search(
@@ -314,8 +301,6 @@ class Graph:
         threshold: int = 60,
     ) -> Graph:
         """Fuzzy content search across entity properties."""
-        from crategraph.core import filtering
-
         return filtering.search(self, query, properties=properties, threshold=threshold)
 
     def expand(
@@ -326,8 +311,6 @@ class Graph:
         via: str | None = None,
     ) -> Graph:
         """Grow this selection outward to include connected neighbours."""
-        from crategraph.core import filtering
-
         return filtering.expand(self, depth=depth, entity_types=entity_types, via=via)
 
     def pattern(
@@ -338,14 +321,10 @@ class Graph:
         to_type: str | None = None,
     ) -> Graph:
         """Match relationships by source type, relationship type, and/or target type."""
-        from crategraph.core import filtering
-
         return filtering.pattern(self, from_type=from_type, via=via, to_type=to_type)
 
     def query(self, cypher: str) -> Graph:
         """Run a Cypher query and return a subgraph of matched entities."""
-        from crategraph.core import filtering
-
         return filtering.query(self, cypher)
 
     # --- Private graph helpers ---
