@@ -163,9 +163,14 @@ class SqlGraphReader(TabularGraphReader):
         Looks for an ``initialise*.sql`` entry point first. Falls back to
         concatenating all ``.sql`` files.
         """
+        root_resolved = root.resolve(strict=False)
         init_files = list(root.glob("initialise*.sql"))
         if init_files:
-            return self._resolve_includes(init_files[0])
+            return self._resolve_includes(
+                init_files[0],
+                root_dir=root_resolved,
+                visited=set(),
+            )
         # Fallback: concatenate all SQL files.
         parts = []
         for sql_file in sorted(root.glob("*.sql")):
@@ -173,16 +178,42 @@ class SqlGraphReader(TabularGraphReader):
         return "\n".join(parts)
 
     @staticmethod
-    def _resolve_includes(sql_file: Path) -> str:
-        """Read a SQL file, recursively resolving ``\\i`` include directives."""
+    def _resolve_includes(
+        sql_file: Path,
+        *,
+        root_dir: Path,
+        visited: set[Path],
+    ) -> str:
+        """Read a SQL file, recursively resolving crate-local ``\\i`` directives."""
+        sql_file_resolved = sql_file.resolve(strict=False)
+        if sql_file_resolved in visited:
+            msg = f"Recursive SQL include detected for '{sql_file_resolved}'."
+            raise ValueError(msg)
+
+        try:
+            sql_file_resolved.relative_to(root_dir)
+        except ValueError as exc:
+            msg = f"SQL include '{sql_file_resolved}' resolves outside the import root."
+            raise ValueError(msg) from exc
+
+        visited.add(sql_file_resolved)
         lines: list[str] = []
-        for line in sql_file.read_text(errors="replace").splitlines():
-            stripped = line.strip()
-            if stripped.startswith("\\i "):
-                include_name = stripped[3:].strip()
-                include_path = sql_file.parent / include_name
-                if include_path.exists():
-                    lines.append(SqlGraphReader._resolve_includes(include_path))
-            else:
-                lines.append(line)
-        return "\n".join(lines)
+        try:
+            for line in sql_file_resolved.read_text(errors="replace").splitlines():
+                stripped = line.strip()
+                if stripped.startswith("\\i "):
+                    include_name = stripped[3:].strip()
+                    include_path = (sql_file_resolved.parent / include_name).resolve(strict=False)
+                    if include_path.exists():
+                        lines.append(
+                            SqlGraphReader._resolve_includes(
+                                include_path,
+                                root_dir=root_dir,
+                                visited=visited,
+                            )
+                        )
+                else:
+                    lines.append(line)
+            return "\n".join(lines)
+        finally:
+            visited.remove(sql_file_resolved)

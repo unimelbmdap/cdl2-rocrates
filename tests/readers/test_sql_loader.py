@@ -254,6 +254,30 @@ class TestSqlGraphReaderRead:
         graph = reader.read(str(tmp_path))
         assert "I1" in graph._entities
 
+    def test_rejects_include_outside_root(self, tmp_path):
+        from crategraph.readers.shared.sql_loader import SqlGraphReader
+
+        outside = tmp_path.parent / "outside.sql"
+        outside.write_text("CREATE TABLE ITEMS(ID varchar(9), PRIMARY KEY (ID));")
+        init = tmp_path / "initialise.sql"
+        init.write_text("\\i ../outside.sql")
+
+        reader = SqlGraphReader(node_tables=[NodeDef("ITEMS", id_col="ID", fixed_types=["Item"])])
+        with pytest.raises(ValueError, match="outside the import root"):
+            reader.read(str(tmp_path))
+
+    def test_rejects_recursive_includes(self, tmp_path):
+        from crategraph.readers.shared.sql_loader import SqlGraphReader
+
+        first = tmp_path / "initialise.sql"
+        second = tmp_path / "nested.sql"
+        first.write_text("\\i nested.sql")
+        second.write_text("\\i initialise.sql")
+
+        reader = SqlGraphReader(node_tables=[NodeDef("ITEMS", id_col="ID", fixed_types=["Item"])])
+        with pytest.raises(ValueError, match="Recursive SQL include detected"):
+            reader.read(str(tmp_path))
+
     def test_authoriser_blocks_attach(self, tmp_path):
         from crategraph.readers.shared.sql_loader import SqlGraphReader
 
