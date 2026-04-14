@@ -34,3 +34,7 @@ __all__ = ["UnknownFormatError", "get_writer", "register_writer"]
 from crategraph.writers.graphml import GraphMLWriter  # noqa: E402
 
 register_writer("graphml", GraphMLWriter)
+
+from crategraph.writers.csv_writer import CsvWriter  # noqa: E402
+
+register_writer("csv", CsvWriter)
