@@ -144,7 +144,7 @@ decoded = json.loads(raw)
 - Writes a single `.graphml` file (XML-based).
 - Parallel edges with the same source, target, and type are preserved using the edge `key` attribute. Reified relationships use their `rel.id` as the key; others get an auto-assigned integer key.
 - Uses `nx.write_graphml_lxml` (requires `lxml`) for performance. Falls back to `nx.write_graphml` (pure Python) if `lxml` is not installed.
-- Reading back with NetworkX: `nx.read_graphml("output.graphml")` — note that NetworkX may reassign node IDs on read; use `node_default=True` and check the `id` attribute column.
+- Reading back with NetworkX: `nx.read_graphml("output.graphml")`. Entity IDs round-trip as the NetworkX node keys, and they also appear on each node under the promoted `id` attribute. GraphML attribute values come back typed when `lxml` is available, as strings otherwise — pass `node_type=str` if you want to force string keys regardless.
 - Reading back with pandas: `nx.to_pandas_edgelist(nx.read_graphml("output.graphml"))`.
 
 ### CSV
