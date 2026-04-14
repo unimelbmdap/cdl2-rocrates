@@ -39,6 +39,9 @@ class TestWriterABC:
 
     def test_complete_subclass(self):
         class DummyWriter(Writer):
+            def can_write(self, path: str) -> bool:
+                return True
+
             def write(self, graph, path: str, **kwargs) -> None:
                 pass
 

@@ -27,6 +27,10 @@ class Writer(ABC):
     """Base class for graph writers (e.g. JSON-LD, GEXF)."""
 
     @abstractmethod
+    def can_write(self, path: str) -> bool:
+        """Return True if this writer can handle the given path."""
+
+    @abstractmethod
     def write(self, graph: Graph, path: str, **kwargs: Any) -> None:
         """Write *graph* to the file at *path*."""
 
