@@ -205,3 +205,6 @@ node_modules/
 
 # Local git worktrees (superpowers workflow)
 .worktrees/
+
+# Local superpowers planning artefacts (plans, specs). Not for committing.
+docs/superpowers/
