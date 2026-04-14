@@ -152,17 +152,37 @@ class Graph:
     # --- Public export methods ---
 
     def to_networkx(self, *, copy: bool = True) -> nx.MultiDiGraph:
-        """Return the underlying ``MultiDiGraph``.
+        """Return a NetworkX ``MultiDiGraph`` view of this graph.
 
-        With ``copy=True`` (default), returns a fully detached deep copy — the
-        caller can mutate nodes, edges, or the nested ``Entity.properties`` and
+        The returned graph is rebuilt from ``self.entities`` and
+        ``self.relationships`` so that same-type parallel edges between the
+        same endpoints survive — the internal ``_graph`` stores edges with
+        ``key=relationship.type`` and collapses duplicates, while the
+        authoritative relationship list keeps every edge. Each edge gets a
+        unique key: ``rel.id`` when set, otherwise a
+        ``MultiDiGraph``-assigned integer.
+
+        With ``copy=True`` (default), each node's ``entity`` attribute and
+        each edge's ``relationship`` attribute are deep copies, so the
+        caller can mutate nested ``Entity.properties`` or
         ``Relationship.properties`` dicts without affecting this ``Graph``.
-        With ``copy=False``, returns the internal graph directly; the caller
-        must not mutate.
+        With ``copy=False``, the original ``Entity`` / ``Relationship``
+        objects are attached directly; the caller must not mutate their
+        nested ``properties``.
         """
         import copy as _copy
 
-        return _copy.deepcopy(self._graph) if copy else self._graph
+        nxg = nx.MultiDiGraph()
+        for entity in self.entities:
+            attached = _copy.deepcopy(entity) if copy else entity
+            nxg.add_node(entity.id, entity=attached)
+        for rel in self.relationships:
+            attached = _copy.deepcopy(rel) if copy else rel
+            if rel.id is not None:
+                nxg.add_edge(rel.source, rel.target, key=rel.id, relationship=attached)
+            else:
+                nxg.add_edge(rel.source, rel.target, relationship=attached)
+        return nxg
 
     def write(
         self,
