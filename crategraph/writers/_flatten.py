@@ -37,6 +37,21 @@ _EDGE_COLLISION_KEYS: frozenset[str] = frozenset(EDGE_PROMOTED_COLUMNS)
 _ScalarValue = str | int | float | bool
 
 
+def _unique_key(base: str, collision_keys: frozenset[str], taken: set[str]) -> str:
+    """Return an output key that won't clobber an existing column.
+
+    If *base* is one of the promoted column names (*collision_keys*) or is
+    already present in *taken*, prepend ``prop_`` repeatedly until the key
+    is unused. This preserves both values when an entity carries both a
+    promoted-name property and its already-prefixed form — for example
+    ``{"id": ..., "prop_id": ...}`` becomes ``{"prop_id": ..., "prop_prop_id": ...}``.
+    """
+    key = base
+    while key in collision_keys or key in taken:
+        key = f"prop_{key}"
+    return key
+
+
 def _encode_pipe_list(items: Sequence[Any]) -> str:
     """Encode a sequence of scalars (or None) as a pipe-delimited string.
 
@@ -152,9 +167,7 @@ def flatten_node(entity: Entity) -> dict[str, _ScalarValue]:
     }
 
     # --- Properties (sorted alphabetically, collision-prefixed) ---
-    for key in sorted(entity.properties):
-        out_key = f"prop_{key}" if key in _NODE_COLLISION_KEYS else key
-        result[out_key] = _encode_value(entity.properties[key])
+    _encode_properties(entity.properties, _NODE_COLLISION_KEYS, result)
 
     return result
 
@@ -173,11 +186,44 @@ def flatten_edge(rel: Relationship) -> dict[str, _ScalarValue]:
         "rel_id": rel.id or "",
     }
 
-    for key in sorted(rel.properties):
-        out_key = f"prop_{key}" if key in _EDGE_COLLISION_KEYS else key
-        result[out_key] = _encode_value(rel.properties[key])
+    _encode_properties(rel.properties, _EDGE_COLLISION_KEYS, result)
 
     return result
+
+
+def _encode_properties(
+    properties: dict[str, Any],
+    collision_keys: frozenset[str],
+    result: dict[str, _ScalarValue],
+) -> None:
+    """Encode *properties* into *result* in place with deterministic naming.
+
+    Two-pass traversal keeps the output stable regardless of how property
+    names sort against their ``prop_`` prefixed form:
+
+    1. First pass emits non-colliding keys under their own name (e.g. a user
+       property literally called ``prop_source`` keeps that name, unless it
+       clashes with a promoted column — which by construction it can't).
+    2. Second pass emits collision-named keys via :func:`_unique_key`, which
+       prepends ``prop_`` repeatedly until the target name is unused.
+
+    Result: user-defined property names are preserved whenever possible and
+    only the promoted-column collision gets pushed further out.
+    """
+    taken: set[str] = set(result)
+    sorted_keys = sorted(properties)
+    non_colliding = [k for k in sorted_keys if k not in collision_keys]
+    colliding = [k for k in sorted_keys if k in collision_keys]
+
+    for key in non_colliding:
+        out_key = _unique_key(key, collision_keys, taken)
+        result[out_key] = _encode_value(properties[key])
+        taken.add(out_key)
+
+    for key in colliding:
+        out_key = _unique_key(key, collision_keys, taken)
+        result[out_key] = _encode_value(properties[key])
+        taken.add(out_key)
 
 
 __all__ = [

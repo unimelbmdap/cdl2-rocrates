@@ -322,6 +322,39 @@ class TestNodeCollisionPrefixing:
         assert "note" in result
         assert "prop_note" not in result
 
+    def test_promoted_and_prefixed_both_present(self):
+        """Both ``id`` and ``prop_id`` as property keys must both be preserved.
+
+        User-defined ``prop_id`` keeps its name; the promoted-column collision
+        (the ``id`` property) gets pushed further out to ``prop_prop_id``.
+        """
+        entity = _make_entity(
+            id="actual-id",
+            properties={"id": "promoted-collision", "prop_id": "user-column"},
+        )
+        result = flatten_node(entity)
+        assert result["id"] == "actual-id"
+        assert result["prop_id"] == "user-column"
+        assert result["prop_prop_id"] == "promoted-collision"
+
+    def test_chained_prefix_collisions(self):
+        """Three-deep collision chain resolves via repeated prefixing."""
+        entity = _make_entity(
+            id="actual-id",
+            properties={
+                "id": "a",
+                "prop_id": "b",
+                "prop_prop_id": "c",
+            },
+        )
+        result = flatten_node(entity)
+        assert result["id"] == "actual-id"
+        # User-defined names preserved.
+        assert result["prop_id"] == "b"
+        assert result["prop_prop_id"] == "c"
+        # Promoted-collision ``id`` gets pushed to the first unused prefix.
+        assert result["prop_prop_prop_id"] == "a"
+
 
 # ---------------------------------------------------------------------------
 # 11. Edge flattening
@@ -365,6 +398,24 @@ class TestEdgeFlattening:
         assert result["prop_target"] == "prop-target"
         assert result["prop_type"] == "prop-type"
         assert result["prop_rel_id"] == "prop-rel-id"
+
+    def test_edge_promoted_and_prefixed_both_present(self):
+        """Both ``source`` and ``prop_source`` as property keys both preserved.
+
+        User-defined ``prop_source`` keeps its name; the promoted-column
+        collision (the ``source`` property) gets pushed to ``prop_prop_source``.
+        """
+        rel = Relationship(
+            source="s",
+            target="t",
+            type="links",
+            id="r1",
+            properties={"source": "promoted-collision", "prop_source": "user-column"},
+        )
+        result = flatten_edge(rel)
+        assert result["source"] == "s"
+        assert result["prop_source"] == "user-column"
+        assert result["prop_prop_source"] == "promoted-collision"
 
     def test_edge_scalar_properties_encoded(self):
         rel = _make_rel(properties={"weight": 2.5, "active": True, "note": "ok"})

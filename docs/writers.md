@@ -109,6 +109,14 @@ Remaining property keys are appended in alphabetical order after the promoted co
 
 If a property key in `entity.properties` or `rel.properties` collides with a promoted column name (e.g. an entity with a `"type"` property), it is emitted as `prop_<key>` (e.g. `prop_type`). This avoids silently overwriting the promoted value.
 
+If a user-defined property is already called `prop_<promoted>` (e.g. both `"id"` and `"prop_id"` appear in `properties`), the user-defined key keeps its name and the promoted-collision value is pushed one level further out. In that example:
+
+- `id` promoted column → `entity.id`.
+- User's `prop_id` property → stays at `prop_id`.
+- User's `id` property (the promoted-name collision) → `prop_prop_id`.
+
+The prefix chain lengthens as needed so no property is ever dropped.
+
 ### Scalar passthrough
 
 | Input type | Output |
