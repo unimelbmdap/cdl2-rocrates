@@ -87,7 +87,7 @@ This is a significantly larger undertaking than the original ABC, which is why i
 
 Extension points that exist as ABCs but have no concrete implementations yet:
 
-- **Writers** — serialisation to JSON-LD, GEXF, Gephi-ready formats (with pre-computed layout and styling)
+- **Writers** (partial) — GraphML and CSV shipped (see [Writers guide](../docs/writers.md)). RDF and RO-Crate export planned.
 - **Validators** — RDF/schema.org compliance checking, crate structure validation. Should report issues without blocking usage.
 - **Additional readers** — GEXF, RiC-O (via RDFLib), NetworkX graph import
 
@@ -97,14 +97,16 @@ Export methods to bridge crategraph with other tools:
 
 ```python
 # Drop down to NetworkX for custom analysis
-G = result.to_networkx()
+G = crate.to_networkx()
 
-# Export to JSON-LD
-result.to_jsonld("output.json")
+# Export to GraphML for Gephi / yEd
+crate.write("crate.graphml", format="graphml")
 
-# Export to Gephi with pre-computed layout
-result.to_gephi("output.gexf", layout=True, colour_by="type", size_by="degree")
+# Export to CSV (two files: nodes.csv and edges.csv in the given directory)
+crate.write("crate_tables/", format="csv")
 ```
+
+RDF (JSON-LD, Turtle) and GEXF export are planned future formats.
 
 ## Natural Language Query Interface
 

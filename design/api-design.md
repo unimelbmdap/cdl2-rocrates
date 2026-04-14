@@ -37,7 +37,7 @@ crategraph/
 ├── inspectors/     # MarkItDown file inspector
 ├── viewers/        # Rich file previews (DefaultViewer)
 ├── validators/     # (planned)
-└── writers/        # (planned)
+└── writers/        # GraphML, CSV (RDF, RO-Crate planned)
 ```
 
 ## Core API
@@ -154,6 +154,33 @@ communities = crate.detect_communities(resolution=1.0, seed=42)
 # Each entity gains a "community" property
 ```
 
+### Writers / Export
+
+`graph.write(path, *, format, overwrite=False, **kwargs)` is the single entry point for all export formats. `format` is a required keyword argument. Passing an unrecognised format raises `UnknownFormatError` (a `ValueError` subclass). `overwrite` defaults to `False`; each writer raises `FileExistsError` when the target already exists and `overwrite` is not set.
+
+Path semantics are writer-specific: `"graphml"` expects a file path, while `"csv"` expects a directory (created if absent).
+
+`graph.to_networkx(copy=True)` returns the underlying `nx.MultiDiGraph`. With `copy=True` (default), the return value is a fully detached deep copy — safe to mutate. With `copy=False`, the internal graph is returned directly; the caller must not mutate it.
+
+```python
+# Export to GraphML for Gephi / yEd
+crate.write("crate.graphml", format="graphml")
+
+# Overwrite an existing file
+crate.write("crate.graphml", format="graphml", overwrite=True)
+
+# Export to CSV (nodes.csv + edges.csv written into the directory)
+crate.write("crate_tables/", format="csv")
+
+# Drop down to NetworkX for custom analysis
+G = crate.to_networkx()
+
+# Bypass the copy for read-only algorithms (no mutation guarantee)
+G_direct = crate.to_networkx(copy=False)
+```
+
+See [docs/writers.md](../docs/writers.md) for attribute-flattening rules, format-specific notes, and how to register a custom writer.
+
 ### Visualisation
 
 ```python
@@ -235,7 +262,7 @@ All extension points use abstract base classes defined in `crategraph.core.inter
 | Interface   | Methods                              | Implementations                            |
 |-------------|--------------------------------------|--------------------------------------------|
 | `Reader`    | `can_read(path)`, `read(path)`       | ROCrateReader, OHRMCsvReader, OHRMSqlReader |
-| `Writer`    | `write(graph, path)`                 | (planned)                                  |
+| `Writer`    | `can_write(path)`, `write(graph, path)` | GraphMLWriter, CsvWriter                |
 | `Renderer`  | `render(graph, **kwargs)`            | Pyvis, ForceGraph3D, SVG, Sigma            |
 | `Validator` | `validate(graph)` → ValidationReport | (planned)                                  |
 | `Inspector` | `supports(entity)`, `inspect(path)`  | MarkItDownInspector                        |

@@ -25,8 +25,12 @@ crategraph is a **plugin-oriented graph library** for exploring RO-Crate metadat
                                │
                                ▼
                   ┌────────────────────────────┐
-                  │  Validators  ·  Writers    │
+                  │       Validators           │
                   │        (planned)           │
+                  └────────────────────────────┘
+                  ┌────────────────────────────┐
+                  │   Writers (GraphML, CSV)   │
+                  │  (RDF, RO-Crate planned)   │
                   └────────────────────────────┘
 ```
 
@@ -72,7 +76,7 @@ crategraph/
 │   ├── __init__.py        # Viewer registry and find_viewer()
 │   └── default.py         # DefaultViewer — images, CSV tables, audio, etc.
 ├── validators/            # Data quality checks (planned, ABC only)
-└── writers/               # Export/serialisation (planned, ABC only)
+└── writers/               # Export/serialisation (GraphML, CSV shipped; RDF planned)
 ```
 
 ## Subsystems
@@ -149,13 +153,20 @@ Validators check a graph for data quality issues and return a report of problems
 
 ### Writers
 
-**ABC:** `Writer` — `write(graph, path, **kwargs)`
+**ABC:** `Writer` — `can_write(path) -> bool` and `write(graph, path, **kwargs) -> None`
 
-Writers serialise a `Graph` to an external format.
+Writers serialise a `Graph` to an external format. The writer registry (`writers/__init__.py`) maps format names to writer classes via `register_writer(name, cls)` and `get_writer(name)`. Requesting an unknown format raises `UnknownFormatError` (a `ValueError` subclass).
 
-**Current status:** the ABC exists but there are no concrete implementations yet.
+The public entry point is `graph.write(path, *, format, overwrite=False, **kwargs)` on the `Graph` class, which dispatches to the registered writer for `format`.
 
-**Contribution ideas:** JSON-LD export, GEXF export, CSV/tabular export, Neo4j import format.
+**Current implementations:**
+
+- `GraphMLWriter` (`writers/graphml.py`) — writes a single `.graphml` file. Compatible with Gephi, yEd, and NetworkX's `read_graphml`. Uses `nx.write_graphml_lxml` with a pure-Python fallback.
+- `CsvWriter` (`writers/csv_writer.py`) — writes `nodes.csv` and `edges.csv` into a target directory. A non-empty directory without `overwrite=True` raises `FileExistsError`.
+
+Both writers rely on the shared flattening module (`writers/_flatten.py`) to convert nested `Entity`/`Relationship` properties to scalar-only attributes. See [docs/writers.md](writers.md) for the attribute-flattening rules.
+
+**Contribution ideas:** JSON-LD / RDF export, GEXF export, RO-Crate round-trip export, Neo4j import format.
 
 ### Analysis and Query
 
@@ -175,7 +186,7 @@ A typical workflow moves data through the system like this:
 4. **View:** a `Viewer` produces a rich HTML preview of a file (images, tables, audio players).
 5. **Inspect:** an `Inspector` examines a file referenced by an entity and returns a `FileInfo` with content and metadata.
 6. **Validate** *(planned)*: a `Validator` checks the graph against quality rules and returns a `ValidationReport`.
-7. **Export** *(planned)*: a `Writer` serialises the graph to a file.
+7. **Export**: a `Writer` serialises the graph to a file. `graph.write(path, format="graphml")` and `graph.write(path, format="csv")` are available; RDF export is planned.
 
 ## Design Decisions
 
@@ -190,7 +201,7 @@ For the rationale behind key architectural choices — why NetworkX over RDFLib,
 | Add a file inspector                | `core/interfaces.py:Inspector`, then `inspectors/markitdown.py` |
 | Add a file viewer                   | `core/interfaces.py:Viewer`, then `viewers/default.py`    |
 | Implement validation                | `core/interfaces.py:Validator` and `core/models.py:ValidationReport` |
-| Add an export format                | `core/interfaces.py:Writer`                               |
+| Add an export format                | `core/interfaces.py:Writer`, then `writers/graphml.py` as a reference |
 | Add analytical features             | `core/analysis.py`                                        |
 | Add filtering or query methods      | `core/filtering.py`                                       |
 | Add graph transforms                | `core/transforms.py`                                      |

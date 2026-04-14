@@ -33,7 +33,7 @@ crategraph/
 ├── inspectors/     # File inspection (MarkItDown)
 ├── validators/     # Data quality checks (planned)
 ├── viewers/        # Rich file previews (DefaultViewer)
-└── writers/        # Export/serialisation (planned)
+└── writers/        # Export/serialisation (GraphML + CSV shipped; RDF, RO-Crate planned)
 tests/              # Mirrors source layout
 docs/               # MkDocs source (Material theme)
 design/             # Design documents and decision records
