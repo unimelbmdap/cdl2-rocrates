@@ -52,6 +52,18 @@ nodes = pd.read_csv("output_tables/nodes.csv")
 edges = pd.read_csv("output_tables/edges.csv")
 ```
 
+CSV is export-only — there is no CSV reader that reconstructs a `Graph`. Use GraphML (via `nx.read_graphml`) if you need a round-trippable format, or reload the data into pandas/R for downstream analysis.
+
+## Listing registered formats
+
+```python
+from crategraph.writers import list_formats
+
+list_formats()  # ['csv', 'graphml']
+```
+
+Third-party packages that register additional formats show up here automatically once imported.
+
 ## Graph.to_networkx()
 
 `graph.to_networkx(copy=True)` returns the underlying `nx.MultiDiGraph` directly, bypassing all writer machinery. This is useful when you need NetworkX algorithms not exposed through the crategraph API.

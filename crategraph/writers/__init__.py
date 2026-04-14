@@ -27,7 +27,12 @@ def get_writer(name: str) -> type[Writer]:
         raise UnknownFormatError(msg) from exc
 
 
-__all__ = ["UnknownFormatError", "get_writer", "register_writer"]
+def list_formats() -> list[str]:
+    """Return the names of all registered writer formats, sorted."""
+    return sorted(_REGISTRY)
+
+
+__all__ = ["UnknownFormatError", "get_writer", "list_formats", "register_writer"]
 
 # --- Built-in writer registrations ---
 
