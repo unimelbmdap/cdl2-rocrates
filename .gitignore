@@ -202,3 +202,6 @@ CLAUDE.md
 
 # JS build tooling
 node_modules/
+
+# Local git worktrees (superpowers workflow)
+.worktrees/
