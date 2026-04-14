@@ -149,6 +149,46 @@ class Graph:
             msg = f'No entity with id "{entity_id}" in this graph.'
             raise KeyError(msg) from None
 
+    # --- Public export methods ---
+
+    def to_networkx(self, *, copy: bool = True) -> nx.MultiDiGraph:
+        """Return the underlying ``MultiDiGraph``.
+
+        With ``copy=True`` (default), returns a fully detached deep copy — the
+        caller can mutate nodes, edges, or the nested ``Entity.properties`` and
+        ``Relationship.properties`` dicts without affecting this ``Graph``.
+        With ``copy=False``, returns the internal graph directly; the caller
+        must not mutate.
+        """
+        import copy as _copy
+
+        return _copy.deepcopy(self._graph) if copy else self._graph
+
+    def write(
+        self,
+        path: str,
+        *,
+        format: str,
+        overwrite: bool = False,
+        **kwargs: Any,
+    ) -> None:
+        """Serialise this graph in *format* to *path*.
+
+        Args:
+            path: The destination path. Interpretation (file vs directory) is
+                writer-specific.
+            format: Required. Name of a registered writer format (e.g.
+                ``"graphml"``, ``"csv"``).
+            overwrite: If ``False`` (default), the writer raises
+                ``FileExistsError`` when *path* already exists. Set ``True`` to
+                allow overwriting.
+            **kwargs: Forwarded to the concrete writer.
+        """
+        from crategraph.writers import get_writer
+
+        writer_cls = get_writer(format)
+        writer_cls().write(self, path, overwrite=overwrite, **kwargs)
+
     # --- Analysis methods (delegated to core/analysis.py) ---
 
     def summary(self) -> analysis.GraphSummary:
