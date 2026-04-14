@@ -28,3 +28,9 @@ def get_writer(name: str) -> type[Writer]:
 
 
 __all__ = ["UnknownFormatError", "get_writer", "register_writer"]
+
+# --- Built-in writer registrations ---
+
+from crategraph.writers.graphml import GraphMLWriter  # noqa: E402
+
+register_writer("graphml", GraphMLWriter)
