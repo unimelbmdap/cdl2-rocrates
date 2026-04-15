@@ -117,6 +117,11 @@ This creates an HTML visualisation where nodes are coloured by type and sized by
 ```python
 crate.visualise(filepath="my-network.html")
 ```
+You can open this HTML in a new browser:
+
+```python
+!open "my-network.html"
+```
 
 ### Quick overview with glimpse
 
