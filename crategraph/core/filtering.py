@@ -163,39 +163,63 @@ def _entity_matches_where(entity: Entity, filters: dict[str, Any]) -> bool:
     return True
 
 
+_SEARCH_TOP_N = 10
+
+
 def search(
     graph: Graph,
     query_text: str,
     *,
     properties: list[str] | None = None,
-    threshold: int = 60,
+    threshold: int = 80,
+    top_n: int = _SEARCH_TOP_N,
 ) -> Graph:
     """Fuzzy content search across entity properties.
 
     Args:
         query_text: The search term.
         properties: Limit search to these property keys (default: all).
-        threshold: Minimum match score 0-100 (default 60).
+        threshold: Minimum match score 0-100 (default 80).
+        top_n: Print this many top hits to stdout (default 10).
+            Set to 0 to suppress output.
 
     Returns a new ``Graph`` containing matching entities and their
-    mutual relationships.
+    mutual relationships.  Also prints the top hits so results are
+    visible even without inspecting the returned graph.
     """
-    candidates: set[str] = set()
+    hits: list[tuple[float, str, str, str]] = []  # (score, eid, key, snippet)
     query_lower = query_text.lower()
 
     for eid, entity in graph._entities.items():
         props = entity.properties
         keys = properties if properties is not None else list(props.keys())
+        best_score = 0
+        best_key = ""
+        best_text = ""
         for key in keys:
             value = props.get(key)
             if value is None:
                 continue
             text = str(value)
             score = fuzz.partial_ratio(query_lower, text.lower())
-            if score >= threshold:
-                candidates.add(eid)
-                break
+            if score > best_score:
+                best_score = score
+                best_key = key
+                best_text = text
+        if best_score >= threshold:
+            snippet = best_text if len(best_text) <= 80 else best_text[:77] + "..."
+            hits.append((best_score, eid, best_key, snippet))
 
+    hits.sort(key=lambda h: (-h[0], h[1]))
+
+    if top_n > 0 and hits:
+        print(f"Found {len(hits)} match(es) for \"{query_text}\":\n")
+        for score, eid, key, snippet in hits[:top_n]:
+            print(f"  {score:3.0f}  {eid}  ({key}: {snippet})")
+        if len(hits) > top_n:
+            print(f"  ... and {len(hits) - top_n} more")
+
+    candidates = {eid for _, eid, _, _ in hits}
     return graph._subgraph(candidates)
 
 

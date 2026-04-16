@@ -356,10 +356,13 @@ class Graph:
         query: str,
         *,
         properties: list[str] | None = None,
-        threshold: int = 60,
+        threshold: int = 80,
+        top_n: int = 10,
     ) -> Graph:
         """Fuzzy content search across entity properties."""
-        return filtering.search(self, query, properties=properties, threshold=threshold)
+        return filtering.search(
+            self, query, properties=properties, threshold=threshold, top_n=top_n
+        )
 
     def expand(
         self,
