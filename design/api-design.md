@@ -33,7 +33,7 @@ crategraph/
 │   ├── interfaces.py  # ABCs: Reader, Writer, Renderer, Validator, Inspector, Viewer
 ├── readers/        # ROCrateReader, OHRMCsvReader, OHRMSqlReader
 │   └── shared/     # TabularGraphReader, CsvGraphReader, SqlGraphReader
-├── renderers/      # Pyvis (2D), ForceGraph3D (3D), SVG (static), Sigma (WebGL)
+├── renderers/      # Sigma (2D, default), ForceGraph3D (3D), SVG (static), Pyvis (optional)
 ├── inspectors/     # MarkItDown file inspector
 ├── viewers/        # Rich file previews (DefaultViewer)
 ├── validators/     # (planned)
@@ -184,7 +184,7 @@ See [docs/writers.md](../docs/writers.md) for attribute-flattening rules, format
 ### Visualisation
 
 ```python
-# Interactive 2D network (pyvis)
+# Interactive 2D network (sigma.js, default)
 crate.visualise()
 crate.visualise(renderer="2d", colour_by="type", size_by="connections")
 
