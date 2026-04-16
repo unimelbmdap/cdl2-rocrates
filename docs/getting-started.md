@@ -71,14 +71,18 @@ Graph(23 entities, 8 relationships)
 
 ### Filtering by property values
 
-Use `where()` to filter by exact property values or numeric ranges:
+Use `where()` to filter by exact property values:
 
 ```python
-# Find entities with a specific property value
 crate.where(name="Alice Smith")
+```
 
-# Find entities within a date range
-crate.select(entity_types=["Event"]).where(date=(1900, 1950))
+### Filtering by date
+
+Use `select(time_range=)` to find entities within a year range. This automatically searches common date properties (`startDate`, `endDate`, `datePublished`, etc.) and extracts years from ISO date strings:
+
+```python
+crate.select(time_range=(1900, 1950))
 ```
 
 ### Chaining filters
