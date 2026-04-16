@@ -46,7 +46,7 @@ def main() -> None:
             graph = reader.read(path)
             n_nodes = len(graph._entities)
             n_edges = len(graph._relationships)
-            graph.visualise(renderer="sigma", filepath=out_path)
+            graph.visualise(filepath=out_path)
             dt = time.perf_counter() - t0
             print(f"  [{i}/{len(paths)}] {label}: {n_nodes} nodes, {n_edges} edges ({dt:.1f}s)")
         except Exception as exc:

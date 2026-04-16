@@ -88,9 +88,9 @@ def visualise(
 
     Args:
         graph: The graph to visualise.
-        renderer: ``"2d"`` (default) for pyvis, ``"3d"`` for
+        renderer: ``"2d"`` (default) for sigma.js WebGL, ``"3d"`` for
             3d-force-graph, ``"svg"`` for static SVG,
-            ``"sigma"`` for sigma.js WebGL.
+            ``"pyvis"`` for pyvis/vis.js (requires ``pip install crategraph[pyvis]``).
         colour_by: Property to colour nodes by (default ``"type"``).
             Any entity property or attribute works. ``"community"``
             auto-computes Louvain communities if not already present.
@@ -108,9 +108,9 @@ def visualise(
     target = graph.collapse_edges() if collapse_edges else graph
 
     if renderer == "2d":
-        from crategraph.renderers.pyvis import PyvisRenderer
+        from crategraph.renderers.sigma import SigmaRenderer
 
-        impl = PyvisRenderer()
+        impl = SigmaRenderer()
     elif renderer == "3d":
         from crategraph.renderers.forcegraph3d import ForceGraph3DRenderer
 
@@ -119,15 +119,15 @@ def visualise(
         from crategraph.renderers.svg import SvgRenderer
 
         impl = SvgRenderer()
-    elif renderer == "sigma":
-        from crategraph.renderers.sigma import SigmaRenderer
+    elif renderer == "pyvis":
+        from crategraph.renderers.pyvis import PyvisRenderer
 
-        impl = SigmaRenderer()
+        impl = PyvisRenderer()
     else:
         msg = (
             f'Unknown renderer "{renderer}". '
-            'Choose "2d" (pyvis), "3d" (3d-force-graph), '
-            '"svg" (static SVG), or "sigma" (sigma.js WebGL).'
+            'Choose "2d" (sigma.js, default), "3d" (3d-force-graph), '
+            '"svg" (static SVG), or "pyvis" (pyvis/vis.js).'
         )
         raise ValueError(msg)
 

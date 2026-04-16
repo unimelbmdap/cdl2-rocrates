@@ -375,7 +375,6 @@ dependencies = [
     { name = "markupsafe" },
     { name = "networkx" },
     { name = "pydantic" },
-    { name = "pyvis" },
     { name = "rapidfuzz" },
 ]
 
@@ -388,6 +387,9 @@ inspect = [
 ]
 ohrm = [
     { name = "pandas" },
+]
+pyvis = [
+    { name = "pyvis" },
 ]
 rdf = [
     { name = "rdflib" },
@@ -414,11 +416,11 @@ requires-dist = [
     { name = "networkx", specifier = ">=3.2" },
     { name = "pandas", marker = "extra == 'ohrm'", specifier = ">=2.0" },
     { name = "pydantic", specifier = ">=2.0" },
-    { name = "pyvis", specifier = ">=0.3" },
+    { name = "pyvis", marker = "extra == 'pyvis'", specifier = ">=0.3" },
     { name = "rapidfuzz", specifier = ">=3.0" },
     { name = "rdflib", marker = "extra == 'rdf'", specifier = ">=7.0" },
 ]
-provides-extras = ["fa2", "rdf", "inspect", "ohrm"]
+provides-extras = ["pyvis", "fa2", "rdf", "inspect", "ohrm"]
 
 [package.metadata.requires-dev]
 dev = [

@@ -73,14 +73,9 @@ class TestPyvisRenderer:
 
 
 class TestRendererDispatch:
-    def test_default_renderer_is_pyvis(self):
+    def test_explicit_pyvis_renderer(self):
         g = _build_graph()
-        result = g.visualise()
-        assert isinstance(result, Network)
-
-    def test_explicit_2d_renderer(self):
-        g = _build_graph()
-        result = g.visualise(renderer="2d")
+        result = g.visualise(renderer="pyvis")
         assert isinstance(result, Network)
 
     def test_invalid_renderer_raises(self):
@@ -168,20 +163,20 @@ class TestBidirectionalEdges:
 class TestGraphVisualise:
     def test_returns_network(self):
         g = _build_graph()
-        result = g.visualise()
+        result = g.visualise(renderer="pyvis")
         assert isinstance(result, Network)
 
     def test_filepath_kwarg(self):
         g = _build_graph()
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = str(Path(tmpdir) / "output.html")
-            result = g.visualise(filepath=filepath)
+            result = g.visualise(renderer="pyvis", filepath=filepath)
             assert result == filepath
             assert Path(filepath).exists()
 
     def test_merged_graph_visualise(self):
         g = _build_graph()
         merged = g.merge_nodes(by="type")
-        result = merged.visualise()
+        result = merged.visualise(renderer="pyvis")
         assert isinstance(result, Network)
         assert len(result.nodes) == 2  # Person, Organisation

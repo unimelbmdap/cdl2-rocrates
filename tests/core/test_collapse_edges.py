@@ -198,12 +198,12 @@ class TestVisualiseConvenience:
     def test_collapse_edges_reduces_rendered_edges(self):
         """visualise(collapse_edges=True) renders fewer edges."""
         g = _build_parallel_graph()
-        net_normal = g.visualise(renderer="2d")
-        net_collapsed = g.visualise(renderer="2d", collapse_edges=True)
+        net_normal = g.visualise(renderer="pyvis")
+        net_collapsed = g.visualise(renderer="pyvis", collapse_edges=True)
         assert len(net_collapsed.get_edges()) < len(net_normal.get_edges())
 
     def test_original_graph_unchanged(self):
         """visualise(collapse_edges=True) does not modify the original graph."""
         g = _build_parallel_graph()
-        g.visualise(renderer="2d", collapse_edges=True)
+        g.visualise(renderer="pyvis", collapse_edges=True)
         assert len(g.relationships) == 3

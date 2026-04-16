@@ -13,11 +13,11 @@ dependencies = [
     "markupsafe>=2.1",
     "networkx>=3.2",
     "pydantic>=2.0",
-    "pyvis>=0.3",
     "rapidfuzz>=3.0",
 ]
 
 [project.optional-dependencies]
+pyvis = ["pyvis>=0.3"]
 fa2 = ["fa2>=1.1"]
 rdf = ["rdflib>=7.0"]
 inspect = ["markitdown[all]>=0.1"]

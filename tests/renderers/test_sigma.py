@@ -242,38 +242,48 @@ class TestSigmaRenderer:
 
 
 class TestGraphVisualiseSigma:
-    """Integration tests: Graph.visualise(renderer='sigma') full pipeline."""
+    """Integration tests: Graph.visualise(renderer='2d') full pipeline (sigma is default)."""
 
-    def test_visualise_sigma(self):
+    def test_visualise_default_is_sigma(self):
         g = _build_graph()
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = str(Path(tmpdir) / "output.html")
-            result = g.visualise(renderer="sigma", filepath=filepath)
+            result = g.visualise(filepath=filepath)
+            assert result == filepath
+            assert Path(filepath).exists()
+            content = Path(filepath).read_text()
+            assert "sigma" in content.lower() or "graphology" in content.lower()
+
+    def test_visualise_2d(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "output.html")
+            result = g.visualise(renderer="2d", filepath=filepath)
             assert result == filepath
             assert Path(filepath).exists()
 
-    def test_visualise_sigma_community(self):
+    def test_visualise_2d_community(self):
         g = _build_graph()
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = str(Path(tmpdir) / "output.html")
-            result = g.visualise(renderer="sigma", filepath=filepath, colour_by="community")
+            result = g.visualise(renderer="2d", filepath=filepath, colour_by="community")
             assert result == filepath
 
-    def test_visualise_sigma_animated(self):
+    def test_visualise_2d_animated(self):
         g = _build_graph()
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = str(Path(tmpdir) / "output.html")
-            result = g.visualise(renderer="sigma", filepath=filepath, animated=True)
+            result = g.visualise(renderer="2d", filepath=filepath, animated=True)
             assert result == filepath
             content = Path(filepath).read_text()
             assert '"animated": true' in content or '"animated":true' in content
 
-    def test_merged_graph_visualise_sigma(self):
+    def test_merged_graph_visualise_2d(self):
         g = _build_graph()
         merged = g.merge_nodes(by="type")
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = str(Path(tmpdir) / "merged.html")
-            result = merged.visualise(renderer="sigma", filepath=filepath)
+            result = merged.visualise(renderer="2d", filepath=filepath)
             assert result == filepath
 
 

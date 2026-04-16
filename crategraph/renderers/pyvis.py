@@ -1,4 +1,7 @@
-"""Default renderer — pyvis interactive network visualisation."""
+"""Pyvis interactive network visualisation renderer.
+
+Requires the ``pyvis`` package — install via ``pip install crategraph[pyvis]``.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +9,6 @@ import math
 from typing import TYPE_CHECKING, Any
 
 from markupsafe import escape
-from pyvis.network import Network
 
 from crategraph.core.interfaces import Renderer
 from crategraph.renderers._colours import resolve_colour_map
@@ -63,7 +65,7 @@ class PyvisRenderer(Renderer):
         filepath: str | None = None,
         notebook: bool = True,
         **kwargs: Any,
-    ) -> Network | str:
+    ) -> Any:
         """Build a pyvis Network from *graph*.
 
         Args:
@@ -79,6 +81,14 @@ class PyvisRenderer(Renderer):
         Returns the ``pyvis.network.Network`` object (or the filepath string
         if *filepath* was provided).
         """
+        try:
+            from pyvis.network import Network
+        except ImportError:
+            raise ImportError(
+                "The pyvis renderer requires the 'pyvis' package.\n"
+                "Install it with: pip install crategraph[pyvis]"
+            ) from None
+
         net = Network(
             height=height,
             width=width,
