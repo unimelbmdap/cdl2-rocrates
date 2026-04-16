@@ -198,29 +198,15 @@ def _encode_properties(
 ) -> None:
     """Encode *properties* into *result* in place with deterministic naming.
 
-    Two-pass traversal keeps the output stable regardless of how property
-    names sort against their ``prop_`` prefixed form:
-
-    1. First pass emits non-colliding keys under their own name (e.g. a user
-       property literally called ``prop_source`` keeps that name, unless it
-       clashes with a promoted column — which by construction it can't).
-    2. Second pass emits collision-named keys via :func:`_unique_key`, which
-       prepends ``prop_`` repeatedly until the target name is unused.
-
-    Result: user-defined property names are preserved whenever possible and
-    only the promoted-column collision gets pushed further out.
+    Non-colliding keys are emitted first (preserving user-defined names),
+    then collision-named keys via :func:`_unique_key` which prepends
+    ``prop_`` repeatedly until the target name is unused.
     """
     taken: set[str] = set(result)
-    sorted_keys = sorted(properties)
-    non_colliding = [k for k in sorted_keys if k not in collision_keys]
-    colliding = [k for k in sorted_keys if k in collision_keys]
+    # Sort with non-colliding keys first so user-defined names are preserved.
+    ordered = sorted(properties, key=lambda k: (k in collision_keys, k))
 
-    for key in non_colliding:
-        out_key = _unique_key(key, collision_keys, taken)
-        result[out_key] = _encode_value(properties[key])
-        taken.add(out_key)
-
-    for key in colliding:
+    for key in ordered:
         out_key = _unique_key(key, collision_keys, taken)
         result[out_key] = _encode_value(properties[key])
         taken.add(out_key)
