@@ -5,11 +5,14 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from pyvis.network import Network
+import pytest
 
-from crategraph.core.graph import Graph
-from crategraph.core.models import Entity, Relationship
-from crategraph.renderers.pyvis import PyvisRenderer
+pyvis = pytest.importorskip("pyvis", reason="pyvis not installed")
+from pyvis.network import Network  # noqa: E402
+
+from crategraph.core.graph import Graph  # noqa: E402
+from crategraph.core.models import Entity, Relationship  # noqa: E402
+from crategraph.renderers.pyvis import PyvisRenderer  # noqa: E402
 
 
 def _build_graph() -> Graph:

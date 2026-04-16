@@ -25,7 +25,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --extra inspect --extra rdf
+        run: uv sync --extra pyvis --extra inspect --extra rdf
 
       - name: Run ruff check
         run: uv run ruff check .

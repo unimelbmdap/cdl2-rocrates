@@ -195,15 +195,14 @@ class TestCollapsePreservesMetadata:
 
 
 class TestVisualiseConvenience:
-    def test_collapse_edges_reduces_rendered_edges(self):
-        """visualise(collapse_edges=True) renders fewer edges."""
+    def test_collapse_edges_reduces_relationships(self):
+        """collapse_edges=True produces a graph with fewer edges."""
         g = _build_parallel_graph()
-        net_normal = g.visualise(renderer="pyvis")
-        net_collapsed = g.visualise(renderer="pyvis", collapse_edges=True)
-        assert len(net_collapsed.get_edges()) < len(net_normal.get_edges())
+        collapsed = g.collapse_edges()
+        assert len(collapsed.relationships) < len(g.relationships)
 
     def test_original_graph_unchanged(self):
         """visualise(collapse_edges=True) does not modify the original graph."""
         g = _build_parallel_graph()
-        g.visualise(renderer="pyvis", collapse_edges=True)
+        g.visualise(collapse_edges=True)
         assert len(g.relationships) == 3
