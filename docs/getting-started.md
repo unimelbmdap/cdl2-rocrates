@@ -69,19 +69,6 @@ people
 Graph(23 entities, 8 relationships)
 ```
 
-### Searching by name or description
-
-Use `search()` to find entities by text in their properties. This is a fuzzy search, so it handles minor misspellings:
-
-```python
-results = crate.search("Melbourne")
-results
-```
-
-```
-Graph(12 entities, 31 relationships)
-```
-
 ### Filtering by property values
 
 Use `where()` to filter by exact property values or numeric ranges:
@@ -99,7 +86,7 @@ crate.select(entity_types=["Event"]).where(date=(1900, 1950))
 All filtering methods return a new graph, so you can chain them together to progressively refine your results:
 
 ```python
-crate.select(entity_types=["Person"]).search("Melbourne")
+crate.select(entity_types=["Person"]).where(name="Alice Smith")
 ```
 
 ## Visualising
@@ -172,6 +159,16 @@ print(info.content[:500])
 ```
 
 This converts the file to text using [markitdown](https://github.com/microsoft/markitdown), making it available for further analysis.
+
+## Searching
+
+You can also search for entities by text in their properties using `search()`:
+
+```python
+crate.search("Melbourne")
+```
+
+This performs fuzzy matching, so it handles minor misspellings. It returns a graph of matching entities and their connections.
 
 ## Next steps
 
