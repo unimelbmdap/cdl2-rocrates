@@ -72,6 +72,19 @@ class TestSearchThreshold:
         assert len(result) >= 1
 
 
+class TestSearchShortValues:
+    """Short property values must not spuriously match long queries."""
+
+    def test_single_char_value_does_not_match(self):
+        g = Graph()
+        g._add_node(Entity(id="#x", types=["Person"], properties={"gender": "F"}))
+        g._add_node(Entity(id="#y", types=["Place"], properties={"name": "Port of Spain"}))
+        result = g.search("Port of Spain")
+        ids = {e.id for e in result.entities}
+        assert "#y" in ids
+        assert "#x" not in ids
+
+
 class TestSearchPreservesEdges:
     def test_edges_between_matches(self):
         g = _build_graph()

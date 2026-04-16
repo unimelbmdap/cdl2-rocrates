@@ -201,7 +201,18 @@ def search(
             if value is None:
                 continue
             text = str(value)
-            score = fuzz.partial_ratio(query_lower, text.lower())
+            text_lower = text.lower()
+            # token_set_ratio handles multi-word matching well;
+            # partial_ratio finds the query as a substring of the value
+            # but is only safe when value >= query (otherwise short values
+            # like "F" score 100 against any query containing that letter).
+            ts = fuzz.token_set_ratio(query_lower, text_lower)
+            pr = (
+                fuzz.partial_ratio(query_lower, text_lower)
+                if len(text_lower) >= len(query_lower)
+                else 0
+            )
+            score = max(ts, pr)
             if score > best_score:
                 best_score = score
                 best_key = key
