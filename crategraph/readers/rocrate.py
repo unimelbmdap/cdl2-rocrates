@@ -11,6 +11,7 @@ import json
 import warnings
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 from crategraph.core.graph import Graph
 from crategraph.core.interfaces import Reader
@@ -65,7 +66,7 @@ class ROCrateReader(Reader):
 
         # Promote root Dataset properties to graph.metadata (always).
         for item in items:
-            if item.get("@id") == root_id:
+            if self._item_id(item) == root_id:
                 graph.metadata.update(self._extract_properties(item))
                 break
 
@@ -74,11 +75,11 @@ class ROCrateReader(Reader):
 
         # First pass: create all entities.
         for item in items:
-            if not self._include_root and item.get("@id") == root_id:
+            if not self._include_root and self._item_id(item) == root_id:
                 continue
             entity = self._parse_entity(item, source=str(metadata_path.parent))
             if entity is not None:
-                if item.get("@id") == root_id:
+                if self._item_id(item) == root_id:
                     entity = Entity(
                         id=entity.id,
                         types=entity.types,
@@ -89,7 +90,7 @@ class ROCrateReader(Reader):
 
         # Second pass: extract relationships (reified + inline @id refs).
         for item in items:
-            if not self._include_root and item.get("@id") == root_id:
+            if not self._include_root and self._item_id(item) == root_id:
                 continue
             for rel in self._extract_relationships(item, graph):
                 if not self._include_root and (rel.source == root_id or rel.target == root_id):
@@ -109,17 +110,37 @@ class ROCrateReader(Reader):
             if item.get("@id") == "ro-crate-metadata.json":
                 about = item.get("about")
                 if isinstance(about, dict) and "@id" in about:
-                    return about["@id"]
+                    return self._decode_id(about["@id"])
                 if isinstance(about, str):
-                    return about
+                    return self._decode_id(about)
                 if isinstance(about, list) and about:
                     first = about[0]
                     if isinstance(first, dict) and "@id" in first:
-                        return first["@id"]
+                        return self._decode_id(first["@id"])
                     if isinstance(first, str):
-                        return first
+                        return self._decode_id(first)
                 break
         return "./"
+
+    # --- ID helpers ---
+
+    @staticmethod
+    def _decode_id(raw: str) -> str:
+        """Decode percent-encoding in local fragment/relative IDs only.
+
+        Full URIs (e.g. ``arcp://…%2F…``) are left untouched because
+        decoding reserved characters changes the URI's meaning.  Local
+        references (``#Name``, ``./path``, bare names) are safe to decode.
+        """
+        if "://" in raw:
+            return raw
+        return unquote(raw)
+
+    @staticmethod
+    def _item_id(item: dict[str, Any]) -> str | None:
+        """Return the decoded ``@id`` of a JSON-LD item, or *None*."""
+        raw = item.get("@id")
+        return ROCrateReader._decode_id(raw) if isinstance(raw, str) else None
 
     # --- Path resolution ---
 
@@ -145,10 +166,11 @@ class ROCrateReader(Reader):
     # --- Entity parsing ---
 
     def _parse_entity(self, item: dict[str, Any], *, source: str) -> Entity | None:
-        entity_id = item.get("@id")
-        if entity_id is None:
+        raw_id = item.get("@id")
+        if raw_id is None:
             warnings.warn("Skipped item with no @id.", stacklevel=2)
             return None
+        entity_id = self._decode_id(raw_id)
 
         raw_type = item.get("@type", "")
         entity_types = self._normalise_types(raw_type)
@@ -201,7 +223,7 @@ class ROCrateReader(Reader):
     def _simplify_value(self, value: Any) -> Any:
         """Simplify JSON-LD @id references to plain strings."""
         if isinstance(value, dict) and "@id" in value and len(value) == 1:
-            return value["@id"]
+            return self._decode_id(value["@id"])
         if isinstance(value, list):
             return [self._simplify_value(v) for v in value]
         return value
@@ -220,7 +242,7 @@ class ROCrateReader(Reader):
             return relationships
 
         # Inline @id references: any property whose value is {"@id": "..."}.
-        entity_id = item.get("@id")
+        entity_id = self._item_id(item)
         if entity_id is None:
             return relationships
 
@@ -275,18 +297,18 @@ class ROCrateReader(Reader):
 
     def _ref_to_id(self, ref: Any) -> str | None:
         if isinstance(ref, dict) and "@id" in ref:
-            return ref["@id"]
+            return self._decode_id(ref["@id"])
         if isinstance(ref, str):
-            return ref
+            return self._decode_id(ref)
         return None
 
     def _extract_id_refs(self, value: Any) -> list[str]:
         """Extract @id strings from a value (single ref or list of refs)."""
         refs: list[str] = []
         if isinstance(value, dict) and "@id" in value and len(value) == 1:
-            refs.append(value["@id"])
+            refs.append(self._decode_id(value["@id"]))
         elif isinstance(value, list):
             for v in value:
                 if isinstance(v, dict) and "@id" in v and len(v) == 1:
-                    refs.append(v["@id"])
+                    refs.append(self._decode_id(v["@id"]))
         return refs

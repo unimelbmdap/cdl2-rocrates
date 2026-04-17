@@ -117,9 +117,18 @@ class TestReadQuirkyCrate:
         entity = g._entities["#entity2"]
         assert entity.type == "Unknown"
 
-    def test_url_encoded_id_preserved(self):
+    def test_url_encoded_id_decoded(self):
         g = self._load()
-        assert "#Gavan%20McCarthy" in g._entities
+        assert "#Gavan McCarthy" in g._entities
+
+    def test_full_uri_encoding_preserved(self):
+        """Full URIs keep percent-encoding to avoid changing URI semantics."""
+        from crategraph.readers.rocrate import ROCrateReader
+
+        assert ROCrateReader._decode_id("arcp://name,doi10.25949%2F24629712.v1") == (
+            "arcp://name,doi10.25949%2F24629712.v1"
+        )
+        assert ROCrateReader._decode_id("#Port%20of%20Spain") == "#Port of Spain"
 
     def test_null_description_preserved(self):
         g = self._load()
