@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 
 from crategraph import Crate
-from crategraph.core.models import ViewInfo
+from crategraph.core.graph import Graph
+from crategraph.core.models import Entity, ViewInfo
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "minimal-crate"
 
@@ -91,6 +92,19 @@ class TestGraphView:
             pytest.raises(ValueError, match="format not supported"),
         ):
             crate.view("sample.txt")
+
+    def test_view_uses_graph_source_fallback(self):
+        graph = Graph(source=str(FIXTURES))
+        graph._add_node(
+            Entity(
+                id="sample.txt",
+                types=["File"],
+                properties={"encodingFormat": "text/plain"},
+            )
+        )
+        info = graph.view("sample.txt")
+        assert isinstance(info, ViewInfo)
+        assert info.size_bytes > 0
 
 
 class TestMultiCrateView:

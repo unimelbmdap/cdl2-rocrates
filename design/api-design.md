@@ -265,8 +265,8 @@ All extension points use abstract base classes defined in `crategraph.core.inter
 | `Writer`    | `can_write(path)`, `write(graph, path)` | GraphMLWriter, CsvWriter                |
 | `Renderer`  | `render(graph, **kwargs)`            | Pyvis, ForceGraph3D, SVG, Sigma            |
 | `Validator` | `validate(graph)` → ValidationReport | (planned)                                  |
-| `Inspector` | `supports(entity)`, `inspect(path)`  | MarkItDownInspector                        |
-| `Viewer`    | `supports(entity)`, `view(path)`     | DefaultViewer                              |
+| `Inspector` | `supports(path)`, `inspect(path)`    | MarkItDownInspector                        |
+| `Viewer`    | `supports(path)`, `view(path)`       | DefaultViewer                              |
 
 ## Optional Dependencies
 

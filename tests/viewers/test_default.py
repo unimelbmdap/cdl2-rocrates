@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from crategraph.core.models import Entity, ViewInfo
+from crategraph.core.models import ViewInfo
 from crategraph.viewers.default import DefaultViewer
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "minimal-crate"
@@ -13,53 +13,19 @@ FIXTURES = Path(__file__).parent.parent / "fixtures" / "minimal-crate"
 class TestDefaultViewerSupports:
     def test_supports_existing_png_file(self):
         viewer = DefaultViewer()
-        entity = Entity(
-            id="sample.png",
-            types=["File"],
-            properties={"encodingFormat": "image/png"},
-            source=str(FIXTURES),
-        )
-        assert viewer.supports(entity) is True
+        assert viewer.supports(FIXTURES / "sample.png") is True
 
     def test_supports_existing_csv_file(self):
         viewer = DefaultViewer()
-        entity = Entity(
-            id="sample.csv",
-            types=["File"],
-            properties={"encodingFormat": "text/csv"},
-            source=str(FIXTURES),
-        )
-        assert viewer.supports(entity) is True
+        assert viewer.supports(FIXTURES / "sample.csv") is True
 
     def test_supports_existing_txt_file(self):
         viewer = DefaultViewer()
-        entity = Entity(
-            id="sample.txt",
-            types=["File"],
-            properties={"encodingFormat": "text/plain"},
-            source=str(FIXTURES),
-        )
-        assert viewer.supports(entity) is True
+        assert viewer.supports(FIXTURES / "sample.txt") is True
 
     def test_does_not_support_missing_file(self):
         viewer = DefaultViewer()
-        entity = Entity(
-            id="nonexistent.txt",
-            types=["File"],
-            properties={},
-            source=str(FIXTURES),
-        )
-        assert viewer.supports(entity) is False
-
-    def test_does_not_support_contextual_entity(self):
-        viewer = DefaultViewer()
-        entity = Entity(
-            id="#alice",
-            types=["Person"],
-            properties={"name": "Alice"},
-            source=str(FIXTURES),
-        )
-        assert viewer.supports(entity) is False
+        assert viewer.supports(FIXTURES / "nonexistent.txt") is False
 
 
 class TestDefaultViewerView:

@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 from crategraph.core.interfaces import Viewer
 from crategraph.core.models import ViewInfo
-
-if TYPE_CHECKING:
-    from crategraph.core.models import Entity
 
 __all__ = ["ViewInfo", "Viewer", "find_viewer"]
 
@@ -26,11 +23,11 @@ def _ensure_registry() -> None:
     _VIEWER_CLASSES.append(DefaultViewer)
 
 
-def find_viewer(entity: Entity) -> Viewer | None:
-    """Return the first viewer that supports the given entity, or None."""
+def find_viewer(path: Path) -> Viewer | None:
+    """Return the first viewer that supports the given file path, or None."""
     _ensure_registry()
     for cls in _VIEWER_CLASSES:
         viewer = cls()
-        if viewer.supports(entity):
+        if viewer.supports(path):
             return viewer
     return None

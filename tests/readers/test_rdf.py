@@ -6,6 +6,9 @@ import warnings
 from pathlib import Path
 
 import pytest
+
+pytest.importorskip("rdflib")
+
 from rdflib import XSD, Literal
 
 from crategraph.readers.rdf import RdfReader

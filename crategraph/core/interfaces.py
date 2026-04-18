@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
-    from crategraph.core.models import Entity, FileInfo, ValidationReport, ViewInfo
+    from crategraph.core.models import FileInfo, ValidationReport, ViewInfo
 
 
 class Reader(ABC):
@@ -72,8 +72,8 @@ class Inspector(ABC):
     """
 
     @abstractmethod
-    def supports(self, entity: Entity) -> bool:
-        """Return True if this inspector can handle the entity's file."""
+    def supports(self, path: Path) -> bool:
+        """Return True if this inspector can handle the resolved file path."""
 
     @abstractmethod
     def inspect(self, path: Path) -> FileInfo:
@@ -89,8 +89,8 @@ class Viewer(ABC):
     """
 
     @abstractmethod
-    def supports(self, entity: Entity) -> bool:
-        """Return True if this viewer can handle the entity's file."""
+    def supports(self, path: Path) -> bool:
+        """Return True if this viewer can handle the resolved file path."""
 
     @abstractmethod
     def view(self, path: Path) -> ViewInfo:

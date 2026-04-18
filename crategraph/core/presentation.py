@@ -195,7 +195,7 @@ def inspect(graph: Graph, entity: Entity | str) -> FileInfo:
     entity_id, file_path = graph._require_local_entity_file(entity, action="inspect")
 
     # Find an inspector.
-    inspector = find_inspector(entity)
+    inspector = find_inspector(file_path)
     if inspector is None:
         msg = f"Could not inspect {entity_id!r} — format not supported."
         raise ValueError(msg)
@@ -238,7 +238,7 @@ def view(graph: Graph, entity: Entity | str) -> ViewInfo:
     entity_id, file_path = graph._require_local_entity_file(entity, action="view")
 
     # Find a viewer.
-    viewer = find_viewer(entity)
+    viewer = find_viewer(file_path)
     if viewer is None:
         msg = f"Could not view {entity_id!r} — format not supported."
         raise ValueError(msg)

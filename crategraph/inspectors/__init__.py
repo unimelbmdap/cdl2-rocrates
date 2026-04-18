@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 from crategraph.core.interfaces import Inspector
 from crategraph.core.models import FileInfo
-
-if TYPE_CHECKING:
-    from crategraph.core.models import Entity
 
 __all__ = ["FileInfo", "Inspector", "find_inspector"]
 
@@ -29,11 +26,11 @@ def _ensure_registry() -> None:
         pass
 
 
-def find_inspector(entity: Entity) -> Inspector | None:
-    """Return the first inspector that supports the given entity, or None."""
+def find_inspector(path: Path) -> Inspector | None:
+    """Return the first inspector that supports the given file path, or None."""
     _ensure_registry()
     for cls in _INSPECTOR_CLASSES:
         inspector = cls()
-        if inspector.supports(entity):
+        if inspector.supports(path):
             return inspector
     return None

@@ -73,6 +73,11 @@ class TestMultiCrateLoading:
         second_only = crate.select(source="second-crate")
         assert len(second_only) == 2
 
+    def test_select_by_source_updates_sources(self):
+        crate = Crate(MINIMAL, SECOND)
+        minimal_only = crate.select(source="minimal-crate")
+        assert minimal_only.sources == ["minimal-crate"]
+
     def test_entity_source_field_set(self):
         crate = Crate(MINIMAL, SECOND)
         alice = crate._entities["minimal-crate/#alice"]

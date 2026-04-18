@@ -483,7 +483,13 @@ class Graph:
             if relationships is not None
             else [r for r in self._relationships if r.source in node_ids and r.target in node_ids]
         )
-        derived._source_names = set(self._source_names)
+        from pathlib import PurePosixPath
+
+        derived._source_names = {
+            PurePosixPath(entity.source).name
+            for entity in derived._entities.values()
+            if entity.source is not None
+        }
         derived._graph = self._graph.subgraph(node_ids).copy()
         for nid, entity in derived._entities.items():
             if nid in derived._graph:

@@ -117,7 +117,7 @@ All renderers share colour assignment via `_colours.py:resolve_colour_map()`, wh
 
 ### Inspectors
 
-**ABC:** `Inspector` — `supports(entity) -> bool` and `inspect(path) -> FileInfo`
+**ABC:** `Inspector` — `supports(path) -> bool` and `inspect(path) -> FileInfo`
 
 Inspectors examine data files referenced by entities and return structured information about them.
 
@@ -125,13 +125,13 @@ Inspectors examine data files referenced by entities and return structured infor
 
 - `MarkItDownInspector` (`inspectors/markitdown.py`) — wraps the `markitdown` package to convert files to markdown. Supports any file format that MarkItDown handles internally.
 
-The inspector registry (`inspectors/__init__.py`) maintains an ordered list of inspector classes. `find_inspector(entity)` returns the first inspector whose `supports()` method matches.
+The inspector registry (`inspectors/__init__.py`) maintains an ordered list of inspector classes. `find_inspector(path)` returns the first inspector whose `supports()` method matches the resolved file path.
 
 **Contribution ideas:** specialised inspectors for tabular data (CSV/Excel previews), image metadata (EXIF), audio/video metadata, or geospatial files.
 
 ### Viewers
 
-**ABC:** `Viewer` — `supports(entity) -> bool` and `view(path) -> ViewInfo`
+**ABC:** `Viewer` — `supports(path) -> bool` and `view(path) -> ViewInfo`
 
 Viewers produce rich HTML previews of data files referenced by entities — images displayed inline, CSVs as HTML tables, audio with playback controls.
 
@@ -139,7 +139,7 @@ Viewers produce rich HTML previews of data files referenced by entities — imag
 
 - `DefaultViewer` (`viewers/default.py`) — handles images, CSV/TSV tables, audio, video, text, and HTML files with format-specific rendering.
 
-The viewer registry (`viewers/__init__.py`) works like the inspector registry: `find_viewer(entity)` returns the first viewer whose `supports()` method matches.
+The viewer registry (`viewers/__init__.py`) works like the inspector registry: `find_viewer(path)` returns the first viewer whose `supports()` method matches the resolved file path.
 
 ### Validators
 

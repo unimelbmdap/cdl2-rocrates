@@ -7,14 +7,9 @@ import csv
 import mimetypes
 from html import escape as _escape_html
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-from crategraph.core._files import resolve_entity_path
 from crategraph.core.interfaces import Viewer
 from crategraph.core.models import ViewInfo
-
-if TYPE_CHECKING:
-    from crategraph.core.models import Entity
 
 # Maximum rows to show for CSV/tabular previews.
 _MAX_TABLE_ROWS = 50
@@ -129,11 +124,8 @@ class DefaultViewer(Viewer):
     unrecognised types.
     """
 
-    def supports(self, entity: Entity) -> bool:
-        """Return True if the entity points to an existing local file."""
-        path = resolve_entity_path(entity)
-        if path is None:
-            return False
+    def supports(self, path: Path) -> bool:
+        """Return True if *path* points to an existing local file."""
         return path.is_file()
 
     def view(self, path: Path) -> ViewInfo:

@@ -3,24 +3,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-from crategraph.core._files import resolve_entity_path
 from crategraph.core.interfaces import Inspector
 from crategraph.core.models import FileInfo
-
-if TYPE_CHECKING:
-    from crategraph.core.models import Entity
 
 
 class MarkItDownInspector(Inspector):
     """Inspector that delegates to the markitdown package."""
 
-    def supports(self, entity: Entity) -> bool:
-        """Return True if the entity points to an existing local file."""
-        path = resolve_entity_path(entity)
-        if path is None:
-            return False
+    def supports(self, path: Path) -> bool:
+        """Return True if *path* points to an existing local file."""
         return path.is_file()
 
     def inspect(self, path: Path) -> FileInfo:

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from crategraph.core.models import Entity, FileInfo
+from crategraph.core.models import FileInfo
 from crategraph.inspectors.markitdown import MarkItDownInspector
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "minimal-crate"
@@ -15,33 +15,11 @@ FIXTURES = Path(__file__).parent.parent / "fixtures" / "minimal-crate"
 class TestMarkItDownInspectorSupports:
     def test_supports_existing_txt_file(self):
         inspector = MarkItDownInspector()
-        entity = Entity(
-            id="sample.txt",
-            types=["File"],
-            properties={"encodingFormat": "text/plain"},
-            source=str(FIXTURES),
-        )
-        assert inspector.supports(entity) is True
+        assert inspector.supports(FIXTURES / "sample.txt") is True
 
     def test_does_not_support_missing_file(self):
         inspector = MarkItDownInspector()
-        entity = Entity(
-            id="nonexistent.txt",
-            types=["File"],
-            properties={},
-            source=str(FIXTURES),
-        )
-        assert inspector.supports(entity) is False
-
-    def test_does_not_support_contextual_entity(self):
-        inspector = MarkItDownInspector()
-        entity = Entity(
-            id="#alice",
-            types=["Person"],
-            properties={"name": "Alice"},
-            source=str(FIXTURES),
-        )
-        assert inspector.supports(entity) is False
+        assert inspector.supports(FIXTURES / "nonexistent.txt") is False
 
 
 class TestMarkItDownInspectorInspect:
