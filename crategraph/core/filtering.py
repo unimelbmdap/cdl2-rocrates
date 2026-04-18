@@ -87,8 +87,7 @@ def select(
         candidates = {
             eid
             for eid in candidates
-            for src in (graph._entities[eid].source,)
-            if src is not None and source in src
+            if (src := graph._entities[eid].source) is not None and source in src
         }
 
     # Filter by direct temporal properties.

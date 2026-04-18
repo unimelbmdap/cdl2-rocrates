@@ -111,6 +111,8 @@ class Graph:
         from collections import Counter
         from html import escape
 
+        from crategraph.core._html import text_pre
+
         n_ent = len(self._entities)
         n_rel = len(self._relationships)
         source_part = f" ({escape(str(self.source))})" if self.source else ""
@@ -136,7 +138,7 @@ class Graph:
         if line2:
             text += f"\n{line2}"
 
-        return f"<pre style='font-size:13px; line-height:1.4'>{text}</pre>"
+        return text_pre(text)
 
     def get(self, entity_id: str) -> Entity:
         """Return a single ``Entity`` by its ID.
@@ -225,25 +227,13 @@ class Graph:
         """Return a structural profile with density, components, degree stats."""
         return analysis.profile(self)
 
-    def _coverage(
+    def coverage(
         self,
         *,
         inline_relations: bool | list[str] = False,
         min_occurrences: int = 5,
     ) -> list[CoverageResult]:
-        """Analyse relationship coverage across entity types.
-
-        Discovers structural patterns ``(relationship_type, source_type,
-        target_type)`` and measures what fraction of each entity type
-        participates.  Partial coverage suggests data quality gaps.
-
-        Args:
-            inline_relations: Include inline ``@id`` references.
-                ``False`` = reified only. ``True`` = all.
-                A list of property names includes only those inline types.
-            min_occurrences: Minimum relationship count for a triple to
-                be considered a pattern worth reporting.
-        """
+        """Analyse relationship coverage across entity types."""
         return analysis.coverage(
             self,
             inline_relations=inline_relations,
@@ -478,7 +468,6 @@ class Graph:
         node_ids: set[str],
         entities: dict[str, Entity] | None = None,
         relationships: list[Relationship] | None = None,
-        simplification_k: int | None = None,
     ) -> Graph:
         """Build a derived graph while keeping internal state aligned."""
         derived = Graph.__new__(Graph)
@@ -500,7 +489,7 @@ class Graph:
             if nid in derived._graph:
                 derived._graph.nodes[nid]["entity"] = entity
         derived._root = self._root
-        derived._simplification_k = simplification_k
+        derived._simplification_k = None
         return derived
 
     def _subgraph(self, node_ids: set[str]) -> Graph:

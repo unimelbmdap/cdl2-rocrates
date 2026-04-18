@@ -76,9 +76,9 @@ class CorpusProfile:
         return "\n".join(lines)
 
     def _repr_html_(self) -> str:
-        from html import escape
+        from crategraph.core._html import repr_pre
 
-        return f"<pre style='font-size:13px; line-height:1.4'>{escape(repr(self))}</pre>"
+        return repr_pre(self)
 
 
 class Corpus:
