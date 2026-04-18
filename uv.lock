@@ -374,6 +374,7 @@ dependencies = [
     { name = "grand-cypher" },
     { name = "markupsafe" },
     { name = "networkx" },
+    { name = "numpy" },
     { name = "pydantic" },
     { name = "rapidfuzz" },
 ]
@@ -414,6 +415,7 @@ requires-dist = [
     { name = "markitdown", extras = ["all"], marker = "extra == 'inspect'", specifier = ">=0.1" },
     { name = "markupsafe", specifier = ">=2.1" },
     { name = "networkx", specifier = ">=3.2" },
+    { name = "numpy", specifier = ">=1.26" },
     { name = "pandas", marker = "extra == 'ohrm'", specifier = ">=2.0" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pyvis", marker = "extra == 'pyvis'", specifier = ">=0.3" },

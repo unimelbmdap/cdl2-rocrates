@@ -12,6 +12,7 @@ dependencies = [
     "grand-cypher>=1.0",
     "markupsafe>=2.1",
     "networkx>=3.2",
+    "numpy>=1.26",
     "pydantic>=2.0",
     "rapidfuzz>=3.0",
 ]
