@@ -215,7 +215,7 @@ class TestRestoreRootSingleCrate:
         crate = Crate(MINIMAL)
         crate._restore_root()
         root = crate._entities["./"]
-        assert root.types == ["Dataset"]
+        assert root.types == ("Dataset",)
 
     def test_restored_root_has_metadata_properties(self):
         crate = Crate(MINIMAL)

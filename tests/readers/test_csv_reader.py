@@ -159,7 +159,7 @@ class TestReadNodes:
         )
         graph = reader.read(str(tmp_path))
         entity = graph.get("1")
-        assert entity.types == ["Person"]
+        assert entity.types == ("Person",)
 
     def test_entity_has_properties(self, tmp_path: Path):
         (tmp_path / "People.csv").write_text("PersonID,Name,Age\n1,Alice,30\n")
@@ -204,7 +204,7 @@ class TestReadNodes:
         )
         graph = reader.read(str(tmp_path))
         entity = graph.get("1")
-        assert entity.types == ["Person", "Organisation"]
+        assert entity.types == ("Person", "Organisation")
 
     def test_type_col_replaces_spaces_with_underscores(self, tmp_path: Path):
         (tmp_path / "Entities.csv").write_text("EID,EType\n1,Published Resource\n")
@@ -213,7 +213,7 @@ class TestReadNodes:
         )
         graph = reader.read(str(tmp_path))
         entity = graph.get("1")
-        assert entity.types == ["Published_Resource"]
+        assert entity.types == ("Published_Resource",)
 
     def test_empty_type_col_becomes_unknown(self, tmp_path: Path):
         (tmp_path / "Entities.csv").write_text("EID,EType\n1,\n")
@@ -222,7 +222,7 @@ class TestReadNodes:
         )
         graph = reader.read(str(tmp_path))
         entity = graph.get("1")
-        assert entity.types == ["Unknown"]
+        assert entity.types == ("Unknown",)
 
     def test_type_col_excluded_from_properties(self, tmp_path: Path):
         (tmp_path / "Entities.csv").write_text("EID,EType,Name\n1,Person,Alice\n")
@@ -245,8 +245,8 @@ class TestReadNodes:
         )
         graph = reader.read(str(tmp_path))
         assert len(graph) == 2
-        assert graph.get("1").types == ["Person"]
-        assert graph.get("A").types == ["Organisation"]
+        assert graph.get("1").types == ("Person",)
+        assert graph.get("A").types == ("Organisation",)
 
     def test_missing_csv_warns(self, tmp_path: Path):
         reader = self._make_reader(
@@ -509,7 +509,7 @@ class TestReadFileEntities:
         )
         graph = reader.read(str(tmp_path))
         file_entity = graph.get("docs/report.pdf")
-        assert file_entity.types == ["File"]
+        assert file_entity.types == ("File",)
 
     def test_file_entity_has_source_table(self, tmp_path: Path):
         (tmp_path / "People.csv").write_text("PersonID,Name\n1,Alice\n")
@@ -612,7 +612,7 @@ class TestReadFileEntities:
         )
         graph = reader.read(str(tmp_path))
         # Only one file entity and one relationship should be created.
-        file_entities = [e for e in graph.entities if e.types == ["File"]]
+        file_entities = [e for e in graph.entities if e.types == ("File",)]
         assert len(file_entities) == 1
         rels = [r for r in graph.relationships if r.type == "hasDocument"]
         assert len(rels) == 1

@@ -129,7 +129,7 @@ class TestReadEntities:
     def test_entity_types_are_curies(self):
         g = self._load()
         person = next(e for e in g.entities if e.id == "http://example.org/person1")
-        assert person.types == ["crm:E21_Person"]
+        assert person.types == ("crm:E21_Person",)
 
     def test_type_uris_preserved_in_properties(self):
         g = self._load()
@@ -235,7 +235,7 @@ class TestDanglingTargets:
     def test_include_creates_stub_with_external_flag(self):
         g = RdfReader(include_dangling_targets=True).read(str(RDF_FIXTURE))
         stub = next(e for e in g.entities if e.id == "http://example.org/external_tool")
-        assert stub.types == []
+        assert stub.types == ()
         assert stub.properties["_external"] is True
 
     def test_include_preserves_relationship(self):

@@ -38,6 +38,16 @@ class TestEntity:
         with pytest.raises(AttributeError):
             e.id = "y"  # type: ignore[misc]
 
+    def test_types_coerced_to_tuple(self):
+        e = Entity(id="x", types=["Thing", "Other"])
+        assert e.types == ("Thing", "Other")
+        assert isinstance(e.types, tuple)
+
+    def test_types_are_immutable(self):
+        e = Entity(id="x", types=["Thing"])
+        with pytest.raises(AttributeError):
+            e.types.append("Other")  # type: ignore[attr-defined]
+
     def test_equality(self):
         a = Entity(id="x", types=["Thing"])
         b = Entity(id="x", types=["Thing"])

@@ -164,7 +164,7 @@ class TestTypeNormalisation:
         reader = ROCrateReader()
         entity = reader._parse_entity({"@id": "#x", "@type": None}, source="fixture")
         assert entity is not None
-        assert entity.types == ["Unknown"]
+        assert entity.types == ("Unknown",)
 
 
 class TestInlineRelationsDefault:

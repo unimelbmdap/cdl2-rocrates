@@ -14,12 +14,21 @@ from pydantic import BaseModel
 
 @dataclass(frozen=True)
 class Entity:
-    """An immutable node in the graph."""
+    """An immutable node in the graph.
+
+    ``types`` is stored as a tuple so the frozen contract extends to the
+    type list.  ``properties`` is a plain dict for ergonomics — treat it
+    as read-only; mutating it will change graph state in place.
+    """
 
     id: str
-    types: list[str] = field(default_factory=list)
+    types: tuple[str, ...] = ()
     properties: dict[str, Any] = field(default_factory=dict)
     source: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.types, tuple):
+            object.__setattr__(self, "types", tuple(self.types))
 
     @property
     def type(self) -> str:
