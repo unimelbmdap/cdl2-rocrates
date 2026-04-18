@@ -68,6 +68,9 @@ class Relationship:
     Relationships with an ``id`` were reified nodes in the source format
     (e.g. ``@type: Relationship`` items in an RO-Crate).  Inline references
     (e.g. ``preparedBy: {"@id": "..."}``)) have ``id=None``.
+
+    ``properties`` is a plain dict for ergonomics — treat it as read-only;
+    mutating it will change graph state in place.
     """
 
     source: str
