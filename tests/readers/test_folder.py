@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import os
+import warnings as _warnings
 from pathlib import Path
+
+import pytest
 
 from crategraph.readers.folder import SimpleFolderReader
 
@@ -177,3 +181,55 @@ class TestSkipHidden:
     def test_default_remains_skip_hidden_true(self):
         g = SimpleFolderReader().read(str(SIMPLE))
         assert ".hidden_file" not in g._entities
+
+
+def _make_symlink_or_skip(src: Path, dst: Path) -> None:
+    """Create a symlink or skip the test on OSes that forbid it."""
+    try:
+        os.symlink(src, dst)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlinks not supported in this environment: {exc}")
+
+
+class TestSkipSymlinks:
+    def _build_tree(self, tmp_path: Path) -> Path:
+        root = tmp_path / "tree"
+        root.mkdir()
+        (root / "real_file.txt").write_text("content")
+        real_subdir = root / "real_subdir"
+        real_subdir.mkdir()
+        (real_subdir / "inner.txt").write_text("inner")
+        return root
+
+    def test_symlinked_file_is_skipped(self, tmp_path: Path):
+        root = self._build_tree(tmp_path)
+        _make_symlink_or_skip(root / "real_file.txt", root / "link_to_file")
+        g = SimpleFolderReader().read(str(root))
+        assert "link_to_file" not in g._entities
+        assert "real_file.txt" in g._entities
+
+    def test_symlinked_directory_is_skipped(self, tmp_path: Path):
+        root = self._build_tree(tmp_path)
+        _make_symlink_or_skip(root / "real_subdir", root / "link_to_dir")
+        g = SimpleFolderReader().read(str(root))
+        assert "link_to_dir/" not in g._entities
+        # The real dir and its contents are still present.
+        assert "real_subdir/" in g._entities
+        assert "real_subdir/inner.txt" in g._entities
+
+    def test_symlink_outside_root_is_skipped(self, tmp_path: Path):
+        root = self._build_tree(tmp_path)
+        outside = tmp_path / "outside.txt"
+        outside.write_text("not mine")
+        _make_symlink_or_skip(outside, root / "link_out")
+        g = SimpleFolderReader().read(str(root))
+        assert "link_out" not in g._entities
+
+    def test_symlink_filtering_is_silent(self, tmp_path: Path):
+        root = self._build_tree(tmp_path)
+        _make_symlink_or_skip(root / "real_file.txt", root / "link_to_file")
+        with _warnings.catch_warnings(record=True) as recorded:
+            _warnings.simplefilter("always")
+            SimpleFolderReader().read(str(root))
+        symlink_warnings = [w for w in recorded if "link_to_file" in str(w.message)]
+        assert symlink_warnings == []
