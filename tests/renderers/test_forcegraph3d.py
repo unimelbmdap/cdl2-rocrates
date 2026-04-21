@@ -250,6 +250,60 @@ class TestBidirectionalLinks:
         assert data["links"][0]["bidirectional"] is False
 
 
+class TestEdgeWidth:
+    def _graph(self):
+        from crategraph.core.graph import Graph
+        from crategraph.core.models import Entity, Relationship
+
+        g = Graph()
+        g._add_node(Entity(id="#a", types=["T"], properties={}))
+        g._add_node(Entity(id="#b", types=["T"], properties={}))
+        g._add_node(Entity(id="#c", types=["T"], properties={}))
+        g._add_edge(Relationship(source="#a", target="#b", type="r", properties={"weight": 5}))
+        g._add_edge(Relationship(source="#b", target="#c", type="r", properties={"weight": 20}))
+        return g
+
+    def test_edge_width_none_preserves_legacy_formula(self):
+        """Pre-existing 0.4 + 2*log1p(weight) path, rounded to 2 dp."""
+        import math
+
+        from crategraph.renderers.forcegraph3d import ForceGraph3DRenderer
+
+        g = self._graph()
+        data = ForceGraph3DRenderer()._graph_to_json(
+            g, colour_by="type", size_by="connections", edge_width=None
+        )
+        widths = [link["width"] for link in data["links"]]
+        # Legacy formula, rounded to 2 dp.
+        assert widths == [
+            round(0.4 + 2 * math.log1p(5), 2),
+            round(0.4 + 2 * math.log1p(20), 2),
+        ]
+
+    def test_edge_width_scalar_overrides(self):
+        from crategraph.renderers.forcegraph3d import ForceGraph3DRenderer
+
+        g = self._graph()
+        data = ForceGraph3DRenderer()._graph_to_json(
+            g, colour_by="type", size_by="connections", edge_width=3
+        )
+        assert [link["width"] for link in data["links"]] == [3.0, 3.0]
+
+    def test_edge_width_attribute_uses_unified_formula(self):
+        import math
+
+        from crategraph.renderers.forcegraph3d import ForceGraph3DRenderer
+
+        g = self._graph()
+        data = ForceGraph3DRenderer()._graph_to_json(
+            g, colour_by="type", size_by="connections", edge_width="weight"
+        )
+        assert [link["width"] for link in data["links"]] == [
+            1.0 + 2.0 * math.log1p(5),
+            1.0 + 2.0 * math.log1p(20),
+        ]
+
+
 class TestGraphVisualise3D:
     """Integration tests: Graph.visualise(renderer='3d') full pipeline."""
 

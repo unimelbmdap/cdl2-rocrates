@@ -10,6 +10,7 @@ from markupsafe import Markup
 
 from crategraph.core.interfaces import Renderer
 from crategraph.renderers._colours import resolve_colour_map
+from crategraph.renderers._edge_width import resolve_edge_widths
 from crategraph.renderers._validation import validate_css_dimension
 
 if TYPE_CHECKING:
@@ -40,6 +41,7 @@ class ForceGraph3DRenderer(Renderer):
         *,
         colour_by: str = "type",
         size_by: str = "connections",
+        edge_width: int | float | str | None = None,
     ) -> dict[str, Any]:
         """Convert *graph* to the JSON structure expected by 3d-force-graph."""
         if not graph._entities:
@@ -79,16 +81,23 @@ class ForceGraph3DRenderer(Renderer):
                 }
             )
 
+        # Resolve per-edge widths; None means "fall back to the legacy hardcoded path".
+        widths = resolve_edge_widths(graph._relationships, edge_width)
+
         # Build links.
         links = []
-        for rel in graph._relationships:
+        for i, rel in enumerate(graph._relationships):
             if rel.source in graph._entities and rel.target in graph._entities:
                 properties = {k: str(v) for k, v in rel.properties.items()}
-                weight = rel.properties.get("weight", 1)
-                if isinstance(weight, (int, float)) and weight > 1:
-                    width = 0.4 + 2 * math.log1p(weight)
+                if widths is not None:
+                    width = widths[i]
                 else:
-                    width = 0.4
+                    weight = rel.properties.get("weight", 1)
+                    if isinstance(weight, (int, float)) and weight > 1:
+                        width = 0.4 + 2 * math.log1p(weight)
+                    else:
+                        width = 0.4
+                    width = round(width, 2)
                 links.append(
                     {
                         "source": rel.source,
@@ -96,7 +105,7 @@ class ForceGraph3DRenderer(Renderer):
                         "type": rel.type,
                         "properties": properties,
                         "bidirectional": bool(rel.properties.get("bidirectional")),
-                        "width": round(width, 2),
+                        "width": width,
                     }
                 )
 
@@ -108,6 +117,7 @@ class ForceGraph3DRenderer(Renderer):
         *,
         colour_by: str = "type",
         size_by: str = "connections",
+        edge_width: int | float | str | None = None,
         height: str = "100vh",
         width: str = "100%",
         filepath: str | None = None,
@@ -120,6 +130,11 @@ class ForceGraph3DRenderer(Renderer):
                 Any entity property or attribute works. ``"community"``
                 auto-computes Louvain communities if not already present.
             size_by: ``"connections"`` (default) scales node size by degree.
+            edge_width: Per-edge link width. ``None`` (default) keeps
+                the existing ``0.4 + 2*log1p(weight)`` auto-width. A
+                number sets every link to that literal width. A string
+                is treated as a property name and width-encodes via
+                ``1 + 2*log1p(v)``.
             height: CSS height of the canvas.
             width: CSS width of the canvas.
             filepath: If given, save the HTML to this path and return it.
@@ -136,6 +151,7 @@ class ForceGraph3DRenderer(Renderer):
             graph,
             colour_by=colour_by,
             size_by=size_by,
+            edge_width=edge_width,
         )
         # Escape '</script>' sequences before embedding JSON in a script block.
         json_str = Markup(json.dumps(graph_json).replace("</", "<\\/"))
