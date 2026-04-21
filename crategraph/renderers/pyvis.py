@@ -12,6 +12,7 @@ from markupsafe import escape
 
 from crategraph.core.interfaces import Renderer
 from crategraph.renderers._colours import resolve_colour_map
+from crategraph.renderers._edge_width import resolve_edge_widths
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
@@ -60,6 +61,7 @@ class PyvisRenderer(Renderer):
         *,
         colour_by: str = "type",
         size_by: str = "connections",
+        edge_width: int | float | str | None = None,
         height: str = "100vh",
         width: str = "100%",
         filepath: str | None = None,
@@ -73,6 +75,11 @@ class PyvisRenderer(Renderer):
                 Any entity property or attribute works. ``"community"``
                 auto-computes Louvain communities if not already present.
             size_by: ``"connections"`` (default) scales node size by degree.
+            edge_width: Per-edge width. ``None`` (default) keeps the
+                existing ``1 + 2*log1p(weight)`` auto-width. A number
+                sets every edge to that literal pixel width. A string is
+                treated as a property name and width-encodes via
+                ``1 + 2*log1p(v)`` (same formula as the default).
             height: CSS height of the canvas.
             width: CSS width of the canvas.
             filepath: If given, save the HTML to this path and return it.
@@ -152,17 +159,23 @@ class PyvisRenderer(Renderer):
 
             net.add_node(eid, **node_opts)
 
+        # Resolve per-edge widths; None means "fall back to the legacy hardcoded path".
+        widths = resolve_edge_widths(graph._relationships, edge_width)
+
         # Add edges.
-        for rel in graph._relationships:
+        for i, rel in enumerate(graph._relationships):
             if rel.source in graph._entities and rel.target in graph._entities:
-                weight = rel.properties.get("weight", 1)
-                if isinstance(weight, (int, float)) and weight > 1:
-                    edge_width = 1 + 2 * math.log1p(weight)
+                if widths is not None:
+                    width_px = widths[i]
                 else:
-                    edge_width = 1
+                    weight = rel.properties.get("weight", 1)
+                    if isinstance(weight, (int, float)) and weight > 1:
+                        width_px = 1 + 2 * math.log1p(weight)
+                    else:
+                        width_px = 1
                 edge_opts: dict[str, Any] = {
                     "title": rel.type,
-                    "width": edge_width,
+                    "width": width_px,
                     "color": "rgba(150,150,150,0.3)",
                 }
                 if rel.properties.get("bidirectional"):

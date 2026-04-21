@@ -183,3 +183,53 @@ class TestGraphVisualise:
         result = merged.visualise(renderer="pyvis")
         assert isinstance(result, Network)
         assert len(result.nodes) == 2  # Person, Organisation
+
+
+class TestEdgeWidth:
+    def _graph(self):
+        from crategraph.core.graph import Graph
+        from crategraph.core.models import Entity, Relationship
+
+        g = Graph()
+        g._add_node(Entity(id="#a", types=["T"], properties={}))
+        g._add_node(Entity(id="#b", types=["T"], properties={}))
+        g._add_node(Entity(id="#c", types=["T"], properties={}))
+        g._add_edge(Relationship(source="#a", target="#b", type="r", properties={"weight": 5}))
+        g._add_edge(Relationship(source="#b", target="#c", type="r", properties={"weight": 20}))
+        return g
+
+    def test_edge_width_none_preserves_legacy_log1p_formula(self):
+        """When edge_width=None, the pre-existing hardcoded path runs."""
+        import math
+
+        from crategraph.renderers.pyvis import PyvisRenderer
+
+        g = self._graph()
+        net = PyvisRenderer().render(g, edge_width=None, notebook=False)
+        widths = [e["width"] for e in net.edges]
+        # Legacy formula: 1 + 2*log1p(weight) when weight > 1, else 1.
+        assert widths == [
+            1 + 2 * math.log1p(5),
+            1 + 2 * math.log1p(20),
+        ]
+
+    def test_edge_width_scalar_overrides_every_edge(self):
+        from crategraph.renderers.pyvis import PyvisRenderer
+
+        g = self._graph()
+        net = PyvisRenderer().render(g, edge_width=3, notebook=False)
+        assert [e["width"] for e in net.edges] == [3.0, 3.0]
+
+    def test_edge_width_attribute_applies_unified_formula(self):
+        import math
+
+        from crategraph.renderers.pyvis import PyvisRenderer
+
+        g = self._graph()
+        net = PyvisRenderer().render(g, edge_width="weight", notebook=False)
+        # Unified formula produces the same output as the legacy pyvis one
+        # for weight values — this locks the equivalence.
+        assert [e["width"] for e in net.edges] == [
+            1 + 2 * math.log1p(5),
+            1 + 2 * math.log1p(20),
+        ]
