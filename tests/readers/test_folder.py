@@ -79,10 +79,10 @@ class TestReadBasicTree:
     def test_entity_count(self):
         g = self._load()
         # 1 root + 3 Dataset subdirs (data/, data/raw/, empty/)
-        # + 4 Files (notes.md, data/survey.csv,
+        # + 5 Files (a_early_file.txt, notes.md, data/survey.csv,
         #   data/raw/readings.txt, data/raw/NOTES)
-        # = 8
-        assert len(g._entities) == 8
+        # = 9
+        assert len(g._entities) == 9
 
     def test_subdir_entity_ids_have_trailing_slash(self):
         g = self._load()
@@ -92,6 +92,7 @@ class TestReadBasicTree:
 
     def test_file_entity_ids_have_no_trailing_slash(self):
         g = self._load()
+        assert "a_early_file.txt" in g._entities
         assert "notes.md" in g._entities
         assert "data/survey.csv" in g._entities
         assert "data/raw/readings.txt" in g._entities
@@ -143,7 +144,7 @@ class TestHasPartEdges:
     def test_root_outgoing_edges(self):
         g = self._load()
         out = {r.target for r in g._relationships if r.source == "./"}
-        assert out == {"notes.md", "data/", "empty/"}
+        assert out == {"a_early_file.txt", "notes.md", "data/", "empty/"}
 
     def test_data_subdir_outgoing_edges(self):
         g = self._load()
@@ -174,9 +175,9 @@ class TestSkipHidden:
 
     def test_include_hidden_entity_count(self):
         g = SimpleFolderReader(skip_hidden=False).read(str(SIMPLE))
-        # Default tree (8) + .hidden_file + .hidden_dir/ +
-        # .hidden_dir/secret.txt + empty/.gitkeep = 12.
-        assert len(g._entities) == 12
+        # Default tree (9) + .hidden_file + .hidden_dir/ +
+        # .hidden_dir/secret.txt + empty/.gitkeep = 13.
+        assert len(g._entities) == 13
 
     def test_default_remains_skip_hidden_true(self):
         g = SimpleFolderReader().read(str(SIMPLE))

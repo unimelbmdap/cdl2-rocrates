@@ -75,56 +75,56 @@ class SimpleFolderReader(Reader):
             follow_symlinks=False,
             on_error=self._on_walk_error,
         ):
-            # Deterministic order; filter in-place so Path.walk respects it.
-            dirnames.sort()
-            filenames.sort()
+            # Filter in-place so Path.walk skips symlinks/hidden subdirs.
             self._filter_in_place(current_dir, dirnames)
             self._filter_in_place(current_dir, filenames)
+            # Sort dirnames so Path.walk descends into subdirs in a
+            # deterministic order across filesystems.
+            dirnames.sort()
 
             rel = current_dir.relative_to(root).as_posix()
             parent_id = "./" if rel in ("", ".") else f"{rel}/"
 
-            for sub in dirnames:
-                child_id = f"{sub}/" if rel in ("", ".") else f"{rel}/{sub}/"
-                graph._add_node(
-                    Entity(
-                        id=child_id,
-                        types=("Dataset",),
-                        properties={"name": sub},
-                        source=source,
-                    )
-                )
-                graph._add_edge(
-                    Relationship(
-                        source=parent_id,
-                        target=child_id,
-                        type="hasPart",
-                    )
-                )
+            # Merge dirs and files into one alphabetically sorted sequence
+            # so mixed siblings (e.g. "a.txt" next to "zdir/") interleave
+            # correctly in insertion order — graph.entities / relationships
+            # preserve that order, and CSV/GraphML writers serialise it.
+            merged = sorted([(n, True) for n in dirnames] + [(n, False) for n in filenames])
 
-            for filename in filenames:
-                entry = current_dir / filename
-                try:
-                    size = entry.stat().st_size
-                except OSError as exc:
-                    warnings.warn(
-                        f"Skipped file {entry}: {exc}",
-                        stacklevel=2,
+            for name, is_dir in merged:
+                if is_dir:
+                    child_id = f"{name}/" if rel in ("", ".") else f"{rel}/{name}/"
+                    graph._add_node(
+                        Entity(
+                            id=child_id,
+                            types=("Dataset",),
+                            properties={"name": name},
+                            source=source,
+                        )
                     )
-                    continue
-                props: dict = {"name": filename, "contentSize": size}
-                mime = mimetypes.guess_type(filename)[0]
-                if mime is not None:
-                    props["encodingFormat"] = mime
-                child_id = filename if rel in ("", ".") else f"{rel}/{filename}"
-                graph._add_node(
-                    Entity(
-                        id=child_id,
-                        types=("File",),
-                        properties=props,
-                        source=source,
+                else:
+                    entry = current_dir / name
+                    try:
+                        size = entry.stat().st_size
+                    except OSError as exc:
+                        warnings.warn(
+                            f"Skipped file {entry}: {exc}",
+                            stacklevel=2,
+                        )
+                        continue
+                    props: dict = {"name": name, "contentSize": size}
+                    mime = mimetypes.guess_type(name)[0]
+                    if mime is not None:
+                        props["encodingFormat"] = mime
+                    child_id = name if rel in ("", ".") else f"{rel}/{name}"
+                    graph._add_node(
+                        Entity(
+                            id=child_id,
+                            types=("File",),
+                            properties=props,
+                            source=source,
+                        )
                     )
-                )
                 graph._add_edge(
                     Relationship(
                         source=parent_id,
