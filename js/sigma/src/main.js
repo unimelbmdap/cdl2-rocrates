@@ -88,7 +88,7 @@ function buildGraph(graphData) {
     if (!graph.hasEdge(e.source, e.target)) {
       graph.addEdge(e.source, e.target, {
         color: e.color,
-        size: 0.3,
+        size: e.size !== undefined ? e.size : 0.3,
       });
     }
   });
