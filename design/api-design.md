@@ -188,6 +188,11 @@ See [docs/writers.md](../docs/writers.md) for attribute-flattening rules, format
 crate.visualise()
 crate.visualise(renderer="2d", colour_by="type", size_by="connections")
 
+# Control edge thickness
+crate.visualise(edge_width=3)                   # every edge 3px
+crate.visualise(edge_width="weight")            # width-encode an attribute
+crate.visualise(renderer="svg", edge_width=2)   # works across renderers
+
 # Interactive 3D (3d-force-graph / Three.js)
 crate.visualise(renderer="3d")
 
