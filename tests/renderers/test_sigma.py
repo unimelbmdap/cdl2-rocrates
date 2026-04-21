@@ -391,3 +391,31 @@ class TestEdgeWidth:
         )
         for edge in data["edges"]:
             assert edge["size"] == 1.0
+
+
+class TestBundleFreshness:
+    """Catch the case where `js/sigma/src/main.js` was edited but the
+    rebuilt bundle at `crategraph/renderers/templates/vendor/sigma-fa2.min.js`
+    wasn't regenerated.
+
+    The edge_width feature's JS change forwards ``e.size`` from the input
+    JSON. If the bundle is stale (built before that change) then Python
+    tests and docs imply the feature works, but the browser silently
+    renders every edge at the old hardcoded ``0.3`` default.
+    """
+
+    def test_bundle_forwards_edge_size(self):
+        from importlib.resources import files
+
+        bundle = (
+            files("crategraph.renderers.templates")
+            .joinpath("vendor/sigma-fa2.min.js")
+            .read_text(encoding="utf-8")
+        )
+        # The rebuilt bundle must reference `e.size` somewhere; a stale
+        # bundle only has the hardcoded `size:.3` (or `size:0.3`).
+        assert "e.size" in bundle, (
+            "sigma bundle appears stale — rebuild with:\n"
+            "  cd js/sigma && npm install && npm run build && "
+            "cp dist/sigma-fa2.min.js ../../crategraph/renderers/templates/vendor/"
+        )

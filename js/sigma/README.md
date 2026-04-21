@@ -17,4 +17,9 @@ JS source for the vendored sigma.js + ForceAtlas2 bundle.
 
 ## When to rebuild
 
-After bumping dependency versions in `package.json`.
+- After editing `src/main.js` (or any other source file bundled into `sigma-fa2.min.js`).
+- After bumping dependency versions in `package.json`.
+
+The Python test suite has a `TestBundleFreshness` check that catches
+the common case of a stale bundle, but only for the currently-expected
+API shape — editing `src/main.js` without rebuilding will fail that test.
