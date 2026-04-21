@@ -12,8 +12,12 @@ with both readers routes authored crates correctly.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from crategraph.core.graph import Graph
 from crategraph.core.interfaces import Reader
+
+_METADATA_FILENAME = "ro-crate-metadata.json"
 
 
 class SimpleFolderReader(Reader):
@@ -29,7 +33,16 @@ class SimpleFolderReader(Reader):
         self._skip_hidden = skip_hidden
 
     def can_read(self, path: str) -> bool:
-        raise NotImplementedError
+        """Return True for plain directories without RO-Crate metadata.
+
+        Returns ``False`` for files, nonexistent paths, and directories
+        that contain ``ro-crate-metadata.json`` (deferring those to
+        :class:`ROCrateReader`).
+        """
+        p = Path(path)
+        if not p.is_dir():
+            return False
+        return not (p / _METADATA_FILENAME).is_file()
 
     def read(self, path: str) -> Graph:
         raise NotImplementedError
