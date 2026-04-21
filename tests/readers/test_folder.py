@@ -293,3 +293,64 @@ class TestIntegrationContract:
         assert isinstance(info, ViewInfo)
         assert info.media_type == "text/csv"
         assert "<table" in info.html
+
+
+class TestErrorHandling:
+    def test_nonexistent_path_raises(self, tmp_path: Path):
+        missing = tmp_path / "no-such-dir"
+        with pytest.raises(FileNotFoundError):
+            SimpleFolderReader().read(str(missing))
+
+    def test_file_path_raises_not_a_directory(self, tmp_path: Path):
+        f = tmp_path / "file.txt"
+        f.write_text("x")
+        with pytest.raises(NotADirectoryError):
+            SimpleFolderReader().read(str(f))
+
+    def test_on_walk_error_emits_warning(self, tmp_path: Path, monkeypatch):
+        """When Path.walk invokes its on_error callback, the reader
+        should warn and skip the offending subtree rather than raise."""
+        root = tmp_path / "tree"
+        root.mkdir()
+        (root / "ok.txt").write_text("readable")
+
+        original_walk = Path.walk
+
+        def fake_walk(self, *args, on_error=None, **kwargs):
+            if on_error is not None:
+                on_error(PermissionError("simulated permission denied"))
+            yield from original_walk(self, *args, on_error=on_error, **kwargs)
+
+        monkeypatch.setattr(Path, "walk", fake_walk)
+
+        with pytest.warns(UserWarning, match="simulated permission denied"):
+            g = SimpleFolderReader().read(str(root))
+
+        # The readable file is still included — walk continues after the warning.
+        assert "ok.txt" in g._entities
+
+    def test_stat_oserror_emits_warning_and_skips_file(self, tmp_path: Path, monkeypatch):
+        """If stat() fails for a file, the reader warns and continues."""
+        root = tmp_path / "tree"
+        root.mkdir()
+        bad = root / "bad.txt"
+        bad.write_text("x")
+        (root / "good.txt").write_text("y")
+
+        original_stat = Path.stat
+
+        def fake_stat(self, *args, follow_symlinks: bool = True, **kwargs):
+            # Only intercept the real stat() call (follow_symlinks=True).
+            # is_symlink() uses lstat() which passes follow_symlinks=False —
+            # let that through so the symlink filter operates correctly.
+            if self.name == "bad.txt" and follow_symlinks:
+                raise OSError("simulated stat failure")
+            return original_stat(self, *args, follow_symlinks=follow_symlinks, **kwargs)
+
+        monkeypatch.setattr(Path, "stat", fake_stat)
+
+        with pytest.warns(UserWarning, match="simulated stat failure"):
+            g = SimpleFolderReader().read(str(root))
+
+        assert "bad.txt" not in g._entities
+        assert "good.txt" in g._entities
