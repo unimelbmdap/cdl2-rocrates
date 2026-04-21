@@ -159,3 +159,21 @@ class TestHasPartEdges:
     def test_relationships_have_null_id(self):
         g = self._load()
         assert all(r.id is None for r in g._relationships)
+
+
+class TestSkipHidden:
+    def test_include_hidden_entries(self):
+        g = SimpleFolderReader(skip_hidden=False).read(str(SIMPLE))
+        assert ".hidden_file" in g._entities
+        assert ".hidden_dir/" in g._entities
+        assert ".hidden_dir/secret.txt" in g._entities
+
+    def test_include_hidden_entity_count(self):
+        g = SimpleFolderReader(skip_hidden=False).read(str(SIMPLE))
+        # Default tree (8) + .hidden_file + .hidden_dir/ +
+        # .hidden_dir/secret.txt + empty/.gitkeep = 12.
+        assert len(g._entities) == 12
+
+    def test_default_remains_skip_hidden_true(self):
+        g = SimpleFolderReader().read(str(SIMPLE))
+        assert ".hidden_file" not in g._entities
