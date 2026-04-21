@@ -97,3 +97,25 @@ class TestAttribute:
             1.0,
             1.0 + 2.0 * math.log1p(1),
         ]
+
+
+class TestVisualiseForwarding:
+    """edge_width must be accepted by visualise() / Graph.visualise()."""
+
+    def test_presentation_visualise_signature_accepts_edge_width(self):
+        import inspect
+
+        from crategraph.core import presentation
+
+        sig = inspect.signature(presentation.visualise)
+        assert "edge_width" in sig.parameters
+        assert sig.parameters["edge_width"].default is None
+
+    def test_graph_visualise_signature_accepts_edge_width(self):
+        import inspect
+
+        from crategraph.core.graph import Graph
+
+        sig = inspect.signature(Graph.visualise)
+        assert "edge_width" in sig.parameters
+        assert sig.parameters["edge_width"].default is None

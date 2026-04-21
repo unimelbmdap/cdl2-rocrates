@@ -78,6 +78,7 @@ def visualise(
     renderer: str = "2d",
     colour_by: str = "type",
     size_by: str = "connections",
+    edge_width: int | float | str | None = None,
     height: str = "100vh",
     width: str = "100%",
     filepath: str | None = None,
@@ -95,6 +96,12 @@ def visualise(
             Any entity property or attribute works. ``"community"``
             auto-computes Louvain communities if not already present.
         size_by: ``"connections"`` (default) scales node size by degree.
+        edge_width: Per-edge width control. ``None`` (default) keeps
+            each renderer's own behaviour. A number sets every edge to
+            that literal pixel width. A string is treated as an edge
+            property name and width-encodes via ``1 + 2*log1p(v)``.
+            Non-numeric / missing / zero / negative / boolean values
+            fall back to 1.0.
         height: CSS height of the canvas.
         width: CSS width of the canvas.
         filepath: Save output to this path instead of returning
@@ -135,6 +142,7 @@ def visualise(
         target,
         colour_by=colour_by,
         size_by=size_by,
+        edge_width=edge_width,
         height=height,
         width=width,
         filepath=filepath,

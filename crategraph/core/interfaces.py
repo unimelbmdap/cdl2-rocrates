@@ -52,6 +52,9 @@ class Renderer(ABC):
     - ``colour_by``: How to assign node colours (e.g. ``"type"``,
       ``"community"``).
     - ``size_by``: How to scale node sizes (e.g. ``"connections"``).
+    - ``edge_width``: Per-edge width. ``None`` = renderer default;
+      ``int``/``float`` = literal pixel width for every edge;
+      ``str`` = property name, width-encoded via ``1 + 2*log1p(v)``.
     - ``filepath``: Save output to a file path instead of returning an
       in-memory object.
     - ``height`` / ``width``: Canvas dimensions.
