@@ -256,3 +256,40 @@ class TestDeterministicOrder:
         g = SimpleFolderReader().read(str(SIMPLE))
         root_children = [r.target for r in g._relationships if r.source == "./"]
         assert root_children == sorted(root_children)
+
+
+class TestIntegrationContract:
+    def test_graph_source_is_absolute_resolved(self):
+        g = SimpleFolderReader().read(str(SIMPLE))
+        assert g.source == str(SIMPLE.resolve())
+
+    def test_every_entity_source_matches_graph_source(self):
+        g = SimpleFolderReader().read(str(SIMPLE))
+        for entity in g._entities.values():
+            assert entity.source == g.source
+
+    def test_resolve_entity_path_for_file(self):
+        from crategraph.core._files import resolve_entity_path
+
+        g = SimpleFolderReader().read(str(SIMPLE))
+        csv_entity = g._entities["data/survey.csv"]
+        resolved = resolve_entity_path(csv_entity, fallback_source=g.source)
+        assert resolved is not None
+        assert resolved == (SIMPLE / "data" / "survey.csv").resolve()
+        assert resolved.is_file()
+
+    def test_resolve_entity_path_for_root_is_none(self):
+        from crategraph.core._files import resolve_entity_path
+
+        g = SimpleFolderReader().read(str(SIMPLE))
+        root = g._entities["./"]
+        assert resolve_entity_path(root, fallback_source=g.source) is None
+
+    def test_graph_view_on_csv_returns_viewinfo(self):
+        from crategraph.core.models import ViewInfo
+
+        g = SimpleFolderReader().read(str(SIMPLE))
+        info = g.view("data/survey.csv")
+        assert isinstance(info, ViewInfo)
+        assert info.media_type == "text/csv"
+        assert "<table" in info.html
