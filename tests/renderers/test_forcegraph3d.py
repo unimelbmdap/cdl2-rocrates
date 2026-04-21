@@ -328,6 +328,31 @@ class TestEdgeWidth:
             1.0 + 2.0 * math.log1p(20),
         ]
 
+    def test_edge_width_zero_is_honoured_not_coerced_to_default(self):
+        """``edge_width=0`` must reach the browser as ``0.0``, not fall back
+        to 0.4. The template previously used ``link.width || 0.4`` which
+        treats 0 as falsy — guard against regression by asserting the JSON
+        and the template expression together."""
+        from importlib.resources import files
+
+        from crategraph.renderers.forcegraph3d import ForceGraph3DRenderer
+
+        g = self._graph()
+        data = ForceGraph3DRenderer()._graph_to_json(
+            g, colour_by="type", size_by="connections", edge_width=0
+        )
+        assert [link["width"] for link in data["links"]] == [0.0, 0.0]
+
+        template = (
+            files("crategraph.renderers.templates")
+            .joinpath("forcegraph3d.html")
+            .read_text(encoding="utf-8")
+        )
+        assert "link.width || " not in template, (
+            "3D template uses `||` fallback, which coerces 0 to the default. "
+            "Use `link.width != null ? link.width : ...` (or `??`) instead."
+        )
+
 
 class TestGraphVisualise3D:
     """Integration tests: Graph.visualise(renderer='3d') full pipeline."""
