@@ -7,12 +7,13 @@ This page describes how crategraph is structured, to help contributors orient th
 crategraph is a **plugin-oriented graph library** for exploring RO-Crate metadata. The central object is `Graph` (with its convenience subclass `Crate`), which holds entities and relationships in memory and stores them in a NetworkX graph. Everything else — reading data in, rendering it out, inspecting files, validating quality — is handled by **plugin subsystems** defined as abstract base classes.
 
 ```
-                        ┌──────────────┐
-                        │   Readers    │
-                        │  (RO-Crate)  │
-                        └──────┬───────┘
-                               │ populate
-                               ▼
+                        ┌──────────────────────┐
+                        │       Readers        │
+                        │  (RO-Crate, folder,  │
+                        │    OHRM, RDF)        │
+                        └──────────┬───────────┘
+                                   │ populate
+                                   ▼
                   ┌────────────────────────────┐     ┌─────────────┐
                   │      Graph  /  Crate       │────►│  Renderers  │
                   │                            │     │ (2D/3D/SVG) │
@@ -21,8 +22,12 @@ crategraph is a **plugin-oriented graph library** for exploring RO-Crate metadat
                   │  expand · search · query   │     ┌─────────────┐
                   │  merge · collapse · detect │────►│ Inspectors  │
                   │  visualise · glimpse       │     │ (MarkItDown)│
-                  └────────────┬───────────────┘     └─────────────┘
-                               │
+                  │  view · inspect            │     └─────────────┘
+                  └────────────┬───────────────┘
+                               │                     ┌─────────────┐
+                               ├────────────────────►│   Viewers   │
+                               │                     │ (Default)   │
+                               │                     └─────────────┘
                                ▼
                   ┌────────────────────────────┐
                   │       Validators           │
@@ -52,9 +57,12 @@ crategraph/
 │   ├── corpus.py          # Corpus — batch profiling across multiple crates
 │   ├── query.py           # Cypher query support (via grand-cypher)
 │   ├── _files.py          # Entity file path resolution helpers
+│   ├── _html.py           # Shared _repr_html_ helpers for Jupyter
 │   ├── interfaces.py      # ABCs: Reader, Writer, Renderer, Validator, Inspector, Viewer
 ├── readers/               # Data loaders
 │   ├── rocrate.py         # ROCrateReader — parses ro-crate-metadata.json
+│   ├── folder.py          # SimpleFolderReader — plain directory → Graph
+│   ├── rdf.py             # RdfReader — Turtle, RDF/XML, JSON-LD via rdflib
 │   ├── ohrm_csv.py        # OHRMCsvReader — OHRM CSV database exports
 │   ├── ohrm_sql.py        # OHRMSqlReader — OHRM SQLite databases
 │   └── shared/            # Base classes for tabular readers
@@ -64,6 +72,7 @@ crategraph/
 │       └── ohrm_tables.py # OHRM schema definitions
 ├── renderers/             # Visualisation outputs
 │   ├── _colours.py        # Shared colour palette and colour-map resolution
+│   ├── _validation.py     # Shared CSS-dimension validation for renderer params
 │   ├── pyvis.py           # PyvisRenderer — interactive 2D (vis.js)
 │   ├── svg.py             # SvgRenderer — static SVG with force layout
 │   ├── forcegraph3d.py    # ForceGraph3DRenderer — interactive 3D (Three.js)
@@ -92,6 +101,8 @@ Readers parse external data sources and populate a `Graph` with entities and rel
 **Current implementations:**
 
 - `ROCrateReader` (`readers/rocrate.py`) — parses `ro-crate-metadata.json` directly as JSON (not via RDFLib). Uses a two-pass approach: first creates entity nodes, then extracts relationship edges. Supports configurable inline relation extraction.
+- `SimpleFolderReader` (`readers/folder.py`) — turns a plain directory into a `Graph` (root `Dataset` + nested `Dataset`/`File` entities with `hasPart` edges). Deliberately structural-only; defers to `ROCrateReader` when `ro-crate-metadata.json` is present so users can add it to a `Corpus` alongside the RO-Crate reader without conflicts.
+- `RdfReader` (`readers/rdf.py`) — loads any serialisation rdflib recognises (Turtle, RDF/XML, JSON-LD, N-Triples). Preserves full URIs, namespaces, and literal metadata for round-trip fidelity. Requires `crategraph[rdf]` (rdflib).
 - `OHRMCsvReader` (`readers/ohrm_csv.py`) — reads OHRM CSV database exports using the shared tabular reader infrastructure. Requires `crategraph[ohrm]` (pandas).
 - `OHRMSqlReader` (`readers/ohrm_sql.py`) — reads OHRM SQLite databases via the shared SQL loader. Requires `crategraph[ohrm]`.
 - `TabularGraphReader` (`readers/shared/tabular.py`) — abstract base for table-driven readers, with `CsvGraphReader` and `SqlGraphReader` as concrete loaders.
