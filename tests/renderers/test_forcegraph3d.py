@@ -264,21 +264,46 @@ class TestEdgeWidth:
         return g
 
     def test_edge_width_none_preserves_legacy_formula(self):
-        """Pre-existing 0.4 + 2*log1p(weight) path, rounded to 2 dp."""
+        """Pre-existing 0.4 + 2*log1p(weight) path, rounded to 2 dp.
+
+        Uses a weight=1 edge to *discriminate* the legacy path (which
+        gives 0.4 for weight<=1) from the helper path (which would give
+        ~2.386). Also asserts byte-identity with a no-argument call so
+        future drift between ``edge_width=None`` and "parameter absent"
+        is caught.
+        """
         import math
 
+        from crategraph.core.graph import Graph
+        from crategraph.core.models import Entity, Relationship
         from crategraph.renderers.forcegraph3d import ForceGraph3DRenderer
 
-        g = self._graph()
-        data = ForceGraph3DRenderer()._graph_to_json(
+        g = Graph()
+        g._add_node(Entity(id="#a", types=["T"], properties={}))
+        g._add_node(Entity(id="#b", types=["T"], properties={}))
+        g._add_node(Entity(id="#c", types=["T"], properties={}))
+        g._add_node(Entity(id="#d", types=["T"], properties={}))
+        g._add_edge(Relationship(source="#a", target="#b", type="r", properties={"weight": 5}))
+        g._add_edge(Relationship(source="#b", target="#c", type="r", properties={"weight": 20}))
+        # weight=1 → legacy else-branch (width=0.4); helper would give ~2.386.
+        g._add_edge(Relationship(source="#c", target="#d", type="r", properties={"weight": 1}))
+
+        data_none = ForceGraph3DRenderer()._graph_to_json(
             g, colour_by="type", size_by="connections", edge_width=None
         )
-        widths = [link["width"] for link in data["links"]]
-        # Legacy formula, rounded to 2 dp.
-        assert widths == [
+        widths_none = [link["width"] for link in data_none["links"]]
+        assert widths_none == [
             round(0.4 + 2 * math.log1p(5), 2),
             round(0.4 + 2 * math.log1p(20), 2),
+            0.4,  # legacy else-branch — helper would give ~2.386 here
         ]
+
+        # Byte-identity with no-argument call — catches drift between
+        # ``edge_width=None`` and "parameter absent".
+        data_default = ForceGraph3DRenderer()._graph_to_json(
+            g, colour_by="type", size_by="connections"
+        )
+        assert data_default == data_none
 
     def test_edge_width_scalar_overrides(self):
         from crategraph.renderers.forcegraph3d import ForceGraph3DRenderer
