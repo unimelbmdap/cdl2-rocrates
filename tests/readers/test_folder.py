@@ -233,3 +233,26 @@ class TestSkipSymlinks:
             SimpleFolderReader().read(str(root))
         symlink_warnings = [w for w in recorded if "link_to_file" in str(w.message)]
         assert symlink_warnings == []
+
+
+class TestDeterministicOrder:
+    def test_entity_order_is_stable(self):
+        ids1 = list(SimpleFolderReader().read(str(SIMPLE))._entities.keys())
+        ids2 = list(SimpleFolderReader().read(str(SIMPLE))._entities.keys())
+        assert ids1 == ids2
+
+    def test_relationship_order_is_stable(self):
+        rels1 = [
+            (r.source, r.target, r.type)
+            for r in SimpleFolderReader().read(str(SIMPLE))._relationships
+        ]
+        rels2 = [
+            (r.source, r.target, r.type)
+            for r in SimpleFolderReader().read(str(SIMPLE))._relationships
+        ]
+        assert rels1 == rels2
+
+    def test_entities_are_alphabetically_ordered_within_parent(self):
+        g = SimpleFolderReader().read(str(SIMPLE))
+        root_children = [r.target for r in g._relationships if r.source == "./"]
+        assert root_children == sorted(root_children)
