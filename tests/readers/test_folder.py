@@ -64,3 +64,60 @@ class TestRootEntity:
     def test_metadata_name(self):
         g = SimpleFolderReader().read(str(SIMPLE))
         assert g.metadata["name"] == "simple-folder"
+
+
+class TestReadBasicTree:
+    """Default skip_hidden=True — hidden entries excluded."""
+
+    def _load(self):
+        return SimpleFolderReader().read(str(SIMPLE))
+
+    def test_entity_count(self):
+        g = self._load()
+        # 1 root + 3 Dataset subdirs (data/, data/raw/, empty/)
+        # + 4 Files (notes.md, data/survey.csv,
+        #   data/raw/readings.txt, data/raw/NOTES)
+        # = 8
+        assert len(g._entities) == 8
+
+    def test_subdir_entity_ids_have_trailing_slash(self):
+        g = self._load()
+        assert "data/" in g._entities
+        assert "data/raw/" in g._entities
+        assert "empty/" in g._entities
+
+    def test_file_entity_ids_have_no_trailing_slash(self):
+        g = self._load()
+        assert "notes.md" in g._entities
+        assert "data/survey.csv" in g._entities
+        assert "data/raw/readings.txt" in g._entities
+        assert "data/raw/NOTES" in g._entities
+
+    def test_subdir_is_dataset(self):
+        g = self._load()
+        assert g._entities["data/"].types == ("Dataset",)
+        assert g._entities["data/"].properties["name"] == "data"
+
+    def test_file_is_file_type(self):
+        g = self._load()
+        assert g._entities["notes.md"].types == ("File",)
+
+    def test_file_content_size_matches_stat(self):
+        g = self._load()
+        expected = (SIMPLE / "data" / "survey.csv").stat().st_size
+        assert g._entities["data/survey.csv"].properties["contentSize"] == expected
+
+    def test_file_encoding_format_known_extension(self):
+        g = self._load()
+        assert g._entities["data/survey.csv"].properties["encodingFormat"] == "text/csv"
+
+    def test_file_encoding_format_omitted_when_unknown(self):
+        g = self._load()
+        # NOTES has no extension -> mimetypes.guess_type returns (None, None).
+        assert "encodingFormat" not in g._entities["data/raw/NOTES"].properties
+
+    def test_hidden_excluded_by_default(self):
+        g = self._load()
+        assert ".hidden_file" not in g._entities
+        assert ".hidden_dir/" not in g._entities
+        assert ".hidden_dir/secret.txt" not in g._entities

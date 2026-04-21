@@ -12,11 +12,13 @@ with both readers routes authored crates correctly.
 
 from __future__ import annotations
 
+import mimetypes
+import warnings
 from pathlib import Path
 
 from crategraph.core.graph import Graph
 from crategraph.core.interfaces import Reader
-from crategraph.core.models import Entity
+from crategraph.core.models import Entity, Relationship
 
 _METADATA_FILENAME = "ro-crate-metadata.json"
 
@@ -68,4 +70,84 @@ class SimpleFolderReader(Reader):
                 source=source,
             )
         )
+
+        for current_dir, dirnames, filenames in root.walk(
+            follow_symlinks=False,
+            on_error=self._on_walk_error,
+        ):
+            # Deterministic order; filter in-place so Path.walk respects it.
+            dirnames.sort()
+            filenames.sort()
+            self._filter_in_place(current_dir, dirnames)
+            self._filter_in_place(current_dir, filenames)
+
+            rel = current_dir.relative_to(root).as_posix()
+            parent_id = "./" if rel in ("", ".") else f"{rel}/"
+
+            for sub in dirnames:
+                child_id = f"{sub}/" if rel in ("", ".") else f"{rel}/{sub}/"
+                graph._add_node(
+                    Entity(
+                        id=child_id,
+                        types=("Dataset",),
+                        properties={"name": sub},
+                        source=source,
+                    )
+                )
+                graph._add_edge(
+                    Relationship(
+                        source=parent_id,
+                        target=child_id,
+                        type="hasPart",
+                    )
+                )
+
+            for filename in filenames:
+                entry = current_dir / filename
+                try:
+                    size = entry.stat().st_size
+                except OSError as exc:
+                    warnings.warn(
+                        f"Skipped file {entry}: {exc}",
+                        stacklevel=2,
+                    )
+                    continue
+                props: dict = {"name": filename, "contentSize": size}
+                mime = mimetypes.guess_type(filename)[0]
+                if mime is not None:
+                    props["encodingFormat"] = mime
+                child_id = filename if rel in ("", ".") else f"{rel}/{filename}"
+                graph._add_node(
+                    Entity(
+                        id=child_id,
+                        types=("File",),
+                        properties=props,
+                        source=source,
+                    )
+                )
+                graph._add_edge(
+                    Relationship(
+                        source=parent_id,
+                        target=child_id,
+                        type="hasPart",
+                    )
+                )
+
         return graph
+
+    # --- Helpers ---
+
+    def _filter_in_place(self, current_dir: Path, names: list[str]) -> None:
+        """Drop symlinks and (if configured) hidden entries from *names*."""
+        kept: list[str] = []
+        for name in names:
+            if (current_dir / name).is_symlink():
+                continue
+            if self._skip_hidden and name.startswith("."):
+                continue
+            kept.append(name)
+        names[:] = kept
+
+    def _on_walk_error(self, exc: OSError) -> None:
+        """Warn and continue when Path.walk hits an OSError."""
+        warnings.warn(f"Skipped during walk: {exc}", stacklevel=2)
