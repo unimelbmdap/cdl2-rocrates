@@ -199,19 +199,43 @@ class TestEdgeWidth:
         return g
 
     def test_edge_width_none_preserves_legacy_log1p_formula(self):
-        """When edge_width=None, the pre-existing hardcoded path runs."""
+        """When edge_width=None, the pre-existing hardcoded path runs.
+
+        Uses weight=1 edges (where the legacy formula gives 1 but the
+        helper gives ~2.386) to *discriminate* the two paths — not just
+        agree numerically by coincidence. Also asserts byte-identity
+        with a no-argument call so future drift between ``None`` and
+        "parameter absent" is caught.
+        """
         import math
 
+        from crategraph.core.graph import Graph
+        from crategraph.core.models import Entity, Relationship
         from crategraph.renderers.pyvis import PyvisRenderer
 
-        g = self._graph()
-        net = PyvisRenderer().render(g, edge_width=None, notebook=False)
-        widths = [e["width"] for e in net.edges]
-        # Legacy formula: 1 + 2*log1p(weight) when weight > 1, else 1.
-        assert widths == [
+        g = Graph()
+        g._add_node(Entity(id="#a", types=["T"], properties={}))
+        g._add_node(Entity(id="#b", types=["T"], properties={}))
+        g._add_node(Entity(id="#c", types=["T"], properties={}))
+        g._add_node(Entity(id="#d", types=["T"], properties={}))
+        # weight=5 and weight=20 → both use log1p formula.
+        g._add_edge(Relationship(source="#a", target="#b", type="r", properties={"weight": 5}))
+        g._add_edge(Relationship(source="#b", target="#c", type="r", properties={"weight": 20}))
+        # weight=1 → legacy fires `else` branch (width=1); helper would give 1 + 2*log1p(1).
+        g._add_edge(Relationship(source="#c", target="#d", type="r", properties={"weight": 1}))
+
+        net_none = PyvisRenderer().render(g, edge_width=None, notebook=False)
+        widths_none = [e["width"] for e in net_none.edges]
+        assert widths_none == [
             1 + 2 * math.log1p(5),
             1 + 2 * math.log1p(20),
+            1,  # legacy else-branch — helper would give ~2.386 here
         ]
+
+        # Byte-identity with no-argument call — catches drift between
+        # ``edge_width=None`` and "parameter absent".
+        net_default = PyvisRenderer().render(g, notebook=False)
+        assert [e["width"] for e in net_default.edges] == widths_none
 
     def test_edge_width_scalar_overrides_every_edge(self):
         from crategraph.renderers.pyvis import PyvisRenderer
