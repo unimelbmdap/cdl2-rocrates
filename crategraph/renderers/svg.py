@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from crategraph.core.interfaces import Renderer
 from crategraph.renderers._colours import resolve_colour_map
+from crategraph.renderers._edge_width import resolve_edge_widths
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
@@ -32,6 +33,7 @@ class SvgRenderer(Renderer):
         graph: Graph,
         *,
         colour_by: str = "type",
+        edge_width: int | float | str | None = None,
         width: int | str = DEFAULT_WIDTH,
         height: int | str = DEFAULT_HEIGHT,
         filepath: str | None = None,
@@ -43,6 +45,12 @@ class SvgRenderer(Renderer):
             graph: The graph to render.
             colour_by: Entity attribute or property used to assign colours.
                 ``"type"`` (default) colours by primary type.
+            edge_width: Per-edge stroke width. ``None`` (default) keeps
+                the existing ``1 + 3*(weight/max_weight)`` auto-width.
+                A number sets every edge to that pixel width (compensated
+                for the 2x viewBox so it renders at the requested CSS
+                pixel width). A string is treated as a property name and
+                width-encodes via ``1 + 2*log1p(v)``.
             width: Display width in CSS pixels (default 600).
             height: Display height in CSS pixels (default 450).
             filepath: If given, save the SVG to this path and return it.
@@ -99,6 +107,7 @@ class SvgRenderer(Renderer):
             vb_width=vb_w,
             vb_height=vb_h,
             scale=scale,
+            edge_width=edge_width,
         )
         return _output(svg, filepath)
 
@@ -250,6 +259,7 @@ def _build_svg(
     vb_width: float,
     vb_height: float,
     scale: float = 1.0,
+    edge_width: int | float | str | None = None,
 ) -> str:
     """Assemble the SVG string."""
     font_size = max(9, round(11 * scale))
@@ -265,18 +275,26 @@ def _build_svg(
     # Background.
     parts.append(f'<rect width="{vb_width}" height="{vb_height}" fill="#fafafa" rx="8"/>')
 
+    # Resolve per-edge widths; None means "fall back to the legacy linear path".
+    widths = resolve_edge_widths(graph._relationships, edge_width)
+    # viewBox is 2x display size — compensate so scalar input is CSS pixels.
+    vb_multiplier = vb_width / float(display_width)
+
     # Edges (drawn first, behind nodes).
     max_weight = max(
         (r.properties.get("weight", 1) for r in graph._relationships),
         default=1,
     )
-    for rel in graph._relationships:
+    for i, rel in enumerate(graph._relationships):
         src_pos = positions.get(rel.source)
         tgt_pos = positions.get(rel.target)
         if src_pos is None or tgt_pos is None:
             continue
-        weight = rel.properties.get("weight", 1)
-        stroke_width = 1.0 + 3.0 * (weight / max(max_weight, 1))
+        if widths is not None:
+            stroke_width = widths[i] * vb_multiplier
+        else:
+            weight = rel.properties.get("weight", 1)
+            stroke_width = 1.0 + 3.0 * (weight / max(max_weight, 1))
         parts.append(
             f'<line x1="{src_pos[0]:.1f}" y1="{src_pos[1]:.1f}" '
             f'x2="{tgt_pos[0]:.1f}" y2="{tgt_pos[1]:.1f}" '
