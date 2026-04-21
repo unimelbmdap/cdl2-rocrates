@@ -10,6 +10,7 @@ from markupsafe import Markup
 
 from crategraph.core.interfaces import Renderer
 from crategraph.renderers._colours import PALETTE, resolve_colour_map
+from crategraph.renderers._edge_width import resolve_edge_widths
 from crategraph.renderers._validation import validate_css_dimension
 
 if TYPE_CHECKING:
@@ -53,6 +54,7 @@ class SigmaRenderer(Renderer):
         *,
         colour_by: str = "type",
         size_by: str = "connections",
+        edge_width: int | float | str | None = None,
     ) -> dict[str, Any]:
         """Convert *graph* to the JSON structure expected by the Sigma.js template."""
         if not graph._entities:
@@ -97,19 +99,23 @@ class SigmaRenderer(Renderer):
         for eid in graph._entities:
             node_hex[eid] = colour_map.get(eid, "#45B7D1")
 
+        # Resolve per-edge widths (None = sigma bundle applies its own default).
+        widths = resolve_edge_widths(graph._relationships, edge_width)
+
         # Build edges.
         edges = []
         for i, rel in enumerate(graph._relationships):
             if rel.source in graph._entities and rel.target in graph._entities:
                 source_hex = node_hex.get(rel.source, "#ffffff")
-                edges.append(
-                    {
-                        "id": f"e{i}",
-                        "source": rel.source,
-                        "target": rel.target,
-                        "color": _dim_hex(source_hex, 0.3),
-                    }
-                )
+                edge: dict[str, Any] = {
+                    "id": f"e{i}",
+                    "source": rel.source,
+                    "target": rel.target,
+                    "color": _dim_hex(source_hex, 0.3),
+                }
+                if widths is not None:
+                    edge["size"] = widths[i]
+                edges.append(edge)
 
         return {"nodes": nodes, "edges": edges}
 
@@ -147,6 +153,7 @@ class SigmaRenderer(Renderer):
         *,
         colour_by: str = "type",
         size_by: str = "connections",
+        edge_width: int | float | str | None = None,
         height: str = "100vh",
         width: str = "100%",
         filepath: str | None = None,
@@ -160,6 +167,10 @@ class SigmaRenderer(Renderer):
             colour_by: Property to colour nodes by (default ``"type"``).
                 ``"community"`` auto-computes Louvain communities.
             size_by: ``"connections"`` (default) scales node size by degree.
+            edge_width: Per-edge width. ``None`` (default) uses the sigma
+                bundle's built-in edge size (``0.3``). A number sets every
+                edge to that literal pixel width. A string is treated as an
+                edge property name and width-encodes via ``1 + 2*log1p(v)``.
             height: CSS height of the canvas.
             width: CSS width of the canvas.
             filepath: If given, save the HTML to this path and return it.
@@ -180,6 +191,7 @@ class SigmaRenderer(Renderer):
             graph,
             colour_by=colour_by,
             size_by=size_by,
+            edge_width=edge_width,
         )
 
         # Build type → colour mapping for the legend.

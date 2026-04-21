@@ -338,3 +338,56 @@ class TestSigmaSimple:
         html_str = result.data if hasattr(result, "data") else str(result)
         assert "sigma-container" in html_str
         assert 'id="legend"' not in html_str
+
+
+class TestEdgeWidth:
+    """edge_width API integration — per-edge ``size`` in the sigma JSON."""
+
+    def test_edge_width_none_omits_size_from_edges(self):
+        g = _build_graph()
+        data = SigmaRenderer().graph_to_json(
+            g, colour_by="type", size_by="connections", edge_width=None
+        )
+        for edge in data["edges"]:
+            assert "size" not in edge, (
+                "Expected no 'size' key when edge_width is None (bundle applies its own default)"
+            )
+
+    def test_edge_width_scalar_sets_every_edge_size(self):
+        g = _build_graph()
+        data = SigmaRenderer().graph_to_json(
+            g, colour_by="type", size_by="connections", edge_width=3
+        )
+        assert data["edges"], "test graph should have edges"
+        for edge in data["edges"]:
+            assert edge["size"] == 3.0
+
+    def test_edge_width_attribute_applies_log1p_formula(self):
+        import math
+
+        from crategraph.core.graph import Graph
+        from crategraph.core.models import Entity, Relationship
+
+        g = Graph()
+        g._add_node(Entity(id="#a", types=["T"], properties={}))
+        g._add_node(Entity(id="#b", types=["T"], properties={}))
+        g._add_node(Entity(id="#c", types=["T"], properties={}))
+        g._add_edge(Relationship(source="#a", target="#b", type="r", properties={"weight": 5}))
+        g._add_edge(Relationship(source="#b", target="#c", type="r", properties={"weight": 20}))
+
+        data = SigmaRenderer().graph_to_json(
+            g, colour_by="type", size_by="connections", edge_width="weight"
+        )
+        sizes = [edge["size"] for edge in data["edges"]]
+        assert sizes == [
+            1.0 + 2.0 * math.log1p(5),
+            1.0 + 2.0 * math.log1p(20),
+        ]
+
+    def test_edge_width_attribute_missing_falls_back_to_one(self):
+        g = _build_graph()  # edges have no 'weight' property
+        data = SigmaRenderer().graph_to_json(
+            g, colour_by="type", size_by="connections", edge_width="weight"
+        )
+        for edge in data["edges"]:
+            assert edge["size"] == 1.0
