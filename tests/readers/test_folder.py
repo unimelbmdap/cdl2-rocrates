@@ -121,3 +121,41 @@ class TestReadBasicTree:
         assert ".hidden_file" not in g._entities
         assert ".hidden_dir/" not in g._entities
         assert ".hidden_dir/secret.txt" not in g._entities
+
+
+class TestHasPartEdges:
+    def _load(self):
+        return SimpleFolderReader().read(str(SIMPLE))
+
+    def test_every_edge_is_haspart(self):
+        g = self._load()
+        assert all(r.type == "hasPart" for r in g._relationships)
+
+    def test_edge_count_equals_non_root_entity_count(self):
+        g = self._load()
+        non_root = [e for e in g._entities.values() if not e.properties.get("_is_root")]
+        assert len(g._relationships) == len(non_root)
+
+    def test_root_outgoing_edges(self):
+        g = self._load()
+        out = {r.target for r in g._relationships if r.source == "./"}
+        assert out == {"notes.md", "data/", "empty/"}
+
+    def test_data_subdir_outgoing_edges(self):
+        g = self._load()
+        out = {r.target for r in g._relationships if r.source == "data/"}
+        assert out == {"data/survey.csv", "data/raw/"}
+
+    def test_raw_subdir_outgoing_edges(self):
+        g = self._load()
+        out = {r.target for r in g._relationships if r.source == "data/raw/"}
+        assert out == {"data/raw/readings.txt", "data/raw/NOTES"}
+
+    def test_empty_subdir_has_no_outgoing(self):
+        g = self._load()
+        out = [r for r in g._relationships if r.source == "empty/"]
+        assert out == []
+
+    def test_relationships_have_null_id(self):
+        g = self._load()
+        assert all(r.id is None for r in g._relationships)
