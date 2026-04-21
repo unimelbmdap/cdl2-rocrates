@@ -16,6 +16,7 @@ from pathlib import Path
 
 from crategraph.core.graph import Graph
 from crategraph.core.interfaces import Reader
+from crategraph.core.models import Entity
 
 _METADATA_FILENAME = "ro-crate-metadata.json"
 
@@ -45,4 +46,26 @@ class SimpleFolderReader(Reader):
         return not (p / _METADATA_FILENAME).is_file()
 
     def read(self, path: str) -> Graph:
-        raise NotImplementedError
+        """Read *path* and return a populated Graph."""
+        root = Path(path).resolve()
+        if not root.exists():
+            msg = f"Path does not exist: {path}"
+            raise FileNotFoundError(msg)
+        if not root.is_dir():
+            msg = f"Path is not a directory: {path}"
+            raise NotADirectoryError(msg)
+
+        source = str(root)
+        graph = Graph(
+            source=source,
+            metadata={"_root_id": "./", "name": root.name},
+        )
+        graph._add_node(
+            Entity(
+                id="./",
+                types=("Dataset",),
+                properties={"name": root.name, "_is_root": True},
+                source=source,
+            )
+        )
+        return graph

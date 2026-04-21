@@ -32,3 +32,35 @@ class TestCanRead:
         both readers routes authored crates correctly."""
         reader = SimpleFolderReader()
         assert not reader.can_read(str(MINIMAL_CRATE))
+
+
+class TestRootEntity:
+    def test_returns_graph(self):
+        g = SimpleFolderReader().read(str(SIMPLE))
+        from crategraph.core.graph import Graph
+
+        assert isinstance(g, Graph)
+
+    def test_root_entity_exists(self):
+        g = SimpleFolderReader().read(str(SIMPLE))
+        assert "./" in g._entities
+
+    def test_root_entity_shape(self):
+        g = SimpleFolderReader().read(str(SIMPLE))
+        root = g._entities["./"]
+        assert root.types == ("Dataset",)
+        assert root.properties["name"] == "simple-folder"
+        assert root.properties["_is_root"] is True
+        assert root.source == str(SIMPLE.resolve())
+
+    def test_graph_source_is_absolute_resolved_path(self):
+        g = SimpleFolderReader().read(str(SIMPLE))
+        assert g.source == str(SIMPLE.resolve())
+
+    def test_metadata_root_id(self):
+        g = SimpleFolderReader().read(str(SIMPLE))
+        assert g.metadata["_root_id"] == "./"
+
+    def test_metadata_name(self):
+        g = SimpleFolderReader().read(str(SIMPLE))
+        assert g.metadata["name"] == "simple-folder"
