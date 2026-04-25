@@ -131,6 +131,76 @@ The `has_data` property name aligns with the RO-Crate spec's "data entity" termi
 
 The RO-Crate spec allows data entities of `@type: "CreativeWork"` (e.g. online databases). `Entity.has_data` currently only recognises `File` and `Dataset` types because `CreativeWork` is too ambiguous — contextual entities like publications may also use it. If a concrete use case arises where `CreativeWork` data entities need to be distinguished, the heuristic could be extended (e.g. by also checking for an absolute URI `@id` as the spec suggests).
 
+## File Content Analysis Strategy
+
+crategraph's role should be to help researchers find, select, preview, extract, search, and hand off files for analysis. It should not try to become a complete analysis library for every file format found in RO-Crates.
+
+The current architecture already supports this boundary:
+
+- `Graph` remains the metadata and relationship layer.
+- `view()` remains a presentation layer for human preview.
+- `inspect()` / inspectors remain the extraction layer, currently backed by MarkItDown for broad text-oriented conversion.
+- External tools such as pandas, spaCy, scikit-learn, librosa, OpenCV, GIS libraries, or domain-specific notebooks remain responsible for deeper analysis.
+
+This keeps crategraph useful at the research workflow boundary without letting the package scope explode. The package should make it easy to assemble a meaningful subset of files from crate metadata and relationships, then pass those files and their context to the right downstream tool.
+
+### File handoff APIs
+
+Add lightweight APIs that expose selected file entities in analysis-friendly shapes:
+
+```python
+# Paths plus entity metadata and graph context.
+# This would be a new file-level helper; the existing
+# CorpusProfile.to_dataframe() covers aggregate crate profiles only.
+files = crate.select(entity_types=["File"]).files_dataframe()
+
+# Iterator for custom pipelines
+for entity, path in crate.where(encodingFormat="text/plain").iter_files():
+    ...
+
+# Cheap by default; optional content extraction
+rows = crate.select(entity_types=["File"]).inspect_all(extract_content=False)
+rows_with_text = crate.select(entity_types=["File"]).inspect_all(extract_content=True)
+```
+
+The important design choice is that these methods should help users move from a graph selection to ordinary Python analysis inputs. They should not prescribe the analysis itself.
+
+### User-defined file functions
+
+A callback-style API could make ad hoc analysis concise while preserving crategraph's boundary:
+
+```python
+def word_count(path, entity):
+    text = path.read_text(encoding="utf-8")
+    return {"entity_id": entity.id, "words": len(text.split())}
+
+results = crate.where(encodingFormat="text/plain").map_files(word_count)
+```
+
+This would let crategraph handle entity coercion, path resolution, crate-root safety checks, and result collation, while users supply the actual file-specific analysis. Return values should be DataFrame-friendly dictionaries or simple Python values.
+
+### Optional analyser plugins
+
+An `Analyser` plugin subsystem could be added later if repeated use cases show a stable shape. This should not be the first step: "analysis" is too broad and risks becoming a dumping ground for unrelated file-format logic.
+
+If introduced, analysers should have narrow contracts, for example:
+
+- Accept a resolved file path plus the corresponding `Entity`.
+- Return a structured immutable result.
+- Avoid mutating the graph in place.
+- Optionally provide a separate transform that returns a new `Graph` with derived annotations and clear provenance.
+
+This is a longer-term extension point, not a prerequisite for helping researchers analyse crate files.
+
+### Recipes and examples
+
+Documented workflows should carry part of this feature area. Example notebooks may be more useful than built-in algorithms:
+
+- Find all text files connected to a person, place, collection, or event.
+- Extract markdown from selected files and run keyword or topic analysis.
+- Export selected files and metadata for use in R, pandas, or a qualitative analysis tool.
+- Search file content, then return to the graph to inspect surrounding context.
+
 ## Full-Text Search Over File Content
 
 An indexing process that runs inspectors across all data entities and stores extracted markdown in SQLite FTS5 for searchable content discovery. This would complement the existing `search()` (which covers entity metadata) by enabling queries like "find all files mentioning 'colonial architecture'". Design considerations: persistence and cache invalidation, progress feedback for large crates, result ranking and snippet highlighting, incremental re-indexing.
