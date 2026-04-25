@@ -69,6 +69,18 @@ people
 Graph(23 entities, 8 relationships)
 ```
 
+### Excluding noise
+
+Use `exclude()` to remove entity or relationship types from a graph. This is useful when a high-volume administrative relationship dominates the structure:
+
+```python
+clean = crate.exclude(relationship_types=["preparedBy"])
+```
+
+You can also exclude entity types, for example `crate.exclude(entity_types=["Person"])`.
+
+By default, entities that become isolated because of the exclusion are dropped. Entities that were already isolated are preserved. Like other filters, `exclude()` returns a new graph and leaves the original unchanged.
+
 ### Filtering by property values
 
 Use `where()` to filter by exact property values:
