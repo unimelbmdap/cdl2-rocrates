@@ -85,11 +85,16 @@ This is a significantly larger undertaking than the original ABC, which is why i
 
 ## Plugin Implementations
 
-Extension points that exist as ABCs but have no concrete implementations yet:
+The plugin-style architecture is unevenly mature across subsystems. Current ranking from least complete to most complete:
 
-- **Writers** (partial) — GraphML and CSV shipped (see [Writers guide](../docs/writers.md)). RDF and RO-Crate export planned.
-- **Validators** — RDF/schema.org compliance checking, crate structure validation. Should report issues without blocking usage.
-- **Additional readers** — GEXF, RiC-O (via RDFLib), NetworkX graph import
+1. **Validators** — least complete. The `Validator` ABC and validation result models exist, but there are no concrete validators, no validator registry, and no public validation workflow yet. Likely first implementations: RDF/schema.org compliance checks, RO-Crate structure checks, broken-link checks, and completeness checks. Validators should report issues without blocking graph loading or exploration.
+2. **Registration and discovery consistency** — cross-cutting architectural gap. Writers have the clearest registry (`register_writer`, `get_writer`, `list_formats`). Inspectors and viewers use private ordered lists plus `find_*()`. Renderers are selected through hard-coded dispatch in `visualise()`. Readers are mostly selected through direct construction or ad hoc reader lists. Before adding many more plugins, standardise the registration surface.
+3. **Inspectors** — useful but thin. `MarkItDownInspector` provides broad content extraction, but there are no specialised inspectors yet for tabular structure, image metadata, audio/video metadata, geospatial data, or other common research file types.
+4. **Viewers** — functional but shallow. `DefaultViewer` handles common preview cases, but the subsystem is still a single catch-all viewer rather than a mature ecosystem of specialised previews.
+5. **Writers** — partially complete. GraphML and CSV are shipped and documented (see [Writers guide](../docs/writers.md)). RDF, RO-Crate round-trip export, and GEXF remain planned.
+6. **Readers and renderers** — most complete in user-visible capability. Readers cover RO-Crate, folders, RDF, OHRM CSV, and OHRM SQL. Renderers cover 2D, 3D, SVG, and Pyvis. Their remaining plugin gap is mostly registration/discovery consistency rather than lack of built-in implementations.
+
+Recommended next step: standardise plugin registration before adding many new plugin implementations. Use private dictionaries or ordered lists internally, expose public helpers (`register_*`, `get_*` or `find_*`, and `list_*`), and define built-ins declaratively so they can be lazily registered. Named plugins such as writers, renderers, readers, and validators should use name-based registries; capability-matched plugins such as inspectors and viewers should use ordered registries where specialised plugins can take priority over broad defaults.
 
 ## Interoperability
 
