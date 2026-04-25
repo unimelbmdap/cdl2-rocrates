@@ -151,7 +151,8 @@ Add lightweight APIs that expose selected file entities in analysis-friendly sha
 ```python
 # Paths plus entity metadata and graph context.
 # This would be a new file-level helper; the existing
-# CorpusProfile.to_dataframe() covers aggregate crate profiles only.
+# CorpusProfile.to_dataframe() covers aggregate crate profiles only,
+# and graph.write(..., format="csv") exports graph nodes and edges.
 files = crate.select(entity_types=["File"]).files_dataframe()
 
 # Iterator for custom pipelines
@@ -164,6 +165,16 @@ rows_with_text = crate.select(entity_types=["File"]).inspect_all(extract_content
 ```
 
 The important design choice is that these methods should help users move from a graph selection to ordinary Python analysis inputs. They should not prescribe the analysis itself.
+
+The existing CSV writer already covers graph-shaped export by writing `nodes.csv` and `edges.csv`. File handoff needs a different tabular shape: one row per selected file, with resolved path, entity metadata, source crate, media type, optional extracted content, and possibly selected relationship/context columns. That output could be exposed both as a DataFrame and as a single CSV manifest:
+
+```python
+files = crate.select(entity_types=["File"]).files_dataframe()
+files.to_csv("selected_files.csv", index=False)
+
+# Convenience wrapper around the same rows, if the use case is common enough.
+crate.select(entity_types=["File"]).write_file_manifest("selected_files.csv")
+```
 
 ### User-defined file functions
 
@@ -200,6 +211,7 @@ Documented workflows should carry part of this feature area. Example notebooks m
 - Extract markdown from selected files and run keyword or topic analysis.
 - Export selected files and metadata for use in R, pandas, or a qualitative analysis tool.
 - Search file content, then return to the graph to inspect surrounding context.
+- Demonstrate handoff from crategraph selections to LDaCA text-analysis Python tools, especially where both sides already understand RO-Crate-style inputs and metadata.
 
 ## Full-Text Search Over File Content
 
