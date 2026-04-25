@@ -160,7 +160,7 @@ communities = crate.detect_communities(resolution=1.0, seed=42)
 
 Path semantics are writer-specific: `"graphml"` expects a file path, while `"csv"` expects a directory (created if absent).
 
-`graph.to_networkx(copy=True)` returns the underlying `nx.MultiDiGraph`. With `copy=True` (default), the return value is a fully detached deep copy — safe to mutate. With `copy=False`, the internal graph is returned directly; the caller must not mutate it.
+`graph.to_networkx(copy=True)` returns a rebuilt `nx.MultiDiGraph` view of the graph. With `copy=True` (default), the return value is a fully detached deep copy — safe to mutate. With `copy=False`, the graph structure is still rebuilt, but the original `Entity` and `Relationship` objects are attached directly; the caller must not mutate them or their nested properties.
 
 ```python
 # Export to GraphML for Gephi / yEd

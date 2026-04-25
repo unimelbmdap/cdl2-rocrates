@@ -89,14 +89,12 @@ class TestToNetworkx:
     def test_copy_false_returns_rebuilt_graph(self):
         """copy=False returns a freshly rebuilt graph — no identity with _graph.
 
-        Rebuilding is required so that same-type parallel edges survive; _graph
-        collapses them under ``key=relationship.type``. copy=False's contract is
-        'safe to read, do not mutate', not 'same object'.
+        copy=False's contract is 'safe to read, do not mutate', not 'same
+        object'. The attached Entity / Relationship objects are the originals.
         """
         graph = _build_simple_graph()
         g = graph.to_networkx(copy=False)
         assert g is not graph._graph
-        # The attached Entity / Relationship are the originals under copy=False.
         assert g.nodes["#alice"]["entity"] is graph.entities[0]
 
     def test_copy_true_returns_different_object(self):
@@ -116,15 +114,23 @@ class TestToNetworkx:
         graph._add_edge(
             Relationship(source="A", target="B", type="author", properties={"year": 2003})
         )
-        # Internal _graph collapses to one edge (documented behaviour).
-        assert graph._graph.number_of_edges() == 1
-        # The authoritative list retains both.
+        # Internal _graph and the authoritative list both retain full fidelity.
+        assert graph._graph.number_of_edges() == 2
         assert len(graph.relationships) == 2
-        # to_networkx() must rebuild from the authoritative list.
         g = graph.to_networkx()
         ab_edges = [data for _u, _v, _k, data in g.edges(keys=True, data=True)]
         years = {data["relationship"].properties["year"] for data in ab_edges}
         assert years == {2001, 2003}
+
+    def test_internal_graph_preserves_parallel_same_type_edges(self):
+        graph = Graph()
+        graph._add_node(Entity(id="A", types=["Person"]))
+        graph._add_node(Entity(id="B", types=["Person"]))
+        graph._add_edge(Relationship(source="A", target="B", type="author"))
+        graph._add_edge(Relationship(source="A", target="B", type="author"))
+        edges = list(graph._graph.edges(keys=True, data=True))
+        assert len(edges) == 2
+        assert all(data["relationship"].type == "author" for *_edge, data in edges)
 
     def test_copy_contains_same_nodes(self):
         """The deep copy contains the same node IDs as the original."""

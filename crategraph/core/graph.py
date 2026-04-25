@@ -157,12 +157,10 @@ class Graph:
         """Return a NetworkX ``MultiDiGraph`` view of this graph.
 
         The returned graph is rebuilt from ``self.entities`` and
-        ``self.relationships`` so that same-type parallel edges between the
-        same endpoints survive — the internal ``_graph`` stores edges with
-        ``key=relationship.type`` and collapses duplicates, while the
-        authoritative relationship list keeps every edge. Each edge gets a
-        unique key: ``rel.id`` when set, otherwise a
-        ``MultiDiGraph``-assigned integer.
+        ``self.relationships`` so callers receive a regular NetworkX graph
+        with one edge per :class:`Relationship`. Edge keys are assigned by
+        ``MultiDiGraph`` so same-type parallel edges between the same
+        endpoints survive.
 
         With ``copy=True`` (default), each node's ``entity`` attribute and
         each edge's ``relationship`` attribute are deep copies, so the
@@ -180,10 +178,7 @@ class Graph:
             nxg.add_node(entity.id, entity=attached)
         for rel in self.relationships:
             attached = _copy.deepcopy(rel) if copy else rel
-            if rel.id is not None:
-                nxg.add_edge(rel.source, rel.target, key=rel.id, relationship=attached)
-            else:
-                nxg.add_edge(rel.source, rel.target, relationship=attached)
+            nxg.add_edge(rel.source, rel.target, relationship=attached)
         return nxg
 
     def write(
@@ -427,7 +422,6 @@ class Graph:
         self._graph.add_edge(
             relationship.source,
             relationship.target,
-            key=relationship.type,
             relationship=relationship,
         )
 
@@ -519,7 +513,6 @@ class Graph:
             derived._graph.add_edge(
                 relationship.source,
                 relationship.target,
-                key=relationship.type,
                 relationship=relationship,
             )
         derived._root = self._root

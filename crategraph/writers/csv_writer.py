@@ -75,8 +75,8 @@ class CsvWriter(Writer):
         else:
             target.mkdir(parents=True)
 
-        # Iterate the authoritative lists — never _graph.nodes / _graph.edges,
-        # which collapses parallel same-type edges.
+        # Iterate the domain lists so export follows Graph's public relationship
+        # model rather than NetworkX-specific edge attributes.
         node_rows = [flatten_node(e) for e in graph.entities]
         edge_rows = [flatten_edge(r) for r in graph.relationships]
 

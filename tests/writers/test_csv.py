@@ -223,7 +223,7 @@ class TestParallelSameTypeEdges:
             rows = list(csv.DictReader(f))
         assert len(rows) == 2, (
             f"Expected 2 edge rows but found {len(rows)}. "
-            "The writer may be iterating graph._graph.edges instead of graph.relationships."
+            "The writer should preserve every Graph relationship."
         )
         years = {r["year"] for r in rows}
         assert years == {"2001", "2003"}
