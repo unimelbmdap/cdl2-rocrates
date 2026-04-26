@@ -85,11 +85,16 @@ This is a significantly larger undertaking than the original ABC, which is why i
 
 ## Plugin Implementations
 
-Extension points that exist as ABCs but have no concrete implementations yet:
+The plugin-style architecture is unevenly mature across subsystems. Current ranking from least complete to most complete:
 
-- **Writers** (partial) — GraphML and CSV shipped (see [Writers guide](../docs/writers.md)). RDF and RO-Crate export planned.
-- **Validators** — RDF/schema.org compliance checking, crate structure validation. Should report issues without blocking usage.
-- **Additional readers** — GEXF, RiC-O (via RDFLib), NetworkX graph import
+1. **Validators** — least complete. The `Validator` ABC and validation result models exist, but there are no concrete validators, no validator registry, and no public validation workflow yet. Likely first implementations: RDF/schema.org compliance checks, RO-Crate structure checks, broken-link checks, and completeness checks. Validators should report issues without blocking graph loading or exploration.
+2. **Registration and discovery consistency** — cross-cutting architectural gap. Writers have the clearest registry (`register_writer`, `get_writer`, `list_formats`). Inspectors and viewers use private ordered lists plus `find_*()`. Renderers are selected through hard-coded dispatch in `visualise()`. Readers are mostly selected through direct construction or ad hoc reader lists. Before adding many more plugins, standardise the registration surface.
+3. **Inspectors** — useful but thin. `MarkItDownInspector` provides broad content extraction, but there are no specialised inspectors yet for tabular structure, image metadata, audio/video metadata, geospatial data, or other common research file types.
+4. **Viewers** — functional but shallow. `DefaultViewer` handles common preview cases, but the subsystem is still a single catch-all viewer rather than a mature ecosystem of specialised previews.
+5. **Writers** — partially complete. GraphML and CSV are shipped and documented (see [Writers guide](../docs/writers.md)). RDF, RO-Crate round-trip export, and GEXF remain planned.
+6. **Readers and renderers** — most complete in user-visible capability. Readers cover RO-Crate, folders, RDF, OHRM CSV, and OHRM SQL. Renderers cover 2D, 3D, SVG, and Pyvis. Their remaining plugin gap is mostly registration/discovery consistency rather than lack of built-in implementations.
+
+Recommended next step: standardise plugin registration before adding many new plugin implementations. Use private dictionaries or ordered lists internally, expose public helpers (`register_*`, `get_*` or `find_*`, and `list_*`), and define built-ins declaratively so they can be lazily registered. Named plugins such as writers, renderers, readers, and validators should use name-based registries; capability-matched plugins such as inspectors and viewers should use ordered registries where specialised plugins can take priority over broad defaults.
 
 ## Interoperability
 
@@ -130,6 +135,88 @@ The `has_data` property name aligns with the RO-Crate spec's "data entity" termi
 ## CreativeWork Data Entities
 
 The RO-Crate spec allows data entities of `@type: "CreativeWork"` (e.g. online databases). `Entity.has_data` currently only recognises `File` and `Dataset` types because `CreativeWork` is too ambiguous — contextual entities like publications may also use it. If a concrete use case arises where `CreativeWork` data entities need to be distinguished, the heuristic could be extended (e.g. by also checking for an absolute URI `@id` as the spec suggests).
+
+## File Content Analysis Strategy
+
+crategraph's role should be to help researchers find, select, preview, extract, search, and hand off files for analysis. It should not try to become a complete analysis library for every file format found in RO-Crates.
+
+The current architecture already supports this boundary:
+
+- `Graph` remains the metadata and relationship layer.
+- `view()` remains a presentation layer for human preview.
+- `inspect()` / inspectors remain the extraction layer, currently backed by MarkItDown for broad text-oriented conversion.
+- External tools such as pandas, spaCy, scikit-learn, librosa, OpenCV, GIS libraries, or domain-specific notebooks remain responsible for deeper analysis.
+
+This keeps crategraph useful at the research workflow boundary without letting the package scope explode. The package should make it easy to assemble a meaningful subset of files from crate metadata and relationships, then pass those files and their context to the right downstream tool.
+
+### File handoff APIs
+
+Add lightweight APIs that expose selected file entities in analysis-friendly shapes:
+
+```python
+# Paths plus entity metadata and graph context.
+# This would be a new file-level helper; the existing
+# CorpusProfile.to_dataframe() covers aggregate crate profiles only,
+# and graph.write(..., format="csv") exports graph nodes and edges.
+files = crate.select(entity_types=["File"]).files_dataframe()
+
+# Iterator for custom pipelines
+for entity, path in crate.where(encodingFormat="text/plain").iter_files():
+    ...
+
+# Cheap by default; optional content extraction
+rows = crate.select(entity_types=["File"]).inspect_all(extract_content=False)
+rows_with_text = crate.select(entity_types=["File"]).inspect_all(extract_content=True)
+```
+
+The important design choice is that these methods should help users move from a graph selection to ordinary Python analysis inputs. They should not prescribe the analysis itself.
+
+The existing CSV writer already covers graph-shaped export by writing `nodes.csv` and `edges.csv`. File handoff needs a different tabular shape: one row per selected file, with resolved path, entity metadata, source crate, media type, optional extracted content, and possibly selected relationship/context columns. That output could be exposed both as a DataFrame and as a single CSV manifest:
+
+```python
+files = crate.select(entity_types=["File"]).files_dataframe()
+files.to_csv("selected_files.csv", index=False)
+
+# Convenience wrapper around the same rows, if the use case is common enough.
+crate.select(entity_types=["File"]).write_file_manifest("selected_files.csv")
+```
+
+### User-defined file functions
+
+A callback-style API could make ad hoc analysis concise while preserving crategraph's boundary:
+
+```python
+def word_count(path, entity):
+    text = path.read_text(encoding="utf-8")
+    return {"entity_id": entity.id, "words": len(text.split())}
+
+results = crate.where(encodingFormat="text/plain").map_files(word_count)
+```
+
+This would let crategraph handle entity coercion, path resolution, crate-root safety checks, and result collation, while users supply the actual file-specific analysis. Return values should be DataFrame-friendly dictionaries or simple Python values.
+
+### Optional analyser plugins
+
+An `Analyser` plugin subsystem could be added later if repeated use cases show a stable shape. This should not be the first step: "analysis" is too broad and risks becoming a dumping ground for unrelated file-format logic.
+
+If introduced, analysers should have narrow contracts, for example:
+
+- Accept a resolved file path plus the corresponding `Entity`.
+- Return a structured immutable result.
+- Avoid mutating the graph in place.
+- Optionally provide a separate transform that returns a new `Graph` with derived annotations and clear provenance.
+
+This is a longer-term extension point, not a prerequisite for helping researchers analyse crate files.
+
+### Recipes and examples
+
+Documented workflows should carry part of this feature area. Example notebooks may be more useful than built-in algorithms:
+
+- Find all text files connected to a person, place, collection, or event.
+- Extract markdown from selected files and run keyword or topic analysis.
+- Export selected files and metadata for use in R, pandas, or a qualitative analysis tool.
+- Search file content, then return to the graph to inspect surrounding context.
+- Demonstrate handoff from crategraph selections to LDaCA text-analysis Python tools, especially where both sides already understand RO-Crate-style inputs and metadata.
 
 ## Full-Text Search Over File Content
 

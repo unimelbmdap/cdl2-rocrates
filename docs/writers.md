@@ -72,12 +72,12 @@ Third-party packages that register additional formats show up here automatically
 import networkx as nx
 
 G = crate.to_networkx()          # deep copy — safe to mutate
-G_raw = crate.to_networkx(copy=False)  # internal graph — do not mutate
+G_raw = crate.to_networkx(copy=False)  # original Entity/Relationship objects — do not mutate
 ```
 
 With `copy=True` (the default), the returned graph is a fully detached deep copy. You can mutate nodes, edges, and any nested dicts without affecting the source `Graph`. This matters because `@dataclass(frozen=True)` freezes the top-level `Entity` and `Relationship` objects but not their `properties` dicts — a deep copy is the only safe isolation.
 
-With `copy=False`, the internal `MultiDiGraph` is returned directly. Only use this when you need maximum performance and can guarantee you will not mutate the result (e.g. read-only NetworkX algorithms, export pipelines).
+With `copy=False`, the returned `MultiDiGraph` is still rebuilt, but the original `Entity` and `Relationship` objects are attached directly. Only use this when you need lower copy overhead and can guarantee you will not mutate those objects or their nested properties.
 
 ## Attribute Flattening Rules
 

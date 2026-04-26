@@ -157,12 +157,10 @@ class Graph:
         """Return a NetworkX ``MultiDiGraph`` view of this graph.
 
         The returned graph is rebuilt from ``self.entities`` and
-        ``self.relationships`` so that same-type parallel edges between the
-        same endpoints survive — the internal ``_graph`` stores edges with
-        ``key=relationship.type`` and collapses duplicates, while the
-        authoritative relationship list keeps every edge. Each edge gets a
-        unique key: ``rel.id`` when set, otherwise a
-        ``MultiDiGraph``-assigned integer.
+        ``self.relationships`` so callers receive a regular NetworkX graph
+        with one edge per :class:`Relationship`. Edge keys are assigned by
+        ``MultiDiGraph`` so same-type parallel edges between the same
+        endpoints survive.
 
         With ``copy=True`` (default), each node's ``entity`` attribute and
         each edge's ``relationship`` attribute are deep copies, so the
@@ -180,10 +178,7 @@ class Graph:
             nxg.add_node(entity.id, entity=attached)
         for rel in self.relationships:
             attached = _copy.deepcopy(rel) if copy else rel
-            if rel.id is not None:
-                nxg.add_edge(rel.source, rel.target, key=rel.id, relationship=attached)
-            else:
-                nxg.add_edge(rel.source, rel.target, relationship=attached)
+            nxg.add_edge(rel.source, rel.target, relationship=attached)
         return nxg
 
     def write(
@@ -339,6 +334,21 @@ class Graph:
             id=id,
         )
 
+    def exclude(
+        self,
+        *,
+        entity_types: list[str] | str | None = None,
+        relationship_types: list[str] | str | None = None,
+        drop_isolated: bool = True,
+    ) -> Graph:
+        """Filter out matching entities and relationships."""
+        return filtering.exclude(
+            self,
+            entity_types=entity_types,
+            relationship_types=relationship_types,
+            drop_isolated=drop_isolated,
+        )
+
     def where(self, **kwargs: Any) -> Graph:
         """Filter by entity property values."""
         return filtering.where(self, **kwargs)
@@ -412,7 +422,6 @@ class Graph:
         self._graph.add_edge(
             relationship.source,
             relationship.target,
-            key=relationship.type,
             relationship=relationship,
         )
 
@@ -480,11 +489,16 @@ class Graph:
             if entities is not None
             else {nid: self._entities[nid] for nid in node_ids if nid in self._entities}
         )
-        derived._relationships = (
+        candidate_relationships = (
             relationships
             if relationships is not None
             else [r for r in self._relationships if r.source in node_ids and r.target in node_ids]
         )
+        derived._relationships = [
+            r
+            for r in candidate_relationships
+            if r.source in derived._entities and r.target in derived._entities
+        ]
         from pathlib import PurePosixPath
 
         derived._source_names = {
@@ -492,10 +506,15 @@ class Graph:
             for entity in derived._entities.values()
             if entity.source is not None
         }
-        derived._graph = self._graph.subgraph(node_ids).copy()
+        derived._graph = nx.MultiDiGraph()
         for nid, entity in derived._entities.items():
-            if nid in derived._graph:
-                derived._graph.nodes[nid]["entity"] = entity
+            derived._graph.add_node(nid, entity=entity)
+        for relationship in derived._relationships:
+            derived._graph.add_edge(
+                relationship.source,
+                relationship.target,
+                relationship=relationship,
+            )
         derived._root = self._root
         derived._simplification_k = None
         return derived

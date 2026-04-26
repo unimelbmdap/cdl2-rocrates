@@ -186,7 +186,7 @@ class TestOverwrite:
 
 
 # ---------------------------------------------------------------------------
-# 7. Parallel same-type edges (CRITICAL — tests _graph edge-collapse bug)
+# 7. Parallel same-type edges
 # ---------------------------------------------------------------------------
 
 
@@ -209,7 +209,7 @@ class TestParallelSameTypeEdges:
         ]
         assert len(ab_edges) == 2, (
             f"Expected 2 parallel edges but found {len(ab_edges)}. "
-            "The writer may be iterating graph._graph.edges instead of graph.relationships."
+            "The writer should preserve every Graph relationship."
         )
         years = {str(data.get("year")) for _, _, data in ab_edges}
         assert years == {"2001", "2003"}

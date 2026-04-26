@@ -48,21 +48,17 @@ class GraphMLWriter(Writer):
 def _to_flat_networkx(graph: Graph) -> nx.MultiDiGraph:
     """Build a fresh MultiDiGraph whose attributes are scalar-only.
 
-    Iterates ``graph.entities`` and ``graph.relationships`` — the full-
-    fidelity lists — not ``graph._graph.edges``, which collapses same-type
-    parallel edges via its ``key=relationship.type`` storage. Each edge
-    is added with a unique key: ``rel.id`` when set, otherwise
-    MultiDiGraph auto-assigns an integer.
+    Iterates ``graph.entities`` and ``graph.relationships`` so export follows
+    Graph's public relationship model rather than NetworkX-specific edge
+    attributes. ``MultiDiGraph`` assigns edge keys so parallel edges between
+    the same endpoints survive.
     """
     flat = nx.MultiDiGraph()
     for entity in graph.entities:
         flat.add_node(entity.id, **flatten_node(entity))
     for rel in graph.relationships:
         attrs = flatten_edge(rel)
-        if rel.id is not None:
-            flat.add_edge(rel.source, rel.target, key=rel.id, **attrs)
-        else:
-            flat.add_edge(rel.source, rel.target, **attrs)
+        flat.add_edge(rel.source, rel.target, **attrs)
     return flat
 
 

@@ -1,7 +1,7 @@
 """Filtering and query methods mixed into Graph.
 
 Functions that narrow a graph to a subset of its entities and
-relationships: select, where, search, expand, pattern, and Cypher
+relationships: select, exclude, where, search, expand, pattern, and Cypher
 query. Each returns a new Graph — the original is never mutated.
 """
 
@@ -123,6 +123,75 @@ def select(
         candidates &= connected
 
     return graph._subgraph(candidates)
+
+
+def exclude(
+    graph: Graph,
+    *,
+    entity_types: list[str] | str | None = None,
+    relationship_types: list[str] | str | None = None,
+    drop_isolated: bool = True,
+) -> Graph:
+    """Filter out matching entities and relationships.
+
+    Args:
+        entity_types: Entity type, or types, to remove.
+        relationship_types: Relationship type, or types, to remove.
+        drop_isolated: If ``True`` (default), remove entities that become
+            isolated as a result of the exclusion. Entities that were already
+            isolated are preserved unless they directly match ``entity_types``.
+            Unknown entity or relationship types raise ``ValueError``, matching
+            ``select()``.
+
+    Returns a new ``Graph`` containing the remaining entities and their mutual
+    relationships. Like ``select()``, the returned graph preserves the original
+    expansion root, so later ``expand()`` calls may widen the result again.
+    """
+    if isinstance(entity_types, str):
+        entity_types = [entity_types]
+    if isinstance(relationship_types, str):
+        relationship_types = [relationship_types]
+
+    node_ids = set(graph._entities.keys())
+
+    if entity_types is not None:
+        excluded_entity_types = set(entity_types)
+        for entity_type in excluded_entity_types:
+            graph.types.validate(entity_type)
+        node_ids = {
+            entity_id
+            for entity_id in node_ids
+            if not excluded_entity_types.intersection(graph._entities[entity_id].types)
+        }
+
+    if relationship_types is not None:
+        excluded_relationship_types = set(relationship_types)
+        for relationship_type in excluded_relationship_types:
+            graph.relationship_types.validate(relationship_type)
+    else:
+        excluded_relationship_types = set()
+
+    relationships = [
+        relationship
+        for relationship in graph._relationships
+        if relationship.source in node_ids
+        and relationship.target in node_ids
+        and relationship.type not in excluded_relationship_types
+    ]
+
+    if drop_isolated:
+        before_isolated = {
+            entity_id for entity_id in graph._entities if not graph._neighbours(entity_id)
+        }
+        connected_after = {
+            entity_id
+            for relationship in relationships
+            for entity_id in (relationship.source, relationship.target)
+        }
+        became_isolated = node_ids - connected_after - before_isolated
+        node_ids -= became_isolated
+
+    return graph._build_derived_graph(node_ids=node_ids, relationships=relationships)
 
 
 def where(graph: Graph, **kwargs: Any) -> Graph:
