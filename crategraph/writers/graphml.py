@@ -50,15 +50,16 @@ def _to_flat_networkx(graph: Graph) -> nx.MultiDiGraph:
 
     Iterates ``graph.entities`` and ``graph.relationships`` so export follows
     Graph's public relationship model rather than NetworkX-specific edge
-    attributes. ``MultiDiGraph`` assigns edge keys so parallel edges between
-    the same endpoints survive.
+    attributes. Edge keys are assigned globally rather than per source/target
+    pair because GraphML consumers such as Gephi expect edge IDs to be unique
+    across the whole file.
     """
     flat = nx.MultiDiGraph()
     for entity in graph.entities:
         flat.add_node(entity.id, **flatten_node(entity))
-    for rel in graph.relationships:
+    for i, rel in enumerate(graph.relationships):
         attrs = flatten_edge(rel)
-        flat.add_edge(rel.source, rel.target, **attrs)
+        flat.add_edge(rel.source, rel.target, key=f"e{i}", **attrs)
     return flat
 
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from xml.etree import ElementTree as ET
+
 import networkx as nx
 import pytest
 
@@ -216,7 +218,33 @@ class TestParallelSameTypeEdges:
 
 
 # ---------------------------------------------------------------------------
-# 8. Registry lookup
+# 8. Globally unique GraphML edge IDs
+# ---------------------------------------------------------------------------
+
+
+class TestGraphMLEdgeIds:
+    def test_disjoint_edges_have_unique_graphml_ids(self, tmp_path):
+        """Gephi-style importers expect edge IDs to be globally unique."""
+        a = _entity("A")
+        b = _entity("B")
+        c = _entity("C")
+        d = _entity("D")
+        rel1 = _rel("A", "B", "mentions")
+        rel2 = _rel("C", "D", "mentions")
+        g = _make_graph(a, b, c, d, relationships=[rel1, rel2])
+
+        out = tmp_path / "graph.graphml"
+        GraphMLWriter().write(g, str(out))
+
+        root = ET.parse(out).getroot()
+        ns = {"g": "http://graphml.graphdrawing.org/xmlns"}
+        edge_ids = [edge.attrib["id"] for edge in root.findall(".//g:edge", ns)]
+        assert edge_ids == ["e0", "e1"]
+        assert len(edge_ids) == len(set(edge_ids))
+
+
+# ---------------------------------------------------------------------------
+# 9. Registry lookup
 # ---------------------------------------------------------------------------
 
 
@@ -228,7 +256,7 @@ class TestRegistryLookup:
 
 
 # ---------------------------------------------------------------------------
-# 9. can_write checks
+# 10. can_write checks
 # ---------------------------------------------------------------------------
 
 
