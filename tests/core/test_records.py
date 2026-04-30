@@ -250,3 +250,18 @@ class TestKeyCollisions:
         record = g.relationship_records()[0]
         assert record["source"] == "A"
         assert record["prop_source"] == "interview-2020"
+
+
+class TestEmptyGraph:
+    def test_entity_records_empty_graph_returns_empty_list(self):
+        g = _make_graph()  # no entities
+        result = g.entity_records()
+        assert result == []
+        assert isinstance(result, list)
+
+    def test_relationship_records_no_relationships_returns_empty_list(self):
+        a = _entity("A", types=["Person"])
+        g = _make_graph(a)  # entity but no relationships
+        result = g.relationship_records()
+        assert result == []
+        assert isinstance(result, list)
