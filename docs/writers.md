@@ -4,6 +4,35 @@ The writer subsystem serialises a `Graph` to external formats for use in other t
 
 Format registration is open: third-party packages can add new formats by subclassing `Writer` and calling `register_writer`. The two built-in formats are GraphML and CSV.
 
+## Tabular export
+
+Two paths to a tabular view of a graph:
+
+| Output | Method | When to use |
+| --- | --- | --- |
+| In-memory `list[dict]` | `graph.entity_records()` / `graph.relationship_records()` | Notebook analysis, wrapping with pandas / polars / pyarrow, immediate exploration. No third-party dependencies. |
+| On-disk `nodes.csv` / `edges.csv` | `graph.write(path, format="csv")` (see [CSV](#csv) below) | Hand-off to other tools (R, Excel, Gephi), archival, sharing. All values become strings on disk. |
+
+The records methods preserve native Python types (lists stay lists, dicts stay dicts, `None` stays `None`); the CSV writer flattens to scalars because CSV cells require it. Pick whichever matches your downstream workflow.
+
+### In-memory records
+
+```python
+from crategraph import Crate
+
+crate = Crate("path/to/crate/")
+
+entity_rows = crate.entity_records()
+relationship_rows = crate.relationship_records()
+
+# Wrap with whichever DataFrame library you prefer:
+import pandas as pd
+nodes_df = pd.DataFrame(entity_rows)
+edges_df = pd.DataFrame(relationship_rows)
+```
+
+`entity_records()` returns one dict per entity with promoted keys `id`, `label`, `type`, `types` first, then non-colliding property keys sorted alphabetically, then any properties whose names collide with a promoted key emitted as `prop_<key>` (e.g. an entity with a property named `"id"` becomes `prop_id` so the entity's own id stays untouched). `relationship_records()` returns one dict per relationship with promoted keys `source`, `target`, `type`, `rel_id` first under the same ordering rule. Property values are deep-copied — mutating a returned record does not affect graph state.
+
 ## Formats
 
 | Format key | Output shape | Typical consumer | Notes |
