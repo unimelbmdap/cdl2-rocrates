@@ -31,7 +31,7 @@ nodes_df = pd.DataFrame(entity_rows)
 edges_df = pd.DataFrame(relationship_rows)
 ```
 
-`entity_records()` returns one dict per entity with promoted keys `id`, `label`, `type`, `types` first, then non-colliding property keys sorted alphabetically, then any properties whose names collide with a promoted key emitted as `prop_<key>` (e.g. an entity with a property named `"id"` becomes `prop_id` so the entity's own id stays untouched). `relationship_records()` returns one dict per relationship with promoted keys `source`, `target`, `type`, `rel_id` first under the same ordering rule. Property values are deep-copied — mutating a returned record does not affect graph state.
+`entity_records()` returns one dict per entity with promoted keys `id`, `label`, `type`, `types` first, then non-colliding property keys sorted alphabetically, then any properties whose names collide with a promoted key emitted as `prop_<key>` (e.g. an entity with a property named `"id"` becomes `prop_id` so the entity's own id stays untouched). `relationship_records()` returns one dict per relationship with promoted keys `source`, `target`, `type`, `rel_id` first under the same ordering rule. `rel_id` is `None` for inline (non-reified) relationships and a string for reified ones — the CSV writer uses an empty string in the same position, so this is the one place the two paths differ. Property values are deep-copied — mutating a returned record does not affect graph state.
 
 ## Formats
 
