@@ -149,8 +149,10 @@ class TestNativeTypes:
         a = _entity("A", types=["Person"], properties={"age": 30, "height": 1.75})
         g = _make_graph(a)
         record = g.entity_records()[0]
-        assert record["age"] == 30 and isinstance(record["age"], int)
-        assert record["height"] == 1.75 and isinstance(record["height"], float)
+        assert record["age"] == 30
+        assert isinstance(record["age"], int)
+        assert record["height"] == 1.75
+        assert isinstance(record["height"], float)
 
     def test_types_is_a_list_not_a_tuple(self):
         a = _entity("A", types=["Person", "Researcher"])
