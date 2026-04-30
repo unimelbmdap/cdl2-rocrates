@@ -112,3 +112,71 @@ class TestRelationshipRecords:
         record = g.relationship_records()[0]
         property_keys = list(record.keys())[4:]
         assert property_keys == ["since", "weight"]
+
+
+class TestNativeTypes:
+    """Records preserve native Python types — no pipe-delimiting, no JSON encoding.
+
+    The CSV writer flattens lists/dicts to strings because CSV cells must be
+    scalar; records have no such constraint. Pandas, polars, and pyarrow all
+    handle list-typed cells natively, so preserving structure here is more
+    useful than mirroring CSV's lossy encoding.
+    """
+
+    def test_list_property_stays_a_list(self):
+        a = _entity("A", types=["Person"], properties={"tags": ["x", "y", "z"]})
+        g = _make_graph(a)
+        record = g.entity_records()[0]
+        assert record["tags"] == ["x", "y", "z"]
+
+    def test_dict_property_stays_a_dict(self):
+        a = _entity(
+            "A",
+            types=["Person"],
+            properties={"address": {"city": "Sydney", "postcode": "2000"}},
+        )
+        g = _make_graph(a)
+        record = g.entity_records()[0]
+        assert record["address"] == {"city": "Sydney", "postcode": "2000"}
+
+    def test_none_property_stays_none(self):
+        a = _entity("A", types=["Person"], properties={"middle_name": None})
+        g = _make_graph(a)
+        record = g.entity_records()[0]
+        assert record["middle_name"] is None
+
+    def test_int_and_float_preserved(self):
+        a = _entity("A", types=["Person"], properties={"age": 30, "height": 1.75})
+        g = _make_graph(a)
+        record = g.entity_records()[0]
+        assert record["age"] == 30 and isinstance(record["age"], int)
+        assert record["height"] == 1.75 and isinstance(record["height"], float)
+
+    def test_types_is_a_list_not_a_tuple(self):
+        a = _entity("A", types=["Person", "Researcher"])
+        g = _make_graph(a)
+        record = g.entity_records()[0]
+        assert record["types"] == ["Person", "Researcher"]
+        assert isinstance(record["types"], list)
+
+    def test_mutating_returned_list_does_not_corrupt_graph(self):
+        """Property values are deep-copied so callers can mutate freely."""
+        a = _entity("A", types=["Person"], properties={"tags": ["x", "y"]})
+        g = _make_graph(a)
+        record = g.entity_records()[0]
+        record["tags"].append("z")
+        # Re-read from the graph; the original property must be unchanged.
+        assert g.entity_records()[0]["tags"] == ["x", "y"]
+        assert a.properties["tags"] == ["x", "y"]
+
+    def test_mutating_returned_dict_does_not_corrupt_graph(self):
+        a = _entity(
+            "A",
+            types=["Person"],
+            properties={"address": {"city": "Sydney"}},
+        )
+        g = _make_graph(a)
+        record = g.entity_records()[0]
+        record["address"]["city"] = "Melbourne"
+        assert g.entity_records()[0]["address"] == {"city": "Sydney"}
+        assert a.properties["address"] == {"city": "Sydney"}
