@@ -199,6 +199,10 @@ class Graph:
 
             import pandas as pd
             df = pd.DataFrame(graph.entity_records())
+
+            # or polars / pyarrow:
+            # pl.DataFrame(graph.entity_records())
+            # pa.Table.from_pylist(graph.entity_records())
         """
         from crategraph.core import records
 
@@ -222,6 +226,10 @@ class Graph:
 
             import pandas as pd
             df = pd.DataFrame(graph.relationship_records())
+
+            # or polars / pyarrow:
+            # pl.DataFrame(graph.relationship_records())
+            # pa.Table.from_pylist(graph.relationship_records())
         """
         from crategraph.core import records
 
