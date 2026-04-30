@@ -180,3 +180,73 @@ class TestNativeTypes:
         record["address"]["city"] = "Melbourne"
         assert g.entity_records()[0]["address"] == {"city": "Sydney"}
         assert a.properties["address"] == {"city": "Sydney"}
+
+
+class TestLabelDerivation:
+    def test_label_uses_name_when_present(self):
+        a = _entity("A", types=["Person"], properties={"name": "Alice"})
+        g = _make_graph(a)
+        assert g.entity_records()[0]["label"] == "Alice"
+
+    def test_label_falls_back_to_title(self):
+        a = _entity("A", types=["Document"], properties={"title": "My Paper"})
+        g = _make_graph(a)
+        assert g.entity_records()[0]["label"] == "My Paper"
+
+    def test_label_falls_back_to_id_when_no_name_or_title(self):
+        a = _entity("A", types=["Person"], properties={"description": "Anonymous"})
+        g = _make_graph(a)
+        assert g.entity_records()[0]["label"] == "A"
+
+    def test_empty_string_name_falls_through(self):
+        a = _entity("A", types=["Person"], properties={"name": ""})
+        g = _make_graph(a)
+        # Empty string is not truthy → fall through to id.
+        assert g.entity_records()[0]["label"] == "A"
+
+    def test_non_string_name_is_coerced(self):
+        a = _entity("A", types=["Person"], properties={"name": 42})
+        g = _make_graph(a)
+        assert g.entity_records()[0]["label"] == "42"
+
+
+class TestKeyCollisions:
+    def test_property_named_id_is_prefixed(self):
+        a = _entity("A", types=["Person"], properties={"id": "external-id-001"})
+        g = _make_graph(a)
+        record = g.entity_records()[0]
+        # Promoted "id" wins; property collides → prop_id.
+        assert record["id"] == "A"
+        assert record["prop_id"] == "external-id-001"
+
+    def test_property_named_types_is_prefixed(self):
+        a = _entity("A", types=["Person"], properties={"types": ["custom"]})
+        g = _make_graph(a)
+        record = g.entity_records()[0]
+        assert record["types"] == ["Person"]
+        assert record["prop_types"] == ["custom"]
+
+    def test_existing_prop_prefix_is_pushed_further(self):
+        a = _entity(
+            "A",
+            types=["Person"],
+            properties={"id": "x", "prop_id": "y"},
+        )
+        g = _make_graph(a)
+        record = g.entity_records()[0]
+        # "prop_id" is non-colliding (not in promoted keys) so the
+        # non-colliding-first sort emits it before "id". With "prop_id"
+        # already taken, "id" then collides on the promoted "id" *and*
+        # the just-emitted "prop_id" → prop_prop_id.
+        assert record["id"] == "A"
+        assert record["prop_id"] == "y"
+        assert record["prop_prop_id"] == "x"
+
+    def test_relationship_property_named_source_is_prefixed(self):
+        a = _entity("A", types=["Person"])
+        b = _entity("B", types=["Person"])
+        rel = _rel("A", "B", "knows", properties={"source": "interview-2020"})
+        g = _make_graph(a, b, relationships=[rel])
+        record = g.relationship_records()[0]
+        assert record["source"] == "A"
+        assert record["prop_source"] == "interview-2020"
