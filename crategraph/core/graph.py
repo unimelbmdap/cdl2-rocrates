@@ -181,6 +181,29 @@ class Graph:
             nxg.add_edge(rel.source, rel.target, relationship=attached)
         return nxg
 
+    def entity_records(self) -> list[dict[str, Any]]:
+        """Return one ``dict`` per entity with native Python values.
+
+        Keys: ``id``, ``label``, ``type``, ``types`` first, then
+        non-colliding properties sorted alphabetically, then any
+        properties whose names collide with a promoted key emitted as
+        ``prop_<key>``. ``label`` falls back through ``name`` →
+        ``title`` → ``id``. ``type`` is the first entry of ``types``
+        (or empty string if untyped). ``types`` is a list of strings.
+        Property values are deep-copied so callers can mutate returned
+        records without touching graph state.
+
+        Wrap with your DataFrame library of choice:
+
+        ::
+
+            import pandas as pd
+            df = pd.DataFrame(graph.entity_records())
+        """
+        from crategraph.core import records
+
+        return records.entity_records(self)
+
     def write(
         self,
         path: str,
