@@ -53,3 +53,62 @@ class TestEntityRecords:
         record = g.entity_records()[0]
         property_keys = list(record.keys())[4:]
         assert property_keys == ["apple", "name", "zebra"]
+
+
+class TestRelationshipRecords:
+    def test_returns_list_of_dicts(self):
+        a = _entity("A", types=["Person"])
+        b = _entity("B", types=["Person"])
+        g = _make_graph(a, b, relationships=[_rel("A", "B", "knows")])
+        result = g.relationship_records()
+        assert isinstance(result, list)
+        assert all(isinstance(r, dict) for r in result)
+
+    def test_one_record_per_relationship(self):
+        a = _entity("A", types=["Person"])
+        b = _entity("B", types=["Person"])
+        c = _entity("C", types=["Person"])
+        g = _make_graph(
+            a,
+            b,
+            c,
+            relationships=[
+                _rel("A", "B", "knows"),
+                _rel("A", "C", "knows"),
+                _rel("B", "C", "manages"),
+            ],
+        )
+        assert len(g.relationship_records()) == 3
+
+    def test_promoted_keys_first_in_order(self):
+        a = _entity("A", types=["Person"])
+        b = _entity("B", types=["Person"])
+        rel = _rel("A", "B", "knows", id="r1", properties={"since": 2020})
+        g = _make_graph(a, b, relationships=[rel])
+        record = g.relationship_records()[0]
+        assert list(record.keys())[:4] == ["source", "target", "type", "rel_id"]
+
+    def test_inline_relationship_rel_id_is_none(self):
+        a = _entity("A", types=["Person"])
+        b = _entity("B", types=["Person"])
+        rel = _rel("A", "B", "knows")  # no id → inline
+        g = _make_graph(a, b, relationships=[rel])
+        record = g.relationship_records()[0]
+        assert record["rel_id"] is None
+
+    def test_reified_relationship_rel_id_preserved(self):
+        a = _entity("A", types=["Person"])
+        b = _entity("B", types=["Person"])
+        rel = _rel("A", "B", "knows", id="r-42")
+        g = _make_graph(a, b, relationships=[rel])
+        record = g.relationship_records()[0]
+        assert record["rel_id"] == "r-42"
+
+    def test_relationship_property_keys_sorted_after_promoted(self):
+        a = _entity("A", types=["Person"])
+        b = _entity("B", types=["Person"])
+        rel = _rel("A", "B", "knows", id="r1", properties={"weight": 0.8, "since": 2020})
+        g = _make_graph(a, b, relationships=[rel])
+        record = g.relationship_records()[0]
+        property_keys = list(record.keys())[4:]
+        assert property_keys == ["since", "weight"]

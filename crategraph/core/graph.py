@@ -204,6 +204,27 @@ class Graph:
 
         return records.entity_records(self)
 
+    def relationship_records(self) -> list[dict[str, Any]]:
+        """Return one ``dict`` per relationship with native Python values.
+
+        Keys: ``source``, ``target``, ``type``, ``rel_id`` first, then
+        non-colliding properties sorted alphabetically, then any
+        properties whose names collide with a promoted key emitted as
+        ``prop_<key>``. ``rel_id`` is ``None`` for inline (non-reified)
+        relationships. Property values are deep-copied so callers can
+        mutate returned records without touching graph state.
+
+        Wrap with your DataFrame library of choice:
+
+        ::
+
+            import pandas as pd
+            df = pd.DataFrame(graph.relationship_records())
+        """
+        from crategraph.core import records
+
+        return records.relationship_records(self)
+
     def write(
         self,
         path: str,

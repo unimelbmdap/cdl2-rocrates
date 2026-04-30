@@ -123,3 +123,27 @@ def entity_records(graph: Graph) -> list[dict[str, Any]]:
         _add_properties(entity.properties, _ENTITY_PROMOTED_KEYS, record)
         result.append(record)
     return result
+
+
+def relationship_records(graph: Graph) -> list[dict[str, Any]]:
+    """Return one ``dict`` per relationship with native Python values.
+
+    Keys: ``source``, ``target``, ``type``, ``rel_id`` first, then
+    non-colliding relationship properties sorted alphabetically, then
+    any properties whose names collide with a promoted key emitted as
+    ``prop_<key>``. ``rel_id`` is ``None`` for inline (non-reified)
+    relationships, preserving the distinction between inline and
+    reified rather than collapsing both to an empty string the way CSV
+    does. Property values are deep-copied.
+    """
+    result: list[dict[str, Any]] = []
+    for rel in graph.relationships:
+        record: dict[str, Any] = {
+            "source": rel.source,
+            "target": rel.target,
+            "type": rel.type,
+            "rel_id": rel.id,
+        }
+        _add_properties(rel.properties, _RELATIONSHIP_PROMOTED_KEYS, record)
+        result.append(record)
+    return result
