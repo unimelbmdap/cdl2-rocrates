@@ -15,11 +15,12 @@ freely without touching graph state — matching
 :meth:`Graph.to_networkx`'s default ``copy=True`` behaviour. Native
 Python types are preserved — lists stay lists, dicts stay dicts,
 ``None`` stays ``None``. Wrap with the DataFrame library of your
-choice:
+choice (the example shows pandas; replace ``pd.DataFrame`` with
+``pl.DataFrame`` or ``pa.Table.from_pylist`` for polars / pyarrow)::
 
-    pd.DataFrame(graph.entity_records())
-    pl.DataFrame(graph.entity_records())
-    pa.Table.from_pylist(graph.entity_records())
+    import pandas as pd
+
+    df = pd.DataFrame(graph.entity_records())
 
 This module has no third-party dependencies.
 """
@@ -39,11 +40,20 @@ _RELATIONSHIP_PROMOTED_KEYS: frozenset[str] = frozenset({"source", "target", "ty
 
 
 def _derive_label(entity: Entity) -> str:
-    """Return a display label: ``name`` → ``title`` → ``entity.id``.
+    """Return a display label, falling back through the same chain as CSV.
 
-    Matches :func:`crategraph.writers._flatten.flatten_node`'s label
-    fallback chain so the future ``entity_table()`` sugar produces the
-    same column as ``nodes.csv``.
+    Order of preference:
+
+    1. ``properties["name"]`` if present and a non-empty ``str``.
+    2. ``properties["title"]`` if present and a non-empty ``str``.
+    3. ``str(properties["name"])`` if ``name`` is non-``None`` and non-empty
+       but not a string (e.g. an ``int`` like ``42``).
+    4. ``str(properties["title"])`` under the same coercion rule.
+    5. ``entity.id`` as the final fallback.
+
+    Mirrors :func:`crategraph.writers._flatten.flatten_node`'s label
+    fallback so the future ``entity_table()`` sugar produces the same
+    column as ``nodes.csv``.
     """
     name_val = entity.properties.get("name")
     title_val = entity.properties.get("title")
@@ -102,7 +112,7 @@ def entity_records(graph: Graph) -> list[dict[str, Any]]:
         import pandas as pd
         df = pd.DataFrame(graph.entity_records())
     """
-    records: list[dict[str, Any]] = []
+    result: list[dict[str, Any]] = []
     for entity in graph.entities:
         record: dict[str, Any] = {
             "id": entity.id,
@@ -111,5 +121,5 @@ def entity_records(graph: Graph) -> list[dict[str, Any]]:
             "types": list(entity.types),
         }
         _add_properties(entity.properties, _ENTITY_PROMOTED_KEYS, record)
-        records.append(record)
-    return records
+        result.append(record)
+    return result
