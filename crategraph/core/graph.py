@@ -211,8 +211,10 @@ class Graph:
         non-colliding properties sorted alphabetically, then any
         properties whose names collide with a promoted key emitted as
         ``prop_<key>``. ``rel_id`` is ``None`` for inline (non-reified)
-        relationships. Property values are deep-copied so callers can
-        mutate returned records without touching graph state.
+        relationships and a string for reified ones — the distinction
+        is preserved here, unlike the CSV writer which collapses both
+        to an empty string. Property values are deep-copied so callers
+        can mutate returned records without touching graph state.
 
         Wrap with your DataFrame library of choice:
 

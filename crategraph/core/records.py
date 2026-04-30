@@ -20,7 +20,8 @@ choice (the example shows pandas; replace ``pd.DataFrame`` with
 
     import pandas as pd
 
-    df = pd.DataFrame(graph.entity_records())
+    nodes = pd.DataFrame(graph.entity_records())
+    edges = pd.DataFrame(graph.relationship_records())
 
 This module has no third-party dependencies.
 """
