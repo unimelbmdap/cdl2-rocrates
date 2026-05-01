@@ -159,6 +159,7 @@ class ForceGraph3DRenderer(Renderer):
         template = _load_template()
         html = template % {
             "graph_data": json_str,
+            "title": graph.title,
             "height": height,
             "width": width,
         }
