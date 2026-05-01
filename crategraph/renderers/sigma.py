@@ -210,6 +210,7 @@ class SigmaRenderer(Renderer):
 
         html = template % {
             "graph_data": _safe_json(graph_json),
+            "title": graph.title,
             "type_colours": _safe_json(type_colours),
             "config": _safe_json(config),
             "bundle": bundle,
