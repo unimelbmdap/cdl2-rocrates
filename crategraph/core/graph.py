@@ -56,6 +56,11 @@ class Graph:
         return TypeRegistry(frozenset(all_types), label="entity type")
 
     @property
+    def title(self) -> str:
+        """Name or title of this RO-Crate."""
+        return self.metadata.get("name") or self.metadata.get("title") or "Untitled RO-Crate"
+
+    @property
     def relationship_types(self) -> TypeRegistry:
         """Registry of relationship types present in this graph."""
         return TypeRegistry(
