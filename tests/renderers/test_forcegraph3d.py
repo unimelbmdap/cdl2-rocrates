@@ -216,6 +216,36 @@ class TestForceGraph3DRenderer:
         assert "<\\/script><script>alert(1)<\\/script>" in html
 
 
+class TestForceGraph3DTitle:
+    """The graph title flows into the rendered <title> tag."""
+
+    @staticmethod
+    def _title_tag(content: str) -> str:
+        import re
+
+        match = re.search(r"<title>(.*?)</title>", content, re.DOTALL)
+        assert match is not None, "No <title> tag in rendered HTML"
+        return match.group(1)
+
+    def test_template_formats_title(self):
+        g = _build_graph()
+        g.metadata["name"] = "Project Acme"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "out.html")
+            ForceGraph3DRenderer().render(g, filepath=filepath)
+            assert (
+                self._title_tag(Path(filepath).read_text())
+                == "Project Acme | 3D Network Visualisation"
+            )
+
+    def test_template_uses_fallback_when_no_name(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "out.html")
+            ForceGraph3DRenderer().render(g, filepath=filepath)
+            assert "Untitled RO-Crate" in self._title_tag(Path(filepath).read_text())
+
+
 class TestBidirectionalLinks:
     def test_bidirectional_link_has_flag(self):
         """Collapsed bidirectional edges should have bidirectional=True in JSON."""

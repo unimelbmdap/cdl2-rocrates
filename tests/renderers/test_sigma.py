@@ -340,6 +340,41 @@ class TestSigmaSimple:
         assert 'id="legend"' not in html_str
 
 
+class TestSigmaTitle:
+    """The graph title flows into the rendered <title> tag."""
+
+    @staticmethod
+    def _title_tag(content: str) -> str:
+        import re
+
+        match = re.search(r"<title>(.*?)</title>", content, re.DOTALL)
+        assert match is not None, "No <title> tag in rendered HTML"
+        return match.group(1)
+
+    def test_full_template_includes_graph_title(self):
+        g = _build_graph()
+        g.metadata["name"] = "Project Acme"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "out.html")
+            SigmaRenderer().render(g, filepath=filepath)
+            assert "Project Acme" in self._title_tag(Path(filepath).read_text())
+
+    def test_simple_template_formats_title(self):
+        g = _build_graph()
+        g.metadata["name"] = "Project Acme"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "out.html")
+            SigmaRenderer().render(g, filepath=filepath, simple=True)
+            assert self._title_tag(Path(filepath).read_text()) == "Project Acme | Graph Thumbnail"
+
+    def test_full_template_uses_fallback_when_no_name(self):
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "out.html")
+            SigmaRenderer().render(g, filepath=filepath)
+            assert "Untitled RO-Crate" in self._title_tag(Path(filepath).read_text())
+
+
 class TestEdgeWidth:
     """edge_width API integration — per-edge ``size`` in the sigma JSON."""
 

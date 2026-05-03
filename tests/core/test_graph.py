@@ -21,6 +21,75 @@ class TestGraphCreation:
         assert g.metadata["@context"] == "https://w3id.org/ro/crate/1.1"
 
 
+class TestTitle:
+    def test_uses_name_from_metadata(self):
+        g = Graph(metadata={"name": "My Crate"})
+        assert g.title == "My Crate"
+
+    def test_falls_back_to_title_key(self):
+        g = Graph(metadata={"title": "Other"})
+        assert g.title == "Other"
+
+    def test_name_takes_precedence_over_title(self):
+        g = Graph(metadata={"name": "TheName", "title": "TheTitle"})
+        assert g.title == "TheName"
+
+    def test_fallback_when_metadata_empty(self):
+        assert Graph().title == "Untitled RO-Crate"
+
+    def test_fallback_when_name_and_title_blank(self):
+        g = Graph(metadata={"name": "", "title": ""})
+        assert g.title == "Untitled RO-Crate"
+
+    def test_ignores_non_string_name(self):
+        # If "name" happens to be a dict (e.g. malformed crate), don't
+        # return the dict — fall through to title or default.
+        g = Graph(metadata={"name": {"@id": "#x"}, "title": "Fallback"})
+        assert g.title == "Fallback"
+
+    def test_multi_crate_combines_names(self):
+        # Mirrors the metadata shape Crate(*paths) produces in multi-crate mode.
+        g = Graph(
+            metadata={
+                "crate-a": {"name": "Crate A"},
+                "crate-b": {"name": "Crate B"},
+            }
+        )
+        assert g.title == "Crate A, Crate B"
+
+    def test_multi_crate_falls_through_to_title_key_per_crate(self):
+        g = Graph(
+            metadata={
+                "crate-a": {"name": "Crate A"},
+                "crate-b": {"title": "Crate B"},
+            }
+        )
+        assert g.title == "Crate A, Crate B"
+
+    def test_multi_crate_skips_unnamed_per_crate(self):
+        g = Graph(
+            metadata={
+                "crate-a": {"name": "Crate A"},
+                "crate-b": {},
+            }
+        )
+        assert g.title == "Crate A"
+
+    def test_does_not_pick_name_from_unrelated_nested_dict(self):
+        # Single-crate metadata may have dict-valued fields (author,
+        # publisher, JSON-LD @context, etc.) without a top-level name.
+        # The multi-crate fallback must not misfire and pull a name out
+        # of these unrelated fields.
+        g = Graph(
+            metadata={
+                "@context": "https://w3id.org/ro/crate/1.1/context",
+                "@type": "Dataset",
+                "author": {"@id": "#alice", "name": "Alice Smith"},
+            }
+        )
+        assert g.title == "Untitled RO-Crate"
+
+
 class TestAddNode:
     def test_add_entity(self):
         g = Graph()

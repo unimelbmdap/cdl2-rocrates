@@ -57,8 +57,31 @@ class Graph:
 
     @property
     def title(self) -> str:
-        """Name or title of this RO-Crate."""
-        return self.metadata.get("name") or self.metadata.get("title") or "Untitled RO-Crate"
+        """Name or title of this RO-Crate.
+
+        For multi-crate graphs (where ``metadata`` is keyed by crate
+        directory and each value is a per-crate metadata dict), the
+        per-crate names are joined with commas.
+        """
+        for key in ("name", "title"):
+            value = self.metadata.get(key)
+            if isinstance(value, str) and value:
+                return value
+        # Multi-crate shape only: every top-level value is a per-crate
+        # metadata dict. A loaded single-crate always has at least one
+        # non-dict (e.g. ``@context``, ``@type``, ``description``), so
+        # this avoids picking ``name`` out of an unrelated nested object.
+        if self.metadata and all(isinstance(v, dict) for v in self.metadata.values()):
+            nested_titles = []
+            for value in self.metadata.values():
+                for key in ("name", "title"):
+                    sub = value.get(key)
+                    if isinstance(sub, str) and sub:
+                        nested_titles.append(sub)
+                        break
+            if nested_titles:
+                return ", ".join(nested_titles)
+        return "Untitled RO-Crate"
 
     @property
     def relationship_types(self) -> TypeRegistry:

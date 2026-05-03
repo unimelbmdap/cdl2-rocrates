@@ -31,6 +31,17 @@ class TestSinglePathBackwardsCompatible:
         assert crate.source is not None
 
 
+class TestSingleCrateTitle:
+    def test_uses_root_dataset_name(self):
+        assert Crate(MINIMAL).title == "Minimal test crate"
+
+
+class TestMultiCrateTitle:
+    def test_combines_both_crate_names(self):
+        # Order follows the order of *paths* passed to Crate.
+        assert Crate(MINIMAL, SECOND).title == "Minimal test crate, Second test crate"
+
+
 class TestMultiCrateLoading:
     """Loading multiple crates into one graph."""
 
