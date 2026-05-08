@@ -194,6 +194,37 @@ def exclude(
     return graph._build_derived_graph(node_ids=node_ids, relationships=relationships)
 
 
+def drop(
+    graph: Graph,
+    values: str | list[str],
+    *,
+    property: str | None = None,
+) -> Graph:
+    """Remove entities whose properties contain any of the given values.
+
+    Args:
+        values: A single value or list of values to drop.
+        property: If given, only check this property key. If omitted,
+            all entity properties are checked.
+
+    Returns a new ``Graph`` with matching entities removed.
+    """
+    if isinstance(values, str):
+        values = [values]
+    value_set = set(values)
+
+    node_ids: set[str] = set()
+    for eid, entity in graph._entities.items():
+        if property is not None:
+            if entity.properties.get(property) not in value_set:
+                node_ids.add(eid)
+        else:
+            if not any(v in value_set for v in entity.properties.values()):
+                node_ids.add(eid)
+
+    return graph._build_derived_graph(node_ids=node_ids)
+
+
 def where(graph: Graph, **kwargs: Any) -> Graph:
     """Filter by entity property values.
 
