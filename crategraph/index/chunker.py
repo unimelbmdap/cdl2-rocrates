@@ -15,10 +15,19 @@ from dataclasses import dataclass
 
 @dataclass
 class TextSlice:
-    """A slice of source text with its token count."""
+    """A slice of source text with its token count and character offsets.
+
+    ``char_start`` and ``char_end`` are positions within the original
+    string passed to :meth:`Chunker.chunk` such that
+    ``text == original[char_start:char_end]``. They're persisted by the
+    indexer so chunk text can be reconstructed at query time without
+    duplicating the original.
+    """
 
     text: str
     token_count: int
+    char_start: int
+    char_end: int
 
 
 class Chunker:
@@ -77,7 +86,14 @@ class Chunker:
             return
 
         if len(ids) <= self.chunk_tokens:
-            yield TextSlice(text=text, token_count=len(ids))
+            # Single-chunk path: use 0..len(text) so reconstruction via
+            # ``text[char_start:char_end]`` yields the full input verbatim.
+            yield TextSlice(
+                text=text,
+                token_count=len(ids),
+                char_start=0,
+                char_end=len(text),
+            )
             return
 
         step = self.chunk_tokens - self.chunk_overlap
@@ -88,7 +104,12 @@ class Chunker:
             char_start = offsets[start][0]
             char_end = offsets[end - 1][1]
             slice_text = text[char_start:char_end]
-            yield TextSlice(text=slice_text, token_count=end - start)
+            yield TextSlice(
+                text=slice_text,
+                token_count=end - start,
+                char_start=char_start,
+                char_end=char_end,
+            )
             if end == n:
                 break
             start += step

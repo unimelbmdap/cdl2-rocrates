@@ -9,7 +9,7 @@ incremental rebuilds.
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator, Sequence
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -26,9 +26,10 @@ from crategraph.index.models import (
     DEFAULT_CHUNK_OVERLAP,
     DEFAULT_CHUNK_TOKENS,
     DEFAULT_MODEL,
-    Chunk,
+    ChunkSpec,
     IndexerConfig,
     IndexerStats,
+    TextUnitSpec,
 )
 from crategraph.index.store import Store, StoreManifest
 
@@ -121,17 +122,18 @@ class Indexer:
                     stats.total_chunks += existing.chunk_count
                     continue
 
-                # Build replacement chunks + embeddings before touching
-                # the existing index, so a failure here leaves the previous
-                # state intact. Store.replace_source replaces atomically.
-                chunks = list(self._chunks_for_source(chunker, source_id))
-                if not chunks:
+                # Build replacement text units + chunk specs + embeddings
+                # before touching the existing index, so a failure here
+                # leaves the previous state intact. Store.replace_source
+                # replaces atomically.
+                text_units, chunk_texts = self._build_text_units(chunker, source_id)
+                if not text_units:
                     logger.info("Source %r yielded no chunks; skipping", source_id)
                     continue
 
-                embeddings = self._embed([c.text for c in chunks])
+                embeddings = self._embed(chunk_texts)
                 store.replace_source(
-                    chunks,
+                    text_units,
                     embeddings,
                     source_id=source_id,
                     source_path=source_path(self.graph, entities),
@@ -140,29 +142,54 @@ class Indexer:
                 )
                 stats.sources_indexed.append(source_id)
                 stats.total_entities += len(entities)
-                stats.total_chunks += len(chunks)
+                stats.total_chunks += len(chunk_texts)
 
         return stats
 
     # --- Internals ---
 
-    def _chunks_for_source(self, chunker: Chunker, source_id: str) -> Iterator[Chunk]:
-        """Walk text_records for *source_id* and yield Chunks ready to embed."""
+    def _build_text_units(
+        self, chunker: Chunker, source_id: str
+    ) -> tuple[list[TextUnitSpec], list[str]]:
+        """Materialise text units + flat chunk-text list for one source.
+
+        Returns ``(units, chunk_texts)`` where ``chunk_texts`` is the
+        flat embed-input list in the same order the store will consume.
+        Text units yielding no chunks are skipped.
+        """
+        units: list[TextUnitSpec] = []
+        chunk_texts: list[str] = []
         records = self.graph.text_records(
             text_properties=self.config.text_properties,
             filters={"source_id": [source_id]},
         )
         for record in records:
-            for idx, slice_ in enumerate(chunker.chunk(record["text"])):
-                yield Chunk(
+            slices = list(chunker.chunk(record["text"]))
+            if not slices:
+                continue
+            specs = tuple(
+                ChunkSpec(
+                    chunk_index=idx,
+                    char_start=s.char_start,
+                    char_end=s.char_end,
+                    token_count=s.token_count,
+                )
+                for idx, s in enumerate(slices)
+            )
+            unit_token_count = sum(s.token_count for s in slices)
+            units.append(
+                TextUnitSpec(
                     source_id=record["source_id"],
                     entity_id=record["entity_id"],
                     entity_types=record["entity_types"],
                     source_kind=record["source_kind"],
-                    chunk_index=idx,
-                    token_count=slice_.token_count,
-                    text=slice_.text,
+                    text=record["text"],
+                    token_count=unit_token_count,
+                    chunks=specs,
                 )
+            )
+            chunk_texts.extend(s.text for s in slices)
+        return units, chunk_texts
 
     def _validate_or_init(self, store: Store, existing: StoreManifest | None) -> None:
         """Either confirm config compatibility or create a fresh schema."""

@@ -134,6 +134,77 @@ def test_semantic_search_restrict_to_view(tmp_path: Path) -> None:
     assert "#alice" in unrestricted_ids
 
 
+def test_cached_text_records_via_graph(tmp_path: Path) -> None:
+    """Graph.text_records(store_path=...) reads from text_units with token_count."""
+    store = tmp_path / "cached_text.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    cached = list(crate.text_records(store_path=store))
+    assert cached, "expected cached text records"
+
+    # Cached records carry token_count; live records don't.
+    assert all("token_count" in r for r in cached)
+    assert all(r["token_count"] > 0 for r in cached)
+
+    live_keys = set(next(iter(crate.text_records())).keys())
+    assert "token_count" not in live_keys
+
+
+def test_cached_text_records_filters(tmp_path: Path) -> None:
+    """Filters work end-to-end through Graph → Store on the cached path."""
+    store = tmp_path / "cached_filtered.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    only_files = list(crate.text_records(store_path=store, filters={"source_kind": ["file"]}))
+    assert only_files
+    assert all(r["source_kind"] == "file" for r in only_files)
+
+
+def test_chunk_records_reconstructs_text(tmp_path: Path) -> None:
+    """Graph.chunk_records yields per-chunk dicts with reconstructed text."""
+    store = tmp_path / "chunks.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    chunks = list(crate.chunk_records(store_path=store))
+    assert chunks
+    expected_keys = {
+        "source_id",
+        "entity_id",
+        "entity_types",
+        "source_kind",
+        "chunk_index",
+        "char_start",
+        "char_end",
+        "token_count",
+        "text",
+    }
+    for record in chunks:
+        assert set(record.keys()) == expected_keys
+        assert record["text"]
+        assert record["char_end"] > record["char_start"]
+
+
+def test_chunk_records_text_matches_text_units(tmp_path: Path) -> None:
+    """Reconstructed chunk text must equal the SUBSTR of the parent text_unit."""
+    store = tmp_path / "verify.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    units = {
+        (r["entity_id"], r["source_kind"]): r["text"] for r in crate.text_records(store_path=store)
+    }
+    for chunk in crate.chunk_records(store_path=store):
+        key = (chunk["entity_id"], chunk["source_kind"])
+        unit_text = units[key]
+        expected = unit_text[chunk["char_start"] : chunk["char_end"]]
+        assert chunk["text"] == expected, (
+            f"chunk text mismatch for {key} idx={chunk['chunk_index']}"
+        )
+
+
 def test_semantic_search_intersects_user_entity_id_with_view(tmp_path: Path) -> None:
     """User-supplied entity_id filters must be intersected with the view.
 

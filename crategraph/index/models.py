@@ -12,16 +12,36 @@ DEFAULT_CHUNK_OVERLAP = 50
 
 
 @dataclass(frozen=True)
-class Chunk:
-    """A single indexable unit of text with provenance metadata."""
+class ChunkSpec:
+    """A chunk's offsets within its parent text unit.
+
+    Offsets are character positions in the canonical ``text_units.text``
+    such that ``unit_text[char_start:char_end]`` reconstructs the chunk.
+    """
+
+    chunk_index: int
+    char_start: int
+    char_end: int
+    token_count: int
+
+
+@dataclass(frozen=True)
+class TextUnitSpec:
+    """A canonical text unit plus the chunk offsets the indexer will store.
+
+    Used to communicate the indexer's output to the store. The store
+    writes one ``text_units`` row plus one ``chunks`` row per
+    :class:`ChunkSpec`, all atomically, and inserts the corresponding
+    embeddings into ``vec_chunks``.
+    """
 
     source_id: str
     entity_id: str
     entity_types: tuple[str, ...]
     source_kind: SourceKind
-    chunk_index: int
-    token_count: int
     text: str
+    token_count: int
+    chunks: tuple[ChunkSpec, ...]
 
 
 @dataclass(frozen=True)

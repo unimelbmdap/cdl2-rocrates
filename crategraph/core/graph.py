@@ -367,6 +367,7 @@ class Graph:
     def text_records(
         self,
         *,
+        store_path: str | Path | None = None,
         text_properties: Sequence[str] | None = None,
         filters: Mapping[str, Any] | None = None,
     ) -> Iterator[dict[str, Any]]:
@@ -375,15 +376,29 @@ class Graph:
         Each record is a dict with keys ``source_id``, ``entity_id``,
         ``source_kind`` (``"file"`` or ``"properties"``),
         ``entity_types``, ``text``. Generator — peak memory is one
-        record at a time. Live extraction; file content is pulled
-        on the fly via the registered ``Inspector``.
+        record at a time.
+
+        ``store_path`` switches between two read paths:
+
+        - **Default (``store_path=None``)**: live extraction. Walks
+          entities and pulls file content via the registered
+          ``Inspector``. Slow on big corpora; always reflects current
+          files on disk. Yields no ``token_count``.
+        - **Cached (``store_path=...``)**: reads ``text_units`` from
+          a previously-built index. Microseconds per record;
+          reflects the corpus as of the last ``build_semantic_index``.
+          Yields ``token_count`` (the indexer's tokenizer view).
+          Requires the ``[index]`` extra.
 
         Filters: ``source_id``, ``entity_id``, ``entity_types``,
         ``source_kind`` (any-of within each key).
 
-        See :func:`crategraph.core.text.text_records` for the
-        underlying implementation.
+        See :func:`crategraph.core.text.text_records` for the live
+        implementation.
         """
+        if store_path is not None:
+            return self._cached_text_records(store_path, filters)
+
         from crategraph.core.text import DEFAULT_TEXT_PROPERTIES, text_records
 
         # Distinguish ``None`` (use defaults) from ``[]`` (explicit empty —
@@ -396,6 +411,67 @@ class Graph:
             text_properties=text_properties,
             filters=dict(filters) if filters else None,
         )
+
+    def chunk_records(
+        self,
+        *,
+        store_path: str | Path,
+        filters: Mapping[str, Any] | None = None,
+    ) -> Iterator[dict[str, Any]]:
+        """Yield one record per indexed chunk.
+
+        Requires the ``[index]`` extra and a previously-built index.
+        Each record is a dict with keys ``source_id``, ``entity_id``,
+        ``source_kind``, ``entity_types``, ``chunk_index``,
+        ``char_start``, ``char_end``, ``token_count``, ``text`` —
+        with ``text`` reconstructed at query time from the canonical
+        ``text_units`` row via SUBSTR. Streaming: peak memory ≈ one
+        chunk's text.
+
+        Filters: ``source_id``, ``entity_id``, ``entity_types``,
+        ``source_kind``.
+        """
+        try:
+            from crategraph.index.store import Store
+        except ImportError:
+            msg = (
+                "chunk_records requires the [index] extra. "
+                "Install it with: pip install crategraph[index]"
+            )
+            raise ImportError(msg) from None
+
+        normalised = dict(filters) if filters else None
+
+        # Stream rather than materialise — wrap the cursor in a
+        # generator that owns the Store lifecycle.
+        def _iter() -> Iterator[dict[str, Any]]:
+            with Store(store_path) as store:
+                yield from store.iter_chunk_records(filters=normalised)
+
+        return _iter()
+
+    def _cached_text_records(
+        self,
+        store_path: str | Path,
+        filters: Mapping[str, Any] | None,
+    ) -> Iterator[dict[str, Any]]:
+        """Stream text_units rows from a built index. Lazy-imports the index module."""
+        try:
+            from crategraph.index.store import Store
+        except ImportError:
+            msg = (
+                "Cached text_records reads require the [index] extra. "
+                "Install it with: pip install crategraph[index]"
+            )
+            raise ImportError(msg) from None
+
+        normalised = dict(filters) if filters else None
+
+        def _iter() -> Iterator[dict[str, Any]]:
+            with Store(store_path) as store:
+                yield from store.iter_text_records(filters=normalised)
+
+        return _iter()
 
     def build_semantic_index(
         self,

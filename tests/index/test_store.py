@@ -14,7 +14,11 @@ import pytest
 pytest.importorskip("sqlite_vec")
 import numpy as np
 
-from crategraph.index.models import Chunk, IndexerConfig
+from crategraph.index.models import (
+    ChunkSpec,
+    IndexerConfig,
+    TextUnitSpec,
+)
 from crategraph.index.store import Store, StoreManifest
 
 DIM = 4
@@ -29,15 +33,24 @@ def _make_manifest(dim: int = DIM) -> StoreManifest:
     )
 
 
-def _make_chunk(idx: int, source_kind: str) -> Chunk:
-    return Chunk(
-        source_id="test",
+def _unit(idx: int, source_kind: str, *, source_id: str = "test") -> TextUnitSpec:
+    """Build a synthetic single-chunk text unit."""
+    text = f"{source_kind} text {idx}"
+    return TextUnitSpec(
+        source_id=source_id,
         entity_id=f"{source_kind}-{idx}",
         entity_types=("Person",) if source_kind == "properties" else ("File",),
         source_kind=source_kind,  # type: ignore[arg-type]
-        chunk_index=0,
+        text=text,
         token_count=10,
-        text=f"{source_kind} chunk {idx}",
+        chunks=(
+            ChunkSpec(
+                chunk_index=0,
+                char_start=0,
+                char_end=len(text),
+                token_count=10,
+            ),
+        ),
     )
 
 
@@ -46,14 +59,14 @@ def test_filtered_search_iterates_past_initial_window(tmp_path: Path) -> None:
     store_path = tmp_path / "synth.db"
 
     rng = np.random.default_rng(42)
-    chunks: list[Chunk] = []
+    units: list[TextUnitSpec] = []
     embeddings_list: list[np.ndarray] = []
 
     for i in range(25):
-        chunks.append(_make_chunk(i, "properties"))
+        units.append(_unit(i, "properties"))
         embeddings_list.append(rng.normal(0.0, 0.05, size=DIM).astype("float32"))
     for i in range(5):
-        chunks.append(_make_chunk(i, "file"))
+        units.append(_unit(i, "file"))
         far_vec = rng.normal(0.0, 0.05, size=DIM).astype("float32")
         far_vec += np.array([5.0, 0.0, 0.0, 0.0], dtype="float32")
         embeddings_list.append(far_vec)
@@ -62,7 +75,7 @@ def test_filtered_search_iterates_past_initial_window(tmp_path: Path) -> None:
     with Store(store_path) as store:
         store.initialise(_make_manifest())
         store.replace_source(
-            chunks,
+            units,
             embeddings,
             source_id="test",
             source_path="/test",
@@ -83,13 +96,13 @@ def test_unfiltered_search_returns_exact_k(tmp_path: Path) -> None:
     store_path = tmp_path / "exact.db"
 
     rng = np.random.default_rng(0)
-    chunks = [_make_chunk(i, "properties") for i in range(20)]
+    units = [_unit(i, "properties") for i in range(20)]
     embeddings = rng.normal(0.0, 1.0, size=(20, DIM)).astype("float32")
 
     with Store(store_path) as store:
         store.initialise(_make_manifest())
         store.replace_source(
-            chunks,
+            units,
             embeddings,
             source_id="test",
             source_path=None,
@@ -107,20 +120,20 @@ def test_unfiltered_search_returns_exact_k(tmp_path: Path) -> None:
 
 
 def test_replace_source_clears_old_rows_atomically(tmp_path: Path) -> None:
-    """Re-inserting a source id must wipe the old chunks/vec rows entirely."""
+    """Re-inserting a source id must wipe the old text_units/chunks/vec rows."""
     store_path = tmp_path / "replace.db"
 
     rng = np.random.default_rng(7)
-    first_chunks = [_make_chunk(i, "properties") for i in range(10)]
+    first_units = [_unit(i, "properties") for i in range(10)]
     first_embeddings = rng.normal(0.0, 1.0, size=(10, DIM)).astype("float32")
 
-    second_chunks = [_make_chunk(i, "file") for i in range(3)]
+    second_units = [_unit(i, "file") for i in range(3)]
     second_embeddings = rng.normal(0.0, 1.0, size=(3, DIM)).astype("float32")
 
     with Store(store_path) as store:
         store.initialise(_make_manifest())
         store.replace_source(
-            first_chunks,
+            first_units,
             first_embeddings,
             source_id="test",
             source_path=None,
@@ -128,7 +141,7 @@ def test_replace_source_clears_old_rows_atomically(tmp_path: Path) -> None:
             entity_count=10,
         )
         store.replace_source(
-            second_chunks,
+            second_units,
             second_embeddings,
             source_id="test",
             source_path=None,
@@ -146,19 +159,24 @@ def test_replace_source_clears_old_rows_atomically(tmp_path: Path) -> None:
         chunks_count = store.conn.execute(
             "SELECT COUNT(*) FROM chunks WHERE source_id = ?", ("test",)
         ).fetchone()[0]
+        text_units_count = store.conn.execute(
+            "SELECT COUNT(*) FROM text_units WHERE source_id = ?", ("test",)
+        ).fetchone()[0]
         vec_count = store.conn.execute("SELECT COUNT(*) FROM vec_chunks").fetchone()[0]
         assert chunks_count == 3
+        assert text_units_count == 3, "old text_units rows must be cleared on replace"
         assert vec_count == 3, "old vec_chunks rows must be cleared on replace"
 
 
 def test_unsupported_filter_raises(tmp_path: Path) -> None:
     """Unknown filter keys should error rather than silently no-op."""
     store_path = tmp_path / "filter.db"
+    rng = np.random.default_rng(1)
     with Store(store_path) as store:
         store.initialise(_make_manifest())
         store.replace_source(
-            [_make_chunk(0, "properties")],
-            np.zeros((1, DIM), dtype="float32"),
+            [_unit(0, "properties")],
+            rng.normal(0.0, 1.0, size=(1, DIM)).astype("float32"),
             source_id="test",
             source_path=None,
             content_hash="x",
@@ -174,21 +192,16 @@ def test_unsupported_filter_raises(tmp_path: Path) -> None:
 
 
 def test_empty_filter_value_returns_no_hits(tmp_path: Path) -> None:
-    """Explicit empty filter values mean "match nothing", not "no filter".
-
-    The historical bug was treating ``[]`` and ``None`` identically and
-    silently dropping the constraint. Now an empty sequence
-    short-circuits to zero results.
-    """
+    """Explicit empty filter values mean "match nothing", not "no filter"."""
     store_path = tmp_path / "empty_filter.db"
     rng = np.random.default_rng(11)
-    chunks = [_make_chunk(i, "properties") for i in range(10)]
+    units = [_unit(i, "properties") for i in range(10)]
     embeddings = rng.normal(0.0, 1.0, size=(10, DIM)).astype("float32")
 
     with Store(store_path) as store:
         store.initialise(_make_manifest())
         store.replace_source(
-            chunks,
+            units,
             embeddings,
             source_id="test",
             source_path=None,
@@ -198,21 +211,133 @@ def test_empty_filter_value_returns_no_hits(tmp_path: Path) -> None:
 
     query = np.zeros(DIM, dtype="float32")
     with Store(store_path) as store:
-        # Sanity: no filter returns hits.
         baseline = store.vector_search(query, k=5)
         assert baseline
 
-        # Explicit empty list on each filter key returns nothing.
         for key in ("source_id", "entity_id", "source_kind", "entity_types"):
             hits = store.vector_search(query, k=5, filters={key: []})
             assert hits == [], f"empty {key!r} filter must return [], got {hits}"
 
-        # ``None`` value means "no filter for this key" — should still hit.
-        # (Pass alongside a real filter so we know None is being ignored,
-        # not short-circuiting.)
         passthrough = store.vector_search(
             query,
             k=5,
             filters={"entity_id": None, "source_kind": ["properties"]},  # type: ignore[dict-item]
         )
-        assert passthrough, "None values should mean 'no filter for this key'"
+        assert passthrough
+
+
+def test_iter_text_records_returns_text_units(tmp_path: Path) -> None:
+    """iter_text_records yields one record per text unit with token_count."""
+    store_path = tmp_path / "iter_text.db"
+    rng = np.random.default_rng(3)
+    units = [_unit(i, "properties") for i in range(5)] + [_unit(i, "file") for i in range(3)]
+    embeddings = rng.normal(0.0, 1.0, size=(8, DIM)).astype("float32")
+
+    with Store(store_path) as store:
+        store.initialise(_make_manifest())
+        store.replace_source(
+            units,
+            embeddings,
+            source_id="test",
+            source_path=None,
+            content_hash="x",
+            entity_count=8,
+        )
+
+    with Store(store_path) as store:
+        records = list(store.iter_text_records())
+
+    assert len(records) == 8
+    keys = set(records[0].keys())
+    assert keys == {
+        "source_id",
+        "entity_id",
+        "entity_types",
+        "source_kind",
+        "text",
+        "token_count",
+    }
+    assert all(r["source_id"] == "test" for r in records)
+    assert {r["source_kind"] for r in records} == {"properties", "file"}
+
+
+def test_iter_chunk_records_reconstructs_text_via_substr(tmp_path: Path) -> None:
+    """iter_chunk_records reconstructs the chunk text from offsets + SUBSTR."""
+    store_path = tmp_path / "iter_chunk.db"
+    rng = np.random.default_rng(5)
+
+    # Build a multi-chunk text unit so we exercise non-trivial offsets.
+    full_text = " ".join(f"word{i:04d}" for i in range(40))
+    chunks = (
+        ChunkSpec(chunk_index=0, char_start=0, char_end=100, token_count=15),
+        ChunkSpec(chunk_index=1, char_start=80, char_end=200, token_count=18),
+        ChunkSpec(chunk_index=2, char_start=180, char_end=len(full_text), token_count=18),
+    )
+    unit = TextUnitSpec(
+        source_id="test",
+        entity_id="big-doc",
+        entity_types=("File",),
+        source_kind="file",
+        text=full_text,
+        token_count=51,
+        chunks=chunks,
+    )
+    embeddings = rng.normal(0.0, 1.0, size=(3, DIM)).astype("float32")
+
+    with Store(store_path) as store:
+        store.initialise(_make_manifest())
+        store.replace_source(
+            [unit],
+            embeddings,
+            source_id="test",
+            source_path=None,
+            content_hash="x",
+            entity_count=1,
+        )
+
+    with Store(store_path) as store:
+        records = list(store.iter_chunk_records())
+
+    assert len(records) == 3
+    for record, spec in zip(records, chunks, strict=True):
+        assert record["chunk_index"] == spec.chunk_index
+        assert record["char_start"] == spec.char_start
+        assert record["char_end"] == spec.char_end
+        # The reconstructed text must match Python slicing of the canonical text.
+        expected = full_text[spec.char_start : spec.char_end]
+        assert record["text"] == expected, (
+            f"chunk {spec.chunk_index}: SUBSTR returned {record['text']!r}, expected {expected!r}"
+        )
+
+
+def test_iter_text_records_filtered(tmp_path: Path) -> None:
+    """Filters on iter_text_records narrow the result set."""
+    store_path = tmp_path / "iter_text_filtered.db"
+    rng = np.random.default_rng(9)
+    units = [_unit(i, "properties") for i in range(3)] + [_unit(i, "file") for i in range(2)]
+    embeddings = rng.normal(0.0, 1.0, size=(5, DIM)).astype("float32")
+
+    with Store(store_path) as store:
+        store.initialise(_make_manifest())
+        store.replace_source(
+            units,
+            embeddings,
+            source_id="test",
+            source_path=None,
+            content_hash="x",
+            entity_count=5,
+        )
+
+    with Store(store_path) as store:
+        only_files = list(store.iter_text_records(filters={"source_kind": ["file"]}))
+        assert len(only_files) == 2
+        assert all(r["source_kind"] == "file" for r in only_files)
+
+        # Empty filter short-circuits.
+        nothing = list(store.iter_text_records(filters={"source_kind": []}))
+        assert nothing == []
+
+        # entity_id filter targets a specific record.
+        targeted = list(store.iter_text_records(filters={"entity_id": ["properties-0"]}))
+        assert len(targeted) == 1
+        assert targeted[0]["entity_id"] == "properties-0"

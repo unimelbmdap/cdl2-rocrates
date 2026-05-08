@@ -5,22 +5,37 @@ strings live as named module-level ``_SQL_*`` constants below, and
 public callers interact via typed methods on ``Store``. Other modules
 (indexer, searcher, hashing, the graph delegations) must never embed
 SQL — if a new query is needed, add a method here.
+
+Schema overview
+---------------
+
+``text_units`` holds canonical extracted text — one row per source
+unit (a file's content, or an entity's properties block). ``chunks``
+stores only offsets into the corresponding text_unit (``char_start``,
+``char_end``) plus a denormalised ``source_id`` for fast filtering;
+chunks have no text column. ``vec_chunks`` (sqlite-vec virtual table)
+keys vectors by ``rowid = chunks.chunk_id``. Chunk text is
+reconstructed at query time via ``SUBSTR(text_units.text, ...)``.
+
+This eliminates the ~17% overlap-duplication that a chunks-with-text
+schema otherwise carries, and gives ``text_records`` a single, clean
+read path.
 """
 
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from crategraph.index.models import (
-    Chunk,
     IndexerConfig,
     SearchHit,
     SourceRecord,
+    TextUnitSpec,
 )
 
 if TYPE_CHECKING:
@@ -44,20 +59,37 @@ CREATE TABLE IF NOT EXISTS sources (
     chunk_count INTEGER NOT NULL,
     indexed_at TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS chunks (
-    chunk_id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE IF NOT EXISTS text_units (
+    text_unit_id INTEGER PRIMARY KEY AUTOINCREMENT,
     source_id TEXT NOT NULL,
     entity_id TEXT NOT NULL,
     entity_types TEXT NOT NULL,
     source_kind TEXT NOT NULL,
-    chunk_index INTEGER NOT NULL,
-    token_count INTEGER NOT NULL,
     text TEXT NOT NULL,
+    token_count INTEGER NOT NULL,
     FOREIGN KEY (source_id) REFERENCES sources(source_id)
         ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS idx_chunks_source_entity
-    ON chunks(source_id, entity_id);
+CREATE INDEX IF NOT EXISTS idx_text_units_source_entity
+    ON text_units(source_id, entity_id);
+CREATE INDEX IF NOT EXISTS idx_text_units_source_kind
+    ON text_units(source_kind);
+CREATE TABLE IF NOT EXISTS chunks (
+    chunk_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    text_unit_id INTEGER NOT NULL,
+    source_id TEXT NOT NULL,
+    chunk_index INTEGER NOT NULL,
+    char_start INTEGER NOT NULL,
+    char_end INTEGER NOT NULL,
+    token_count INTEGER NOT NULL,
+    FOREIGN KEY (text_unit_id) REFERENCES text_units(text_unit_id)
+        ON DELETE CASCADE,
+    UNIQUE (text_unit_id, chunk_index)
+);
+CREATE INDEX IF NOT EXISTS idx_chunks_text_unit
+    ON chunks(text_unit_id);
+CREATE INDEX IF NOT EXISTS idx_chunks_source
+    ON chunks(source_id);
 """
 
 _SQL_CREATE_VEC_TABLE = (
@@ -74,11 +106,17 @@ _SQL_GET_SOURCE = "SELECT * FROM sources WHERE source_id = ?"
 
 _SQL_LIST_SOURCE_IDS = "SELECT source_id FROM sources ORDER BY source_id"
 
+# vec_chunks isn't FK-linked, so we delete its rows by their rowids
+# (== chunks.chunk_id) inside the same transaction as the delete on
+# chunks/text_units/sources. ``chunks.source_id`` is denormalised so
+# this query stays a flat subquery, no JOIN through text_units required.
 _SQL_DELETE_VEC_FOR_SOURCE = (
     "DELETE FROM vec_chunks WHERE rowid IN (SELECT chunk_id FROM chunks WHERE source_id = ?)"
 )
 
 _SQL_DELETE_CHUNKS_FOR_SOURCE = "DELETE FROM chunks WHERE source_id = ?"
+
+_SQL_DELETE_TEXT_UNITS_FOR_SOURCE = "DELETE FROM text_units WHERE source_id = ?"
 
 _SQL_DELETE_SOURCE = "DELETE FROM sources WHERE source_id = ?"
 
@@ -88,11 +126,16 @@ _SQL_UPSERT_SOURCE = (
     "VALUES (?, ?, ?, ?, ?, ?)"
 )
 
+_SQL_INSERT_TEXT_UNIT = (
+    "INSERT INTO text_units"
+    "(source_id, entity_id, entity_types, source_kind, text, token_count) "
+    "VALUES (?, ?, ?, ?, ?, ?)"
+)
+
 _SQL_INSERT_CHUNK = (
     "INSERT INTO chunks"
-    "(source_id, entity_id, entity_types, source_kind, "
-    "chunk_index, token_count, text) "
-    "VALUES (?, ?, ?, ?, ?, ?, ?)"
+    "(text_unit_id, source_id, chunk_index, char_start, char_end, token_count) "
+    "VALUES (?, ?, ?, ?, ?, ?)"
 )
 
 _SQL_INSERT_VEC = "INSERT INTO vec_chunks(rowid, embedding) VALUES (?, ?)"
@@ -101,18 +144,52 @@ _SQL_COUNT_CHUNKS = "SELECT COUNT(*) FROM chunks"
 
 # Vector search template — `{filter_sql}` is filled in safely by
 # _build_filter_clause(), which only emits placeholders, never values.
+# Chunk text is reconstructed via SUBSTR over text_units.text.
 _SQL_VECTOR_SEARCH_TEMPLATE = (
     "WITH knn AS ("
     "  SELECT rowid, distance "
     "  FROM vec_chunks "
     "  WHERE embedding MATCH ? AND k = ?"
     ") "
-    "SELECT c.source_id, c.entity_id, c.entity_types, c.source_kind, "
-    "  c.chunk_index, c.text, knn.distance "
-    "FROM knn JOIN chunks c ON c.chunk_id = knn.rowid"
+    "SELECT "
+    "  c.source_id, "
+    "  t.entity_id, "
+    "  t.entity_types, "
+    "  t.source_kind, "
+    "  c.chunk_index, "
+    "  SUBSTR(t.text, c.char_start + 1, c.char_end - c.char_start) AS text, "
+    "  knn.distance "
+    "FROM knn "
+    "JOIN chunks c ON c.chunk_id = knn.rowid "
+    "JOIN text_units t ON t.text_unit_id = c.text_unit_id"
     "{filter_sql} "
     "ORDER BY knn.distance "
     "LIMIT ?"
+)
+
+_SQL_ITER_TEXT_RECORDS_TEMPLATE = (
+    "SELECT t.source_id, t.entity_id, t.entity_types, t.source_kind, "
+    "  t.text, t.token_count "
+    "FROM text_units t"
+    "{filter_sql} "
+    "ORDER BY t.source_id, t.entity_id, t.source_kind"
+)
+
+_SQL_ITER_CHUNK_RECORDS_TEMPLATE = (
+    "SELECT "
+    "  c.source_id, "
+    "  t.entity_id, "
+    "  t.entity_types, "
+    "  t.source_kind, "
+    "  c.chunk_index, "
+    "  c.char_start, "
+    "  c.char_end, "
+    "  c.token_count, "
+    "  SUBSTR(t.text, c.char_start + 1, c.char_end - c.char_start) AS text "
+    "FROM chunks c "
+    "JOIN text_units t ON t.text_unit_id = c.text_unit_id"
+    "{filter_sql} "
+    "ORDER BY c.source_id, t.entity_id, t.source_kind, c.chunk_index"
 )
 
 
@@ -196,15 +273,40 @@ class StoreManifest:
 
 _FILTER_KEYS_SUPPORTED = {"source_id", "entity_id", "entity_types", "source_kind"}
 
+# Column maps tell _build_filter_clause which table-qualified column
+# corresponds to each filter key for a given query shape.
+_FILTER_COLUMNS_VECTOR_SEARCH: dict[str, str] = {
+    "source_id": "c.source_id",
+    "entity_id": "t.entity_id",
+    "source_kind": "t.source_kind",
+    "entity_types": "t.entity_types",
+}
+
+_FILTER_COLUMNS_TEXT_UNITS: dict[str, str] = {
+    "source_id": "t.source_id",
+    "entity_id": "t.entity_id",
+    "source_kind": "t.source_kind",
+    "entity_types": "t.entity_types",
+}
+
+_FILTER_COLUMNS_CHUNKS: dict[str, str] = {
+    "source_id": "c.source_id",
+    "entity_id": "t.entity_id",
+    "source_kind": "t.source_kind",
+    "entity_types": "t.entity_types",
+}
+
 
 def _build_filter_clause(
     filters: Mapping[str, Sequence[str]] | None,
+    columns: Mapping[str, str],
 ) -> tuple[str, list[Any]]:
     """Return (sql_fragment, params) for the optional WHERE clause.
 
     Caller composes the fragment into the prepared template; values
     are returned as a separate parameter list so they're bound, not
-    interpolated.
+    interpolated. ``columns`` maps filter keys to the appropriate
+    table-qualified column name for the query being assembled.
     """
     if not filters:
         return "", []
@@ -212,36 +314,32 @@ def _build_filter_clause(
     pieces: list[str] = []
     params: list[Any] = []
 
-    source_ids = filters.get("source_id")
-    if source_ids:
-        ids = list(source_ids)
-        placeholders = ",".join("?" * len(ids))
-        pieces.append(f"c.source_id IN ({placeholders})")
-        params.extend(ids)
+    for key in ("source_id", "entity_id", "source_kind"):
+        if key not in filters:
+            continue
+        values = filters.get(key)
+        if values is None:
+            continue
+        values_list = list(values)
+        if not values_list:
+            # Defensive: vector_search should have already short-circuited;
+            # for direct callers of _build_filter_clause, signal "no match".
+            return " WHERE 0 = 1", []
+        placeholders = ",".join("?" * len(values_list))
+        pieces.append(f"{columns[key]} IN ({placeholders})")
+        params.extend(values_list)
 
-    entity_ids = filters.get("entity_id")
-    if entity_ids:
-        ids = list(entity_ids)
-        placeholders = ",".join("?" * len(ids))
-        pieces.append(f"c.entity_id IN ({placeholders})")
-        params.extend(ids)
-
-    source_kinds = filters.get("source_kind")
-    if source_kinds:
-        kinds = list(source_kinds)
-        placeholders = ",".join("?" * len(kinds))
-        pieces.append(f"c.source_kind IN ({placeholders})")
-        params.extend(kinds)
-
-    entity_types = filters.get("entity_types")
-    if entity_types:
-        types = list(entity_types)
-        placeholders = ",".join("?" * len(types))
+    types_values = filters.get("entity_types")
+    if types_values is not None:
+        types_list = list(types_values)
+        if not types_list:
+            return " WHERE 0 = 1", []
+        placeholders = ",".join("?" * len(types_list))
         pieces.append(
-            f"EXISTS (SELECT 1 FROM json_each(c.entity_types) "
+            f"EXISTS (SELECT 1 FROM json_each({columns['entity_types']}) "
             f"WHERE json_each.value IN ({placeholders}))"
         )
-        params.extend(types)
+        params.extend(types_list)
 
     if not pieces:
         return "", []
@@ -256,7 +354,7 @@ def _build_filter_clause(
 class Store:
     """SQLite-backed index store with a sqlite-vec vector table."""
 
-    SCHEMA_VERSION = 1
+    SCHEMA_VERSION = 2
 
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
@@ -346,15 +444,16 @@ class Store:
         return [r["source_id"] for r in rows]
 
     def delete_source(self, source_id: str) -> None:
-        """Remove a source and all its chunks/embeddings."""
+        """Remove a source and all its text units / chunks / embeddings."""
         with self.conn:
             self.conn.execute(_SQL_DELETE_VEC_FOR_SOURCE, (source_id,))
             self.conn.execute(_SQL_DELETE_CHUNKS_FOR_SOURCE, (source_id,))
+            self.conn.execute(_SQL_DELETE_TEXT_UNITS_FOR_SOURCE, (source_id,))
             self.conn.execute(_SQL_DELETE_SOURCE, (source_id,))
 
     def replace_source(
         self,
-        chunks: Sequence[Chunk],
+        text_units: Sequence[TextUnitSpec],
         embeddings: np.ndarray,
         *,
         source_id: str,
@@ -364,20 +463,29 @@ class Store:
     ) -> None:
         """Atomically replace any existing rows for *source_id* with new ones.
 
-        Old vec_chunks/chunks/sources rows for this source id are deleted
-        and the new ones inserted in a single transaction, so a failed
-        rebuild leaves the previous index intact rather than wiping it.
+        Old vec_chunks/chunks/text_units/sources rows for this source id
+        are deleted and the new ones inserted in a single transaction,
+        so a failed rebuild leaves the previous index intact.
 
-        ``embeddings`` is shape ``(len(chunks), embedding_dim)``, ``np.float32``.
+        ``embeddings`` is a flat ``(N, embedding_dim)`` array where
+        ``N == sum(len(u.chunks) for u in text_units)``. Embeddings are
+        consumed in iteration order: each text unit's chunks first,
+        then the next text unit.
         """
-        if len(chunks) != len(embeddings):
-            msg = f"chunks/embeddings length mismatch: {len(chunks)} vs {len(embeddings)}"
+        total_chunks = sum(len(u.chunks) for u in text_units)
+        if total_chunks != len(embeddings):
+            msg = (
+                f"chunks/embeddings length mismatch: "
+                f"{total_chunks} chunk(s) declared across text_units, "
+                f"{len(embeddings)} embedding row(s) provided"
+            )
             raise ValueError(msg)
 
         indexed_at = datetime.now(UTC).isoformat()
         with self.conn:
             self.conn.execute(_SQL_DELETE_VEC_FOR_SOURCE, (source_id,))
             self.conn.execute(_SQL_DELETE_CHUNKS_FOR_SOURCE, (source_id,))
+            self.conn.execute(_SQL_DELETE_TEXT_UNITS_FOR_SOURCE, (source_id,))
             self.conn.execute(
                 _SQL_UPSERT_SOURCE,
                 (
@@ -385,25 +493,42 @@ class Store:
                     source_path,
                     content_hash,
                     entity_count,
-                    len(chunks),
+                    total_chunks,
                     indexed_at,
                 ),
             )
-            for chunk, emb in zip(chunks, embeddings, strict=True):
+            emb_idx = 0
+            for unit in text_units:
                 cursor = self.conn.execute(
-                    _SQL_INSERT_CHUNK,
+                    _SQL_INSERT_TEXT_UNIT,
                     (
-                        chunk.source_id,
-                        chunk.entity_id,
-                        json.dumps(list(chunk.entity_types)),
-                        chunk.source_kind,
-                        chunk.chunk_index,
-                        chunk.token_count,
-                        chunk.text,
+                        unit.source_id,
+                        unit.entity_id,
+                        json.dumps(list(unit.entity_types)),
+                        unit.source_kind,
+                        unit.text,
+                        unit.token_count,
                     ),
                 )
-                chunk_id = cursor.lastrowid
-                self.conn.execute(_SQL_INSERT_VEC, (chunk_id, emb.astype("float32").tobytes()))
+                text_unit_id = cursor.lastrowid
+                for spec in unit.chunks:
+                    chunk_cursor = self.conn.execute(
+                        _SQL_INSERT_CHUNK,
+                        (
+                            text_unit_id,
+                            unit.source_id,
+                            spec.chunk_index,
+                            spec.char_start,
+                            spec.char_end,
+                            spec.token_count,
+                        ),
+                    )
+                    chunk_id = chunk_cursor.lastrowid
+                    self.conn.execute(
+                        _SQL_INSERT_VEC,
+                        (chunk_id, embeddings[emb_idx].astype("float32").tobytes()),
+                    )
+                    emb_idx += 1
 
     # --- Search ---
 
@@ -427,25 +552,9 @@ class Store:
         safety belt.
         """
         embedding_bytes = embedding.astype("float32").tobytes()
-        # Normalise filter values, distinguishing ``None`` (no filter for
-        # that key) from an explicit empty sequence (caller intends "no
-        # matches"). An empty sequence short-circuits to no results
-        # rather than silently dropping the constraint.
-        normalised: dict[str, list[str]] = {}
-        if filters:
-            for key, value in filters.items():
-                if key not in _FILTER_KEYS_SUPPORTED:
-                    msg = (
-                        f"Unsupported filter key {key!r}. "
-                        f"Supported: {sorted(_FILTER_KEYS_SUPPORTED)}"
-                    )
-                    raise ValueError(msg)
-                if value is None:
-                    continue
-                value_list = list(value)
-                if not value_list:
-                    return []
-                normalised[key] = value_list
+        normalised = self._normalise_filters(filters, allow_short_circuit=True)
+        if normalised is None:
+            return []
         has_filters = bool(normalised)
 
         if not has_filters:
@@ -464,6 +573,37 @@ class Store:
             fetch_k = min(fetch_k * 2, total)
         return hits
 
+    def _normalise_filters(
+        self,
+        filters: Mapping[str, Sequence[str]] | None,
+        *,
+        allow_short_circuit: bool,
+    ) -> dict[str, list[str]] | None:
+        """Validate filter keys and return a list-of-strings dict.
+
+        Returns ``None`` if ``allow_short_circuit`` and any value is an
+        explicit empty sequence (caller meant "match nothing"); otherwise
+        empty values are dropped.
+        """
+        normalised: dict[str, list[str]] = {}
+        if not filters:
+            return normalised
+        for key, value in filters.items():
+            if key not in _FILTER_KEYS_SUPPORTED:
+                msg = (
+                    f"Unsupported filter key {key!r}. Supported: {sorted(_FILTER_KEYS_SUPPORTED)}"
+                )
+                raise ValueError(msg)
+            if value is None:
+                continue
+            value_list = list(value)
+            if not value_list:
+                if allow_short_circuit:
+                    return None
+                continue
+            normalised[key] = value_list
+        return normalised
+
     def _chunk_count(self) -> int:
         row = self.conn.execute(_SQL_COUNT_CHUNKS).fetchone()
         return int(row[0]) if row is not None else 0
@@ -477,14 +617,14 @@ class Store:
         filters: Mapping[str, Sequence[str]] | None,
     ) -> list[SearchHit]:
         """Run a single KNN+filter+limit query and return the hits."""
-        filter_sql, filter_params = _build_filter_clause(filters)
+        filter_sql, filter_params = _build_filter_clause(filters, _FILTER_COLUMNS_VECTOR_SEARCH)
         sql = _SQL_VECTOR_SEARCH_TEMPLATE.format(filter_sql=filter_sql)
         params: list[Any] = [embedding_bytes, fetch_k, *filter_params, k_limit]
 
         rows = self.conn.execute(sql, params).fetchall()
         return [_row_to_hit(row) for row in rows]
 
-    # --- Iteration helpers (used by index/text_reader for cached reads) ---
+    # --- Iteration helpers (cached reads of text_units / chunks) ---
 
     def iter_source_records(self) -> Iterable[SourceRecord]:
         """Yield every recorded source. Used for manifest mismatch checks."""
@@ -494,6 +634,57 @@ class Store:
             record = self.get_source_record(sid)
             if record is not None:
                 yield record
+
+    def iter_text_records(
+        self, *, filters: Mapping[str, Sequence[str]] | None = None
+    ) -> Iterator[dict[str, Any]]:
+        """Yield one dict per text unit, optionally filtered.
+
+        Streaming: SQLite cursors yield rows one at a time, so peak
+        memory is roughly one record's text.
+        """
+        normalised = self._normalise_filters(filters, allow_short_circuit=True)
+        if normalised is None:
+            return
+        filter_sql, filter_params = _build_filter_clause(normalised, _FILTER_COLUMNS_TEXT_UNITS)
+        sql = _SQL_ITER_TEXT_RECORDS_TEMPLATE.format(filter_sql=filter_sql)
+        cursor = self.conn.execute(sql, filter_params)
+        for row in cursor:
+            yield {
+                "source_id": row["source_id"],
+                "entity_id": row["entity_id"],
+                "entity_types": tuple(json.loads(row["entity_types"])),
+                "source_kind": row["source_kind"],
+                "text": row["text"],
+                "token_count": row["token_count"],
+            }
+
+    def iter_chunk_records(
+        self, *, filters: Mapping[str, Sequence[str]] | None = None
+    ) -> Iterator[dict[str, Any]]:
+        """Yield one dict per chunk with text reconstructed via SUBSTR.
+
+        Streaming. Order is stable: by source_id, entity_id,
+        source_kind, chunk_index.
+        """
+        normalised = self._normalise_filters(filters, allow_short_circuit=True)
+        if normalised is None:
+            return
+        filter_sql, filter_params = _build_filter_clause(normalised, _FILTER_COLUMNS_CHUNKS)
+        sql = _SQL_ITER_CHUNK_RECORDS_TEMPLATE.format(filter_sql=filter_sql)
+        cursor = self.conn.execute(sql, filter_params)
+        for row in cursor:
+            yield {
+                "source_id": row["source_id"],
+                "entity_id": row["entity_id"],
+                "entity_types": tuple(json.loads(row["entity_types"])),
+                "source_kind": row["source_kind"],
+                "chunk_index": row["chunk_index"],
+                "char_start": row["char_start"],
+                "char_end": row["char_end"],
+                "token_count": row["token_count"],
+                "text": row["text"],
+            }
 
 
 def _row_to_hit(row: Any) -> SearchHit:

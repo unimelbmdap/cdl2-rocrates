@@ -28,7 +28,6 @@ from __future__ import annotations
 
 from crategraph.index.indexer import Indexer
 from crategraph.index.models import (
-    Chunk,
     IndexerConfig,
     IndexerStats,
     SearchHit,
@@ -37,7 +36,6 @@ from crategraph.index.models import (
 from crategraph.index.searcher import Searcher
 
 __all__ = [
-    "Chunk",
     "Indexer",
     "IndexerConfig",
     "IndexerStats",
