@@ -431,6 +431,10 @@ class Graph:
             drop_isolated=drop_isolated,
         )
 
+    def drop(self, values: str | list[str], *, property: str | None = None) -> Graph:
+        """Remove entities whose properties contain any of the given values."""
+        return filtering.drop(self, values, property=property)
+
     def where(self, **kwargs: Any) -> Graph:
         """Filter by entity property values."""
         return filtering.where(self, **kwargs)
