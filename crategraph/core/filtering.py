@@ -219,7 +219,15 @@ def drop(
             if entity.properties.get(property) not in value_set:
                 node_ids.add(eid)
         else:
-            if not any(v in value_set for v in entity.properties.values()):
+            matched = False
+            for v in entity.properties.values():
+                try:
+                    if v in value_set:
+                        matched = True
+                        break
+                except TypeError:
+                    continue
+            if not matched:
                 node_ids.add(eid)
 
     return graph._build_derived_graph(node_ids=node_ids)
