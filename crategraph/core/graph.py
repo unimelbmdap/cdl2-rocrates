@@ -19,6 +19,8 @@ from crategraph.core.models import Entity, Relationship
 from crategraph.core.types import TypeRegistry
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator, Mapping, Sequence
+
     from crategraph.core.models import CoverageResult, FileInfo, ViewInfo
 
 
@@ -361,6 +363,135 @@ class Graph:
     def view(self, entity: Entity | str) -> ViewInfo:
         """View the data file associated with an entity."""
         return presentation.view(self, entity)
+
+    def text_records(
+        self,
+        *,
+        text_properties: Sequence[str] | None = None,
+        filters: Mapping[str, Any] | None = None,
+    ) -> Iterator[dict[str, Any]]:
+        """Yield one text record per source unit in the graph.
+
+        Each record is a dict with keys ``source_id``, ``entity_id``,
+        ``source_kind`` (``"file"`` or ``"properties"``),
+        ``entity_types``, ``text``. Generator — peak memory is one
+        record at a time. Live extraction; file content is pulled
+        on the fly via the registered ``Inspector``.
+
+        Filters: ``source_id``, ``entity_id``, ``entity_types``,
+        ``source_kind`` (any-of within each key).
+
+        See :func:`crategraph.core.text.text_records` for the
+        underlying implementation.
+        """
+        from crategraph.core.text import DEFAULT_TEXT_PROPERTIES, text_records
+
+        # Distinguish ``None`` (use defaults) from ``[]`` (explicit empty —
+        # caller wants to suppress property records entirely). Don't use
+        # ``or`` here: an empty sequence is falsy.
+        if text_properties is None:
+            text_properties = DEFAULT_TEXT_PROPERTIES
+        return text_records(
+            self,
+            text_properties=text_properties,
+            filters=dict(filters) if filters else None,
+        )
+
+    def build_semantic_index(
+        self,
+        store_path: str | Path,
+        **kwargs: Any,
+    ) -> Any:
+        """Build a semantic search index over this graph.
+
+        Requires the ``[index]`` extra::
+
+            pip install crategraph[index]
+
+        See :class:`crategraph.index.Indexer` for full options. Common
+        keyword arguments: ``model``, ``chunk_tokens``, ``chunk_overlap``,
+        ``text_properties``, ``batch_size``, ``progress``.
+
+        Returns an :class:`~crategraph.index.IndexerStats` describing
+        what changed.
+        """
+        try:
+            from crategraph.index import Indexer
+        except ImportError:
+            msg = (
+                "Semantic indexing requires the [index] extra. "
+                "Install it with: pip install crategraph[index]"
+            )
+            raise ImportError(msg) from None
+        return Indexer(self, store_path, **kwargs).build()
+
+    def semantic_search(
+        self,
+        query: str,
+        *,
+        store_path: str | Path,
+        k: int = 10,
+        filters: Mapping[str, Any] | None = None,
+        restrict_to_view: bool = True,
+    ) -> list[Any]:
+        """Run a semantic search against an existing index.
+
+        Requires the ``[index]`` extra and a previously-built index at
+        ``store_path``. Filter keys: ``source_id``, ``entity_id``,
+        ``entity_types``, ``source_kind``.
+
+        By default (``restrict_to_view=True``), search results are
+        restricted to entities present in *this* graph — so a filtered
+        subgraph (``crate.where(...)``) only returns hits from its own
+        entities, not from filtered-out ones. Pass
+        ``restrict_to_view=False`` to query the full index regardless
+        of the current view.
+
+        Issues a warning if the graph's source ids don't overlap with
+        the index's known sources (likely sign of an unrelated index).
+
+        Returns a list of :class:`~crategraph.index.SearchHit`.
+        """
+        import warnings
+
+        try:
+            from crategraph.index import Searcher
+        except ImportError:
+            msg = (
+                "Semantic search requires the [index] extra. "
+                "Install it with: pip install crategraph[index]"
+            )
+            raise ImportError(msg) from None
+
+        searcher = Searcher(store_path)
+
+        # Manifest / source-set sanity check.
+        graph_sources = set(self.sources)
+        if graph_sources:
+            indexed_sources = set(searcher.known_source_ids())
+            if indexed_sources and not (graph_sources & indexed_sources):
+                warnings.warn(
+                    f"Graph sources {sorted(graph_sources)} don't overlap "
+                    f"with index sources {sorted(indexed_sources)}; "
+                    "this may be the wrong index file.",
+                    stacklevel=2,
+                )
+
+        merged_filters: dict[str, Any] = dict(filters) if filters else {}
+        if restrict_to_view:
+            view_ids = set(self._entities.keys())
+            if "entity_id" in merged_filters:
+                # Intersect a user-supplied entity_id filter with the current
+                # view rather than letting the user's filter bypass it.
+                user_ids = set(merged_filters["entity_id"])
+                intersected = list(user_ids & view_ids)
+                if not intersected:
+                    return []
+                merged_filters["entity_id"] = intersected
+            else:
+                merged_filters["entity_id"] = list(view_ids)
+
+        return searcher.search(query, k=k, filters=merged_filters)
 
     # --- Transform methods ---
 
