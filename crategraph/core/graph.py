@@ -630,15 +630,26 @@ class Graph:
         merged: dict[str, Any] = dict(filters) if filters else {}
         if not restrict_to_view:
             return merged
-        view_ids = set(self._entities.keys())
         if "entity_id" in merged:
+            # User supplied entity_id — intersect with current view to
+            # prevent bypass. Honours user intent on root graphs too.
+            view_ids = set(self._entities.keys())
             user_ids = set(merged["entity_id"])
             intersected = list(user_ids & view_ids)
             if not intersected:
                 return None
             merged["entity_id"] = intersected
-        else:
-            merged["entity_id"] = list(view_ids)
+        elif self._root is not self:
+            # Derived view (filtered subgraph): inject entity_id filter
+            # to honour the view's scope.
+            #
+            # On a top-level graph, *don't* inject — the filter would
+            # constrain nothing (every entity is in scope) and could
+            # exceed SQLite's bind-variable limit on large crates
+            # (default 999, tens-of-thousands on recent builds; even
+            # below that, it forces the slower over-fetch path for no
+            # gain).
+            merged["entity_id"] = list(self._entities.keys())
         return merged
 
     def build_semantic_index(
@@ -689,12 +700,18 @@ class Graph:
         Oversamples chunks (5x) so dedup-to-entity yields enough unique
         candidates, picks the best score per entity, returns the top *k*.
 
-        Builds the result from ``self._root._subgraph(...)`` rather than
-        ``self._subgraph(...)``: when ``restrict_to_view=False`` the
-        returned ids may be outside ``self._entities``, and
-        ``_build_derived_graph`` filters node_ids through ``self._entities``,
-        which would silently drop them. The root carries the full set, so
-        builds from there preserve every legitimate hit.
+        The subgraph is built from a base that depends on
+        ``restrict_to_view``:
+
+        - ``True`` (default) — build from ``self``. Hit ids are already
+          intersected with ``self._entities`` upstream, so they're
+          guaranteed safe; this preserves whatever relationship-level
+          filtering the current view applied (e.g. ``crate.pattern(...)``
+          or ``select(relationship_types=...)``).
+        - ``False`` — build from ``self._root``. Hits may be outside
+          ``self._entities``; ``_build_derived_graph`` filters node ids
+          through ``self._entities`` and would silently drop them. The
+          root carries the full set.
         """
         records = self.chunk_records(
             query,
@@ -710,7 +727,8 @@ class Graph:
             if score > best.get(eid, float("-inf")):
                 best[eid] = score
         top_ids = sorted(best, key=lambda eid: best[eid], reverse=True)[:k]
-        return self._root._subgraph(set(top_ids))
+        base = self if restrict_to_view else self._root
+        return base._subgraph(set(top_ids))
 
     def _warn_if_unrelated_index(self, store_path: str | Path) -> None:
         """Emit a UserWarning when this graph's sources don't overlap with

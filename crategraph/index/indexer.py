@@ -188,7 +188,10 @@ class Indexer:
                 )
                 for idx, s in enumerate(slices)
             )
-            unit_token_count = sum(s.token_count for s in slices)
+            # Re-tokenise the unit text rather than summing per-chunk
+            # counts: with overlap, sums double-count the boundary
+            # tokens and inflate the reported figure.
+            unit_token_count = chunker.count_tokens(record["text"])
             units.append(
                 TextUnitSpec(
                     source_id=record["source_id"],

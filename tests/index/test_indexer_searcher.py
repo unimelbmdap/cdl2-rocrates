@@ -459,6 +459,106 @@ def test_explicit_store_path_overrides_default(tmp_path: Path, monkeypatch) -> N
     assert "#alice" in {e.id for e in result.entities}
 
 
+def test_root_search_does_not_inject_entity_id_filter(tmp_path: Path) -> None:
+    """A root-graph search must not bind every entity_id as a filter.
+
+    Bind-variable bloat: SQLite caps `IN (?, ?, ...)` at 999 (older builds)
+    or 32 766 (recent) parameters. Even below the cap, an all-entities
+    filter is wasted work. We monkey-patch ``Searcher.search`` to assert
+    no ``entity_id`` filter is passed when the caller is the root graph.
+    """
+    store = tmp_path / "no_filter.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    from crategraph.index import Searcher as _Searcher
+
+    captured: list[dict] = []
+    original = _Searcher.search
+
+    def spy(self, query, *, k=10, filters=None):  # type: ignore[no-untyped-def]
+        captured.append(dict(filters) if filters else {})
+        return original(self, query, k=k, filters=filters)
+
+    _Searcher.search = spy  # type: ignore[method-assign]
+    try:
+        crate.search("Alice", mode="semantic", store_path=store, k=3)
+    finally:
+        _Searcher.search = original  # type: ignore[method-assign]
+
+    assert captured, "expected at least one Searcher.search call"
+    assert "entity_id" not in captured[0], (
+        f"root search should not inject entity_id filter; got {captured[0]}"
+    )
+
+
+def test_root_search_with_user_entity_id_still_filters(tmp_path: Path) -> None:
+    """User-supplied entity_id on the root must still be honoured."""
+    store = tmp_path / "user_filter.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    result = crate.search(
+        "anything",
+        mode="semantic",
+        store_path=store,
+        k=10,
+        filters={"entity_id": ["#alice"]},
+    )
+    assert {e.id for e in result.entities} <= {"#alice"}
+
+
+def test_semantic_search_preserves_relationship_view(tmp_path: Path) -> None:
+    """Relationship-level filters in the view must survive a restricted search.
+
+    Builds an index, derives a view that drops a relationship type
+    (``select(relationship_types=[...])``), then runs a semantic search.
+    The returned subgraph must not reintroduce relationship types the
+    view had filtered out.
+    """
+    store = tmp_path / "rel_view.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    full_types = set(r.type for r in crate.relationships)
+    assert "Superior" in full_types  # sanity from the fixture
+
+    # Restrict the view to the "worksFor" relationship only — drops
+    # the "Superior" relationship that connects Alice → ACME.
+    via_works = crate.select(relationship_types=["worksFor"])
+    via_types = {r.type for r in via_works.relationships}
+    assert via_types == {"worksFor"}
+
+    result = via_works.search("person", mode="semantic", store_path=store, k=10)
+    result_types = {r.type for r in result.relationships}
+    assert "Superior" not in result_types, (
+        "view-restricted search must preserve the view's relationship "
+        f"filter; got types {result_types}"
+    )
+
+
+def test_text_records_token_count_matches_chunker(tmp_path: Path) -> None:
+    """Cached text_records token_count must equal chunker.count_tokens(text).
+
+    Previous code summed per-chunk token counts, which double-counts
+    overlap regions for long multi-chunk documents.
+    """
+    from crategraph.index.chunker import Chunker
+    from crategraph.index.models import DEFAULT_MODEL
+
+    store = tmp_path / "tokens.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    chunker = Chunker(model=DEFAULT_MODEL)
+    for record in crate.text_records(store_path=store):
+        expected = chunker.count_tokens(record["text"])
+        assert record["token_count"] == expected, (
+            f"token_count mismatch for {record['entity_id']}/{record['source_kind']}: "
+            f"stored {record['token_count']}, expected {expected}"
+        )
+
+
 def test_search_invalid_mode_raises(tmp_path: Path) -> None:
     """An unknown mode= value must error rather than silently no-op."""
     crate = Crate(str(FIXTURE))
