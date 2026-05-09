@@ -317,6 +317,12 @@ def _build_filter_clause(
     pieces: list[str] = []
     params: list[Any] = []
 
+    # Each list-valued filter is bound as a single JSON parameter and
+    # expanded at query time via SQLite's ``json_each``. This avoids
+    # the ``IN (?, ?, ...)`` per-element bind expansion, which hits
+    # SQLite's bind-variable limit (default 999, 32 766 on recent
+    # builds) on large filters such as a derived view's full
+    # entity_id list.
     for key in ("source_id", "entity_id", "source_kind"):
         if key not in filters:
             continue
@@ -328,21 +334,19 @@ def _build_filter_clause(
             # Defensive: vector_search should have already short-circuited;
             # for direct callers of _build_filter_clause, signal "no match".
             return " WHERE 0 = 1", []
-        placeholders = ",".join("?" * len(values_list))
-        pieces.append(f"{columns[key]} IN ({placeholders})")
-        params.extend(values_list)
+        pieces.append(f"{columns[key]} IN (SELECT value FROM json_each(?))")
+        params.append(json.dumps(values_list))
 
     types_values = filters.get("entity_types")
     if types_values is not None:
         types_list = list(types_values)
         if not types_list:
             return " WHERE 0 = 1", []
-        placeholders = ",".join("?" * len(types_list))
         pieces.append(
             f"EXISTS (SELECT 1 FROM json_each({columns['entity_types']}) "
-            f"WHERE json_each.value IN ({placeholders}))"
+            "WHERE json_each.value IN (SELECT value FROM json_each(?)))"
         )
-        params.extend(types_list)
+        params.append(json.dumps(types_list))
 
     if not pieces:
         return "", []

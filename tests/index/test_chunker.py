@@ -51,6 +51,21 @@ def test_invalid_overlap_rejected() -> None:
         Chunker(model=DEFAULT_MODEL, chunk_tokens=10, chunk_overlap=15)
 
 
+def test_chunker_rejects_invalid_windows() -> None:
+    """Non-positive chunk_tokens or negative chunk_overlap must error fast.
+
+    Without these guards a misconfigured Indexer could silently build a
+    nonsensical index — empty or reversed slices, zero token counts —
+    rather than failing at construction time.
+    """
+    with pytest.raises(ValueError, match="chunk_tokens must be positive"):
+        Chunker(model=DEFAULT_MODEL, chunk_tokens=0, chunk_overlap=0)
+    with pytest.raises(ValueError, match="chunk_tokens must be positive"):
+        Chunker(model=DEFAULT_MODEL, chunk_tokens=-5, chunk_overlap=0)
+    with pytest.raises(ValueError, match="chunk_overlap must be non-negative"):
+        Chunker(model=DEFAULT_MODEL, chunk_tokens=10, chunk_overlap=-1)
+
+
 def test_chunks_cover_full_text(chunker: Chunker) -> None:
     """Each character of the input should appear in at least one chunk."""
     text = " ".join(f"distinct{i}" for i in range(100))

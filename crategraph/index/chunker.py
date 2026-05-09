@@ -43,6 +43,12 @@ class Chunker:
         chunk_tokens: int = 300,
         chunk_overlap: int = 50,
     ) -> None:
+        if chunk_tokens <= 0:
+            msg = f"chunk_tokens must be positive, got {chunk_tokens}."
+            raise ValueError(msg)
+        if chunk_overlap < 0:
+            msg = f"chunk_overlap must be non-negative, got {chunk_overlap}."
+            raise ValueError(msg)
         if chunk_overlap >= chunk_tokens:
             msg = (
                 f"chunk_overlap ({chunk_overlap}) must be smaller than "

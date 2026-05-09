@@ -310,6 +310,54 @@ def test_iter_chunk_records_reconstructs_text_via_substr(tmp_path: Path) -> None
         )
 
 
+def test_filter_handles_lists_larger_than_sqlite_bind_limit(tmp_path: Path) -> None:
+    """entity_id (and source_id) filters must not bind one parameter per id.
+
+    SQLite's default bind limit is 999 on older builds, 32 766 on
+    recent ones; either way, a derived view of a large crate can produce
+    an entity_id list that exceeds it. The fix routes list filters
+    through a single JSON parameter expanded via ``json_each``, so any
+    list size works.
+    """
+    store_path = tmp_path / "big_filter.db"
+    rng = np.random.default_rng(17)
+
+    # 1500 entities — well above SQLite's old 999 bind limit.
+    n = 1500
+    units = [_unit(i, "properties") for i in range(n)]
+    embeddings = rng.normal(0.0, 1.0, size=(n, DIM)).astype("float32")
+
+    with Store(store_path) as store:
+        store.initialise(_make_manifest())
+        store.replace_source(
+            units,
+            embeddings,
+            source_id="test",
+            source_path=None,
+            content_hash="x",
+            entity_count=n,
+        )
+
+    query = np.zeros(DIM, dtype="float32")
+    all_entity_ids = [f"properties-{i}" for i in range(n)]
+
+    with Store(store_path) as store:
+        # Pre-fix this would raise ``OperationalError: too many SQL
+        # variables`` on older SQLite builds; with json_each it succeeds.
+        hits = store.vector_search(
+            query,
+            k=5,
+            filters={"entity_id": all_entity_ids},
+        )
+        assert hits, "expected hits when filter covers every entity"
+        assert len(hits) == 5
+
+        # iter_text_records and iter_chunk_records use the same
+        # filter builder; verify they survive the same input.
+        text_records = list(store.iter_text_records(filters={"entity_id": all_entity_ids}))
+        assert len(text_records) == n
+
+
 def test_iter_text_records_filtered(tmp_path: Path) -> None:
     """Filters on iter_text_records narrow the result set."""
     store_path = tmp_path / "iter_text_filtered.db"
