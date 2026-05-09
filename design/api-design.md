@@ -7,6 +7,7 @@ Overview of `crategraph`'s design principles and current API surface. For the ra
 - **Immutable results**: Every operation returns a new Graph. No in-place mutation.
 - **Chainable**: Operations compose fluently — `crate.select(...).where(...).expand(...)`.
 - **Consistent types**: Every method that returns a subset returns a `Graph`, so users learn one set of methods.
+- **Graph vs records**: Public graph-view methods return a `Graph`. Methods ending in `records` return row-like iterables with stable schemas for tabular/export workflows. Non-graph escape hatches are named explicitly (`summary()`, `profile()`, `inspect()`, `view()`, `write()`, `to_networkx()`).
 - **Researcher-friendly vocabulary**: Avoid graph theory jargon in the public API. "Select", "expand", "pattern" instead of "subgraph", "ego network", "motif".
 - **Smart defaults**: Visualisations are readable out of the box.
 - **Discoverable vocabulary**: Entity and relationship types are exposed as attributes (`crate.types.Person`) with fuzzy validation on string inputs.
