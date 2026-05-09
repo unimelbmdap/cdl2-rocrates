@@ -19,6 +19,8 @@ from crategraph.core.models import Entity, Relationship
 from crategraph.core.types import TypeRegistry
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator, Mapping, Sequence
+
     from crategraph.core.models import CoverageResult, FileInfo, ViewInfo
 
 
@@ -121,6 +123,39 @@ class Graph:
     def sources(self) -> list[str]:
         """Distinct source directory names, sorted."""
         return sorted(self._source_names)
+
+    @property
+    def default_index_path(self) -> Path:
+        """Conventional location for this graph's index, derived from CWD.
+
+        Single-source graphs use ``<cwd>/.crategraph/<source_id>.db``;
+        multi-source graphs use ``<cwd>/.crategraph/corpus-<sha8>.db``
+        where the hash is over the sorted source ids, so the same
+        ``Crate(*paths)`` call always produces the same default path.
+
+        ``build_semantic_index()`` and the search/records methods fall
+        back to this when ``store_path`` isn't supplied. Add
+        ``.crategraph/`` to your gitignore to keep indexes out of version
+        control.
+
+        Raises ``ValueError`` if the graph has no source — there's
+        nothing to index.
+        """
+        srcs = self.sources
+        if not srcs:
+            msg = (
+                "Cannot derive a default index path: this graph has no "
+                "source. Pass an explicit `store_path` to build_semantic_index()."
+            )
+            raise ValueError(msg)
+        if len(srcs) == 1:
+            name = srcs[0]
+        else:
+            import hashlib
+
+            digest = hashlib.sha256("|".join(srcs).encode()).hexdigest()[:8]
+            name = f"corpus-{digest}"
+        return Path.cwd() / ".crategraph" / f"{name}.db"
 
     def __repr__(self) -> str:
         n_ent = len(self._entities)
@@ -362,6 +397,368 @@ class Graph:
         """View the data file associated with an entity."""
         return presentation.view(self, entity)
 
+    def text_records(
+        self,
+        *,
+        store_path: str | Path | None = None,
+        text_properties: Sequence[str] | None = None,
+        filters: Mapping[str, Any] | None = None,
+        restrict_to_view: bool = True,
+    ) -> Iterator[dict[str, Any]]:
+        """Yield one text record per source unit in the graph.
+
+        Each record is a dict with keys ``source_id``, ``entity_id``,
+        ``source_kind`` (``"file"`` or ``"properties"``),
+        ``entity_types``, ``text``. Generator — peak memory is one
+        record at a time.
+
+        ``store_path`` switches between two read paths:
+
+        - **Default (``store_path=None``)**: live extraction. Walks
+          entities and pulls file content via the registered
+          ``Inspector``. Slow on big corpora; always reflects current
+          files on disk. Yields no ``token_count``.
+        - **Cached (``store_path=...``)**: reads ``text_units`` from
+          a previously-built index. Microseconds per record;
+          reflects the corpus as of the last ``build_semantic_index``.
+          Yields ``token_count`` (the indexer's tokenizer view).
+          Requires the ``[index]`` extra.
+
+        Filters: ``source_id``, ``entity_id``, ``entity_types``,
+        ``source_kind`` (any-of within each key).
+
+        ``restrict_to_view`` (default ``True``) intersects with the
+        current graph view: a filtered subgraph (``crate.where(...)``)
+        only yields records for its own entities, on either path. The
+        live path always walks ``self.entities``; the cached path
+        injects an ``entity_id`` filter intersected with the view so
+        results are consistent. Pass ``False`` to read every row in
+        the index regardless of view.
+
+        See :func:`crategraph.core.text.text_records` for the live
+        implementation.
+        """
+        if store_path is not None:
+            return self._cached_text_records(
+                store_path, filters, restrict_to_view=restrict_to_view
+            )
+
+        from crategraph.core.text import DEFAULT_TEXT_PROPERTIES, text_records
+
+        # Distinguish ``None`` (use defaults) from ``[]`` (explicit empty —
+        # caller wants to suppress property records entirely). Don't use
+        # ``or`` here: an empty sequence is falsy.
+        if text_properties is None:
+            text_properties = DEFAULT_TEXT_PROPERTIES
+        return text_records(
+            self,
+            text_properties=text_properties,
+            filters=dict(filters) if filters else None,
+        )
+
+    def chunk_records(
+        self,
+        query: str | None = None,
+        *,
+        k: int = 10,
+        store_path: str | Path | None = None,
+        filters: Mapping[str, Any] | None = None,
+        restrict_to_view: bool = True,
+    ) -> Iterator[dict[str, Any]]:
+        """Yield one record per indexed chunk.
+
+        Requires the ``[index]`` extra and a previously-built index.
+        ``store_path`` defaults to :attr:`default_index_path`; raises
+        ``FileNotFoundError`` if no index exists at the default.
+
+        Two modes, switched by ``query``:
+
+        - **Unranked iteration (``query=None``, default)**: yields every
+          chunk in the index in stable order (by source_id, entity_id,
+          source_kind, chunk_index). Streaming. For analytical use —
+          inspecting what's there, debugging, custom pipelines.
+        - **Ranked retrieval (``query="..."``)**: runs the index's
+          embedding model on the query and yields the top ``k`` chunks
+          by relevance, with a ``score`` field on each record (higher is
+          better). For RAG-style use.
+
+        Each record is a dict with keys ``source_id``, ``entity_id``,
+        ``source_kind``, ``entity_types``, ``chunk_index``,
+        ``char_start``, ``char_end``, ``token_count``, ``text`` (text
+        reconstructed at query time from ``text_units`` via SUBSTR),
+        plus ``score`` when ``query`` is provided.
+
+        Filters: ``source_id``, ``entity_id``, ``entity_types``,
+        ``source_kind``.
+
+        ``restrict_to_view`` (default ``True``) intersects with the
+        current graph view, so a filtered subgraph only yields chunks
+        for its own entities. Pass ``False`` to read every chunk in
+        the index regardless of view.
+        """
+        try:
+            from crategraph.index.store import Store
+        except ImportError:
+            msg = (
+                "chunk_records requires the [index] extra. "
+                "Install it with: pip install crategraph[index]"
+            )
+            raise ImportError(msg) from None
+
+        resolved = self._resolve_index_path(store_path, must_exist=True)
+        merged = self._apply_view_restriction(filters, restrict_to_view)
+        if merged is None:
+            return iter(())
+
+        if query is not None:
+            return self._ranked_chunk_records(resolved, query, k=k, filters=merged)
+
+        def _iter() -> Iterator[dict[str, Any]]:
+            with Store(resolved) as store:
+                yield from store.iter_chunk_records(filters=merged)
+
+        return _iter()
+
+    def _ranked_chunk_records(
+        self,
+        store_path: Path,
+        query: str,
+        *,
+        k: int,
+        filters: dict[str, Any],
+    ) -> Iterator[dict[str, Any]]:
+        """Embed *query* and yield the top *k* chunks as records, ranked by score."""
+        try:
+            from crategraph.index import Searcher
+        except ImportError:
+            msg = (
+                "Ranked chunk_records requires the [index] extra. "
+                "Install it with: pip install crategraph[index]"
+            )
+            raise ImportError(msg) from None
+
+        # Sanity-check that the index file looks like it belongs to
+        # this graph's sources before running retrieval.
+        self._warn_if_unrelated_index(store_path)
+
+        searcher = Searcher(store_path)
+        hits = searcher.search(query, k=k, filters=filters)
+
+        def _iter() -> Iterator[dict[str, Any]]:
+            for hit in hits:
+                yield {
+                    "source_id": hit.source_id,
+                    "entity_id": hit.entity_id,
+                    "entity_types": hit.entity_types,
+                    "source_kind": hit.source_kind,
+                    "chunk_index": hit.chunk_index,
+                    "char_start": hit.char_start,
+                    "char_end": hit.char_end,
+                    "token_count": hit.token_count,
+                    "text": hit.text,
+                    "score": hit.score,
+                }
+
+        return _iter()
+
+    def _cached_text_records(
+        self,
+        store_path: str | Path,
+        filters: Mapping[str, Any] | None,
+        *,
+        restrict_to_view: bool,
+    ) -> Iterator[dict[str, Any]]:
+        """Stream text_units rows from a built index. Lazy-imports the index module."""
+        try:
+            from crategraph.index.store import Store
+        except ImportError:
+            msg = (
+                "Cached text_records reads require the [index] extra. "
+                "Install it with: pip install crategraph[index]"
+            )
+            raise ImportError(msg) from None
+
+        merged = self._apply_view_restriction(filters, restrict_to_view)
+        if merged is None:
+            return iter(())
+
+        def _iter() -> Iterator[dict[str, Any]]:
+            with Store(store_path) as store:
+                yield from store.iter_text_records(filters=merged)
+
+        return _iter()
+
+    def _resolve_index_path(
+        self,
+        store_path: str | Path | None,
+        *,
+        must_exist: bool,
+    ) -> Path:
+        """Resolve store_path to a concrete Path, falling back to
+        :attr:`default_index_path` when ``store_path`` is ``None``.
+
+        With ``must_exist=True`` (read-side methods), raises a friendly
+        ``FileNotFoundError`` when the default location has no index
+        file yet. Build-side methods pass ``must_exist=False`` since
+        they create the file.
+        """
+        if store_path is not None:
+            return Path(store_path)
+        default = self.default_index_path
+        if must_exist and not default.exists():
+            msg = (
+                f"No index at default location {default}. "
+                "Run `graph.build_semantic_index()` first, or pass an "
+                "explicit `store_path=` to use a different location."
+            )
+            raise FileNotFoundError(msg)
+        return default
+
+    def _apply_view_restriction(
+        self,
+        filters: Mapping[str, Any] | None,
+        restrict_to_view: bool,
+    ) -> dict[str, Any] | None:
+        """Build the filter dict for a cached read, optionally intersecting
+        an ``entity_id`` filter with the current graph view.
+
+        Returns ``None`` when the intersection of a user-supplied
+        ``entity_id`` filter with the view is empty (caller should
+        short-circuit to no results). An empty dict is distinct: it
+        means "no constraints at all" and is passed through unchanged.
+        """
+        merged: dict[str, Any] = dict(filters) if filters else {}
+        if not restrict_to_view:
+            return merged
+        if "entity_id" in merged:
+            # User supplied entity_id — intersect with current view to
+            # prevent bypass. Honours user intent on root graphs too.
+            view_ids = set(self._entities.keys())
+            user_ids = set(merged["entity_id"])
+            intersected = list(user_ids & view_ids)
+            if not intersected:
+                return None
+            merged["entity_id"] = intersected
+        elif self._root is not self:
+            # Derived view (filtered subgraph): inject entity_id filter
+            # to honour the view's scope.
+            #
+            # On a top-level graph, *don't* inject — the filter would
+            # constrain nothing (every entity is in scope) and could
+            # exceed SQLite's bind-variable limit on large crates
+            # (default 999, tens-of-thousands on recent builds; even
+            # below that, it forces the slower over-fetch path for no
+            # gain).
+            merged["entity_id"] = list(self._entities.keys())
+        return merged
+
+    def build_semantic_index(
+        self,
+        store_path: str | Path | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        """Build a semantic search index over this graph.
+
+        Requires the ``[index]`` extra::
+
+            pip install crategraph[index]
+
+        ``store_path`` defaults to :attr:`default_index_path` —
+        ``<cwd>/.crategraph/<source_id_or_corpus_hash>.db``. Build is
+        idempotent: re-running with the same config and unchanged
+        sources is a no-op.
+
+        See :class:`crategraph.index.Indexer` for full options. Common
+        keyword arguments: ``model``, ``chunk_tokens``, ``chunk_overlap``,
+        ``text_properties``, ``batch_size``, ``progress``.
+
+        Returns an :class:`~crategraph.index.IndexerStats` describing
+        what changed.
+        """
+        try:
+            from crategraph.index import Indexer
+        except ImportError:
+            msg = (
+                "Semantic indexing requires the [index] extra. "
+                "Install it with: pip install crategraph[index]"
+            )
+            raise ImportError(msg) from None
+        resolved = self._resolve_index_path(store_path, must_exist=False)
+        return Indexer(self, resolved, **kwargs).build()
+
+    def _semantic_search_subgraph(
+        self,
+        query: str,
+        *,
+        k: int,
+        store_path: str | Path | None,
+        filters: Mapping[str, Any] | None,
+        restrict_to_view: bool,
+    ) -> Graph:
+        """Roll ranked chunk hits up to a top-*k* entity subgraph.
+
+        Oversamples chunks (5x) so dedup-to-entity yields enough unique
+        candidates, picks the best score per entity, returns the top *k*.
+
+        The subgraph is built from a base that depends on
+        ``restrict_to_view``:
+
+        - ``True`` (default) — build from ``self``. Hit ids are already
+          intersected with ``self._entities`` upstream, so they're
+          guaranteed safe; this preserves whatever relationship-level
+          filtering the current view applied (e.g. ``crate.pattern(...)``
+          or ``select(relationship_types=...)``).
+        - ``False`` — build from ``self._root``. Hits may be outside
+          ``self._entities``; ``_build_derived_graph`` filters node ids
+          through ``self._entities`` and would silently drop them. The
+          root carries the full set.
+        """
+        records = self.chunk_records(
+            query,
+            k=k * 5,
+            store_path=store_path,
+            filters=filters,
+            restrict_to_view=restrict_to_view,
+        )
+        best: dict[str, float] = {}
+        for record in records:
+            eid = record["entity_id"]
+            score = record["score"]
+            if score > best.get(eid, float("-inf")):
+                best[eid] = score
+        top_ids = sorted(best, key=lambda eid: best[eid], reverse=True)[:k]
+        base = self if restrict_to_view else self._root
+        return base._subgraph(set(top_ids))
+
+    def _warn_if_unrelated_index(self, store_path: str | Path) -> None:
+        """Emit a UserWarning when this graph's sources don't overlap with
+        the index's known sources — likely sign of the wrong index file.
+
+        Stack level reaches the user's call site rather than the
+        internal generator wrapper, so the warning location is useful.
+        """
+        import warnings
+
+        try:
+            from crategraph.index import Searcher
+        except ImportError:
+            return
+
+        graph_sources = set(self.sources)
+        if not graph_sources:
+            return
+        try:
+            indexed = set(Searcher(store_path).known_source_ids())
+        except (FileNotFoundError, ValueError):
+            return
+        if indexed and not (graph_sources & indexed):
+            warnings.warn(
+                f"Graph sources {sorted(graph_sources)} don't overlap "
+                f"with index sources {sorted(indexed)}; "
+                "this may be the wrong index file.",
+                stacklevel=3,
+            )
+
     # --- Transform methods ---
 
     def detect_communities(self, *, resolution: float = 1.0, seed: int | None = None) -> Graph:
@@ -442,15 +839,56 @@ class Graph:
     def search(
         self,
         query: str,
+        mode: str = "fuzzy",
         *,
+        # Fuzzy-mode kwargs (ignored by other modes)
         properties: list[str] | None = None,
         threshold: int = 80,
         top_n: int = 10,
+        # Index-backed mode kwargs (ignored by fuzzy)
+        k: int = 10,
+        store_path: str | Path | None = None,
+        filters: Mapping[str, Any] | None = None,
+        restrict_to_view: bool = True,
     ) -> Graph:
-        """Fuzzy content search across entity properties."""
-        return filtering.search(
-            self, query, properties=properties, threshold=threshold, top_n=top_n
+        """Search this graph and return a matching subgraph.
+
+        Modes:
+
+        - ``"fuzzy"`` (default): rapidfuzz match over entity properties.
+          Uses ``properties``, ``threshold``, ``top_n``. No index required.
+        - ``"semantic"``: embedding-backed retrieval via the index. Uses
+          ``k``, ``store_path``, ``filters``, ``restrict_to_view``.
+          Requires the ``[index]`` extra and a previously-built index;
+          ``store_path`` defaults to :attr:`default_index_path`.
+
+        Both modes return a :class:`Graph` (subgraph of matching
+        entities) so they compose with the rest of the pipeline
+        (``where``, ``expand``, etc.). For chunk-level retrieval with
+        scores, use :meth:`chunk_records` (returns dicts) or
+        :class:`crategraph.index.Searcher` (typed ``SearchHit`` objects).
+
+        ``mode="keyword"`` and ``mode="hybrid"`` are reserved for a
+        future FTS5-backed implementation.
+        """
+        if mode == "fuzzy":
+            return filtering.search(
+                self, query, properties=properties, threshold=threshold, top_n=top_n
+            )
+        if mode == "semantic":
+            return self._semantic_search_subgraph(
+                query,
+                k=k,
+                store_path=store_path,
+                filters=filters,
+                restrict_to_view=restrict_to_view,
+            )
+        msg = (
+            f"Unknown search mode {mode!r}. "
+            "Supported: 'fuzzy' (default), 'semantic'. "
+            "'keyword' and 'hybrid' are forthcoming."
         )
+        raise ValueError(msg)
 
     def expand(
         self,
