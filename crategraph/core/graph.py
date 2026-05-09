@@ -370,6 +370,7 @@ class Graph:
         store_path: str | Path | None = None,
         text_properties: Sequence[str] | None = None,
         filters: Mapping[str, Any] | None = None,
+        restrict_to_view: bool = True,
     ) -> Iterator[dict[str, Any]]:
         """Yield one text record per source unit in the graph.
 
@@ -393,11 +394,21 @@ class Graph:
         Filters: ``source_id``, ``entity_id``, ``entity_types``,
         ``source_kind`` (any-of within each key).
 
+        ``restrict_to_view`` (default ``True``) intersects with the
+        current graph view: a filtered subgraph (``crate.where(...)``)
+        only yields records for its own entities, on either path. The
+        live path always walks ``self.entities``; the cached path
+        injects an ``entity_id`` filter intersected with the view so
+        results are consistent. Pass ``False`` to read every row in
+        the index regardless of view.
+
         See :func:`crategraph.core.text.text_records` for the live
         implementation.
         """
         if store_path is not None:
-            return self._cached_text_records(store_path, filters)
+            return self._cached_text_records(
+                store_path, filters, restrict_to_view=restrict_to_view
+            )
 
         from crategraph.core.text import DEFAULT_TEXT_PROPERTIES, text_records
 
@@ -417,6 +428,7 @@ class Graph:
         *,
         store_path: str | Path,
         filters: Mapping[str, Any] | None = None,
+        restrict_to_view: bool = True,
     ) -> Iterator[dict[str, Any]]:
         """Yield one record per indexed chunk.
 
@@ -430,6 +442,11 @@ class Graph:
 
         Filters: ``source_id``, ``entity_id``, ``entity_types``,
         ``source_kind``.
+
+        ``restrict_to_view`` (default ``True``) intersects with the
+        current graph view, so a filtered subgraph only yields chunks
+        for its own entities. Pass ``False`` to read every chunk in
+        the index regardless of view.
         """
         try:
             from crategraph.index.store import Store
@@ -440,13 +457,13 @@ class Graph:
             )
             raise ImportError(msg) from None
 
-        normalised = dict(filters) if filters else None
+        merged = self._apply_view_restriction(filters, restrict_to_view)
+        if merged is None:
+            return iter(())
 
-        # Stream rather than materialise — wrap the cursor in a
-        # generator that owns the Store lifecycle.
         def _iter() -> Iterator[dict[str, Any]]:
             with Store(store_path) as store:
-                yield from store.iter_chunk_records(filters=normalised)
+                yield from store.iter_chunk_records(filters=merged)
 
         return _iter()
 
@@ -454,6 +471,8 @@ class Graph:
         self,
         store_path: str | Path,
         filters: Mapping[str, Any] | None,
+        *,
+        restrict_to_view: bool,
     ) -> Iterator[dict[str, Any]]:
         """Stream text_units rows from a built index. Lazy-imports the index module."""
         try:
@@ -465,13 +484,42 @@ class Graph:
             )
             raise ImportError(msg) from None
 
-        normalised = dict(filters) if filters else None
+        merged = self._apply_view_restriction(filters, restrict_to_view)
+        if merged is None:
+            return iter(())
 
         def _iter() -> Iterator[dict[str, Any]]:
             with Store(store_path) as store:
-                yield from store.iter_text_records(filters=normalised)
+                yield from store.iter_text_records(filters=merged)
 
         return _iter()
+
+    def _apply_view_restriction(
+        self,
+        filters: Mapping[str, Any] | None,
+        restrict_to_view: bool,
+    ) -> dict[str, Any] | None:
+        """Build the filter dict for a cached read, optionally intersecting
+        an ``entity_id`` filter with the current graph view.
+
+        Returns ``None`` when the intersection of a user-supplied
+        ``entity_id`` filter with the view is empty (caller should
+        short-circuit to no results). An empty dict is distinct: it
+        means "no constraints at all" and is passed through unchanged.
+        """
+        merged: dict[str, Any] = dict(filters) if filters else {}
+        if not restrict_to_view:
+            return merged
+        view_ids = set(self._entities.keys())
+        if "entity_id" in merged:
+            user_ids = set(merged["entity_id"])
+            intersected = list(user_ids & view_ids)
+            if not intersected:
+                return None
+            merged["entity_id"] = intersected
+        else:
+            merged["entity_id"] = list(view_ids)
+        return merged
 
     def build_semantic_index(
         self,

@@ -539,7 +539,6 @@ class Store:
         k: int,
         filters: Mapping[str, Sequence[str]] | None = None,
         over_fetch: int = 5,
-        max_iterations: int = 6,
     ) -> list[SearchHit]:
         """Run a KNN search with optional metadata filters.
 
@@ -548,8 +547,8 @@ class Store:
         over_fetch`` initially) and post-filtered; if that yields
         fewer than ``k`` matches, the fetch window is doubled and the
         query rerun until either ``k`` filtered hits are found or the
-        index is exhausted. ``max_iterations`` caps the doublings as a
-        safety belt.
+        index is exhausted. ``fetch_k`` strictly grows toward the total
+        chunk count, so the loop is naturally bounded.
         """
         embedding_bytes = embedding.astype("float32").tobytes()
         normalised = self._normalise_filters(filters, allow_short_circuit=True)
@@ -566,12 +565,11 @@ class Store:
 
         fetch_k = min(max(k * over_fetch, k), total)
         hits: list[SearchHit] = []
-        for _ in range(max_iterations):
+        while True:
             hits = self._run_knn(embedding_bytes, fetch_k=fetch_k, k_limit=k, filters=normalised)
             if len(hits) >= k or fetch_k >= total:
                 return hits
             fetch_k = min(fetch_k * 2, total)
-        return hits
 
     def _normalise_filters(
         self,

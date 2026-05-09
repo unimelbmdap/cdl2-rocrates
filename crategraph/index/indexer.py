@@ -128,7 +128,19 @@ class Indexer:
                 # replaces atomically.
                 text_units, chunk_texts = self._build_text_units(chunker, source_id)
                 if not text_units:
-                    logger.info("Source %r yielded no chunks; skipping", source_id)
+                    # Source still has entities but produces no text (e.g.
+                    # text_properties allowlist excludes everything, files
+                    # all unsupported). If we previously indexed this
+                    # source, drop its stale rows; otherwise just skip.
+                    if existing is not None:
+                        store.delete_source(source_id)
+                        stats.sources_removed.append(source_id)
+                        logger.info(
+                            "Source %r now produces no chunks; removed stale rows",
+                            source_id,
+                        )
+                    else:
+                        logger.info("Source %r yielded no chunks; skipping", source_id)
                     continue
 
                 embeddings = self._embed(chunk_texts)

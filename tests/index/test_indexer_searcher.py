@@ -134,6 +134,131 @@ def test_semantic_search_restrict_to_view(tmp_path: Path) -> None:
     assert "#alice" in unrestricted_ids
 
 
+def test_indexer_removes_source_when_rebuild_yields_no_text(tmp_path: Path) -> None:
+    """A source whose entities exist but produce no text must be deleted on rebuild.
+
+    Today's bug case: text_properties allowlist mismatches every entity
+    AND the graph is filtered to exclude data entities — text_units
+    becomes empty for an existing source. Without the fix, stale rows
+    persist; with the fix, the source is removed.
+    """
+    store = tmp_path / "stale.db"
+    crate = Crate(str(FIXTURE))
+
+    from crategraph.index.store import Store
+
+    # Use a text_properties allowlist pinned to a key all minimal-crate
+    # entities actually have, so the initial build populates the index.
+    Indexer(crate, store, text_properties=("name",), progress=False).build()
+    with Store(store) as s:
+        assert "minimal-crate" in s.list_source_ids()
+
+    # Rebuild from a graph that excludes data entities AND uses a
+    # property name that doesn't exist on any remaining entity. The
+    # source's entities still exist in entities_by_source, but
+    # text_units is empty for it. (Need a fresh store path because
+    # text_properties is part of the manifest config and changing
+    # it mid-stream would be refused.)
+    fresh_store = tmp_path / "fresh.db"
+    Indexer(crate, fresh_store, text_properties=("__nonexistent__",), progress=False).build()
+    no_data = crate.exclude(entity_types=["File"])
+    stats = Indexer(
+        no_data, fresh_store, text_properties=("__nonexistent__",), progress=False
+    ).build()
+
+    assert "minimal-crate" in stats.sources_removed, f"expected source removal, got stats={stats}"
+    with Store(fresh_store) as s:
+        assert "minimal-crate" not in s.list_source_ids(), (
+            "stale source rows should have been deleted"
+        )
+
+
+def test_filtered_search_finds_rare_match_in_large_index(tmp_path: Path) -> None:
+    """Filtered KNN must keep growing fetch_k past the historical 6-iteration cap.
+
+    Engineers a synthetic store where 500 chunks all rank near a query,
+    but only one chunk passes the filter — and that chunk is at rank
+    ~480. The historical cap of 6 doublings (max fetch_k = 320 from
+    starting fetch_k = 5) would miss it. With the cap removed, the
+    loop expands until fetch_k >= total and the match is found.
+    """
+    pytest.importorskip("sqlite_vec")
+    import numpy as np
+
+    from crategraph.index.models import ChunkSpec, IndexerConfig, TextUnitSpec
+    from crategraph.index.store import Store, StoreManifest
+
+    store_path = tmp_path / "rare_filter.db"
+    dim = 4
+    rng = np.random.default_rng(123)
+
+    units: list[TextUnitSpec] = []
+    embeddings_list: list[np.ndarray] = []
+    # 499 properties chunks plus one file chunk we want to find via filter.
+    for i in range(499):
+        text = f"properties text {i}"
+        units.append(
+            TextUnitSpec(
+                source_id="test",
+                entity_id=f"prop-{i}",
+                entity_types=("Person",),
+                source_kind="properties",
+                text=text,
+                token_count=10,
+                chunks=(
+                    ChunkSpec(chunk_index=0, char_start=0, char_end=len(text), token_count=10),
+                ),
+            )
+        )
+        # Closer to the query (origin) for higher ranks; we want the
+        # file row to land beyond the original 320-chunk cap.
+        embeddings_list.append(rng.normal(0.0, 0.05, size=dim).astype("float32"))
+
+    # The single matching file chunk — placed slightly farther from the
+    # query so it's in the tail beyond the historical cap.
+    file_text = "file text 0"
+    units.append(
+        TextUnitSpec(
+            source_id="test",
+            entity_id="file-0",
+            entity_types=("File",),
+            source_kind="file",
+            text=file_text,
+            token_count=10,
+            chunks=(
+                ChunkSpec(chunk_index=0, char_start=0, char_end=len(file_text), token_count=10),
+            ),
+        )
+    )
+    file_embed = np.array([0.5, 0.5, 0.5, 0.5], dtype="float32")
+    embeddings_list.append(file_embed)
+    embeddings = np.vstack(embeddings_list)
+
+    manifest = StoreManifest(
+        config=IndexerConfig(model="test/synthetic"),
+        embedding_dim=dim,
+        package_version="test",
+        created_at="2025-01-01T00:00:00+00:00",
+    )
+    with Store(store_path) as store:
+        store.initialise(manifest)
+        store.replace_source(
+            units,
+            embeddings,
+            source_id="test",
+            source_path=None,
+            content_hash="x",
+            entity_count=500,
+        )
+
+    query = np.zeros(dim, dtype="float32")
+    with Store(store_path) as store:
+        hits = store.vector_search(query, k=1, filters={"source_kind": ["file"]})
+
+    assert len(hits) == 1, "filtered KNN must keep expanding until the matching chunk is found"
+    assert hits[0].entity_id == "file-0"
+
+
 def test_cached_text_records_via_graph(tmp_path: Path) -> None:
     """Graph.text_records(store_path=...) reads from text_units with token_count."""
     store = tmp_path / "cached_text.db"
@@ -185,6 +310,66 @@ def test_chunk_records_reconstructs_text(tmp_path: Path) -> None:
         assert set(record.keys()) == expected_keys
         assert record["text"]
         assert record["char_end"] > record["char_start"]
+
+
+def test_cached_text_records_respects_view(tmp_path: Path) -> None:
+    """Filtered subgraph's cached text_records must match the live path."""
+    store = tmp_path / "view_text.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    just_bob = crate.where(name="Bob Jones")
+    assert "#bob" in just_bob._entities
+    assert "#alice" not in just_bob._entities
+
+    # Default: restrict_to_view=True. Cached path must mirror live path.
+    cached = list(just_bob.text_records(store_path=store))
+    cached_ids = {r["entity_id"] for r in cached}
+    assert "#alice" not in cached_ids, "cached text_records leaked filtered-out entity"
+    assert "#bob" in cached_ids
+
+    # Opt out — full index visible.
+    full = list(just_bob.text_records(store_path=store, restrict_to_view=False))
+    full_ids = {r["entity_id"] for r in full}
+    assert "#alice" in full_ids
+    assert "#bob" in full_ids
+
+
+def test_cached_text_records_intersects_user_entity_id_filter(tmp_path: Path) -> None:
+    """User-supplied entity_id must be intersected with the view, not replace it."""
+    store = tmp_path / "view_intersect_text.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    just_bob = crate.where(name="Bob Jones")
+
+    # Asking for Alice from a Bob-only view yields nothing.
+    nothing = list(just_bob.text_records(store_path=store, filters={"entity_id": ["#alice"]}))
+    assert nothing == []
+
+    # Asking for Bob (in view) still works.
+    bob = list(just_bob.text_records(store_path=store, filters={"entity_id": ["#bob"]}))
+    assert bob
+    assert all(r["entity_id"] == "#bob" for r in bob)
+
+
+def test_chunk_records_respects_view(tmp_path: Path) -> None:
+    """chunk_records must intersect with the view, same as text_records."""
+    store = tmp_path / "view_chunks.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    just_bob = crate.where(name="Bob Jones")
+
+    # Default restriction should hide #alice's chunks.
+    chunks = list(just_bob.chunk_records(store_path=store))
+    chunk_ids = {c["entity_id"] for c in chunks}
+    assert "#alice" not in chunk_ids
+    assert "#bob" in chunk_ids
+
+    # Opt-out reveals everything.
+    full = list(just_bob.chunk_records(store_path=store, restrict_to_view=False))
+    assert "#alice" in {c["entity_id"] for c in full}
 
 
 def test_chunk_records_text_matches_text_units(tmp_path: Path) -> None:
