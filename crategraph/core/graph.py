@@ -124,6 +124,39 @@ class Graph:
         """Distinct source directory names, sorted."""
         return sorted(self._source_names)
 
+    @property
+    def default_index_path(self) -> Path:
+        """Conventional location for this graph's index, derived from CWD.
+
+        Single-source graphs use ``<cwd>/.crategraph/<source_id>.db``;
+        multi-source graphs use ``<cwd>/.crategraph/corpus-<sha8>.db``
+        where the hash is over the sorted source ids, so the same
+        ``Crate(*paths)`` call always produces the same default path.
+
+        ``build_semantic_index()`` and the search/records methods fall
+        back to this when ``store_path`` isn't supplied. Add
+        ``.crategraph/`` to your gitignore to keep indexes out of version
+        control.
+
+        Raises ``ValueError`` if the graph has no source — there's
+        nothing to index.
+        """
+        srcs = self.sources
+        if not srcs:
+            msg = (
+                "Cannot derive a default index path: this graph has no "
+                "source. Pass an explicit `store_path` to build_semantic_index()."
+            )
+            raise ValueError(msg)
+        if len(srcs) == 1:
+            name = srcs[0]
+        else:
+            import hashlib
+
+            digest = hashlib.sha256("|".join(srcs).encode()).hexdigest()[:8]
+            name = f"corpus-{digest}"
+        return Path.cwd() / ".crategraph" / f"{name}.db"
+
     def __repr__(self) -> str:
         n_ent = len(self._entities)
         n_rel = len(self._relationships)
@@ -426,14 +459,16 @@ class Graph:
     def chunk_records(
         self,
         *,
-        store_path: str | Path,
+        store_path: str | Path | None = None,
         filters: Mapping[str, Any] | None = None,
         restrict_to_view: bool = True,
     ) -> Iterator[dict[str, Any]]:
         """Yield one record per indexed chunk.
 
         Requires the ``[index]`` extra and a previously-built index.
-        Each record is a dict with keys ``source_id``, ``entity_id``,
+        ``store_path`` defaults to :attr:`default_index_path`; raises
+        ``FileNotFoundError`` if no index exists at the default. Each
+        record is a dict with keys ``source_id``, ``entity_id``,
         ``source_kind``, ``entity_types``, ``chunk_index``,
         ``char_start``, ``char_end``, ``token_count``, ``text`` —
         with ``text`` reconstructed at query time from the canonical
@@ -457,12 +492,13 @@ class Graph:
             )
             raise ImportError(msg) from None
 
+        resolved = self._resolve_index_path(store_path, must_exist=True)
         merged = self._apply_view_restriction(filters, restrict_to_view)
         if merged is None:
             return iter(())
 
         def _iter() -> Iterator[dict[str, Any]]:
-            with Store(store_path) as store:
+            with Store(resolved) as store:
                 yield from store.iter_chunk_records(filters=merged)
 
         return _iter()
@@ -494,6 +530,32 @@ class Graph:
 
         return _iter()
 
+    def _resolve_index_path(
+        self,
+        store_path: str | Path | None,
+        *,
+        must_exist: bool,
+    ) -> Path:
+        """Resolve store_path to a concrete Path, falling back to
+        :attr:`default_index_path` when ``store_path`` is ``None``.
+
+        With ``must_exist=True`` (read-side methods), raises a friendly
+        ``FileNotFoundError`` when the default location has no index
+        file yet. Build-side methods pass ``must_exist=False`` since
+        they create the file.
+        """
+        if store_path is not None:
+            return Path(store_path)
+        default = self.default_index_path
+        if must_exist and not default.exists():
+            msg = (
+                f"No index at default location {default}. "
+                "Run `graph.build_semantic_index()` first, or pass an "
+                "explicit `store_path=` to use a different location."
+            )
+            raise FileNotFoundError(msg)
+        return default
+
     def _apply_view_restriction(
         self,
         filters: Mapping[str, Any] | None,
@@ -523,7 +585,7 @@ class Graph:
 
     def build_semantic_index(
         self,
-        store_path: str | Path,
+        store_path: str | Path | None = None,
         **kwargs: Any,
     ) -> Any:
         """Build a semantic search index over this graph.
@@ -531,6 +593,11 @@ class Graph:
         Requires the ``[index]`` extra::
 
             pip install crategraph[index]
+
+        ``store_path`` defaults to :attr:`default_index_path` —
+        ``<cwd>/.crategraph/<source_id_or_corpus_hash>.db``. Build is
+        idempotent: re-running with the same config and unchanged
+        sources is a no-op.
 
         See :class:`crategraph.index.Indexer` for full options. Common
         keyword arguments: ``model``, ``chunk_tokens``, ``chunk_overlap``,
@@ -547,22 +614,24 @@ class Graph:
                 "Install it with: pip install crategraph[index]"
             )
             raise ImportError(msg) from None
-        return Indexer(self, store_path, **kwargs).build()
+        resolved = self._resolve_index_path(store_path, must_exist=False)
+        return Indexer(self, resolved, **kwargs).build()
 
     def semantic_search(
         self,
         query: str,
         *,
-        store_path: str | Path,
+        store_path: str | Path | None = None,
         k: int = 10,
         filters: Mapping[str, Any] | None = None,
         restrict_to_view: bool = True,
     ) -> list[Any]:
         """Run a semantic search against an existing index.
 
-        Requires the ``[index]`` extra and a previously-built index at
-        ``store_path``. Filter keys: ``source_id``, ``entity_id``,
-        ``entity_types``, ``source_kind``.
+        Requires the ``[index]`` extra and a previously-built index.
+        ``store_path`` defaults to :attr:`default_index_path`; if no
+        index exists there a clear error is raised. Filter keys:
+        ``source_id``, ``entity_id``, ``entity_types``, ``source_kind``.
 
         By default (``restrict_to_view=True``), search results are
         restricted to entities present in *this* graph — so a filtered
@@ -587,7 +656,8 @@ class Graph:
             )
             raise ImportError(msg) from None
 
-        searcher = Searcher(store_path)
+        resolved = self._resolve_index_path(store_path, must_exist=True)
+        searcher = Searcher(resolved)
 
         # Manifest / source-set sanity check.
         graph_sources = set(self.sources)

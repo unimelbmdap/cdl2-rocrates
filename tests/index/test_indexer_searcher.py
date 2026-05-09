@@ -372,6 +372,92 @@ def test_chunk_records_respects_view(tmp_path: Path) -> None:
     assert "#alice" in {c["entity_id"] for c in full}
 
 
+def test_default_index_path_for_single_crate() -> None:
+    """Single-source graphs default to <cwd>/.crategraph/<source_id>.db."""
+    from pathlib import Path as _Path
+
+    crate = Crate(str(FIXTURE))
+    expected = _Path.cwd() / ".crategraph" / "minimal-crate.db"
+    assert crate.default_index_path == expected
+
+
+def test_default_index_path_for_multi_source_uses_hash(tmp_path: Path) -> None:
+    """Multi-source graphs default to <cwd>/.crategraph/corpus-<sha8>.db."""
+    second = Path(__file__).parent.parent / "fixtures" / "second-crate"
+    if not second.exists():
+        pytest.skip("second-crate fixture missing")
+    crate = Crate(str(FIXTURE), str(second))
+    p = crate.default_index_path
+    assert p.parent.name == ".crategraph"
+    assert p.name.startswith("corpus-")
+    assert p.suffix == ".db"
+    # Stable: same paths produce the same hash.
+    again = Crate(str(FIXTURE), str(second))
+    assert crate.default_index_path == again.default_index_path
+
+
+def test_default_index_path_raises_when_no_source(tmp_path: Path) -> None:
+    """Graph with no source can't derive a default path."""
+    from crategraph.core.graph import Graph
+
+    g = Graph()
+    with pytest.raises(ValueError, match="no source"):
+        _ = g.default_index_path
+
+
+def test_build_and_search_use_default_path(tmp_path: Path, monkeypatch) -> None:
+    """End-to-end: build_semantic_index() and semantic_search() with no args."""
+    monkeypatch.chdir(tmp_path)
+    crate = Crate(str(FIXTURE))
+
+    expected = tmp_path / ".crategraph" / "minimal-crate.db"
+    assert not expected.exists()
+
+    crate.build_semantic_index(progress=False)
+    assert expected.exists(), "build should have created the default index"
+
+    hits = crate.semantic_search("Alice", k=3)
+    assert hits
+    assert any(h.entity_id == "#alice" for h in hits[:3])
+
+
+def test_search_without_index_raises_helpful_error(tmp_path: Path, monkeypatch) -> None:
+    """Calling semantic_search() before build raises a clear error."""
+    monkeypatch.chdir(tmp_path)
+    crate = Crate(str(FIXTURE))
+
+    with pytest.raises(FileNotFoundError, match="default location"):
+        crate.semantic_search("anything", k=1)
+
+
+def test_chunk_records_uses_default_path(tmp_path: Path, monkeypatch) -> None:
+    """chunk_records() with no store_path falls back to default."""
+    monkeypatch.chdir(tmp_path)
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(progress=False)
+
+    records = list(crate.chunk_records())
+    assert records
+
+
+def test_explicit_store_path_overrides_default(tmp_path: Path, monkeypatch) -> None:
+    """Explicit store_path always wins, even if default would point elsewhere."""
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    custom = tmp_path / "custom-name.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(custom, progress=False)
+
+    assert custom.exists()
+    # Default location should NOT have been touched.
+    assert not (elsewhere / ".crategraph" / "minimal-crate.db").exists()
+
+    hits = crate.semantic_search("Alice", store_path=custom, k=3)
+    assert hits
+
+
 def test_chunk_records_text_matches_text_units(tmp_path: Path) -> None:
     """Reconstructed chunk text must equal the SUBSTR of the parent text_unit."""
     store = tmp_path / "verify.db"
