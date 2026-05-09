@@ -103,9 +103,9 @@ def test_graph_methods_delegate(tmp_path: Path) -> None:
     crate = Crate(str(FIXTURE))
 
     crate.build_semantic_index(store, progress=False)
-    hits = crate.semantic_search("Alice", store_path=store, k=5)
-    assert hits
-    assert any(h.entity_id == "#alice" for h in hits[:3])
+    result = crate.search("Alice", mode="semantic", store_path=store, k=5)
+    assert "#alice" in {e.id for e in result.entities}
+    assert len(result.entities) <= 5
 
 
 def test_semantic_search_restrict_to_view(tmp_path: Path) -> None:
@@ -119,18 +119,20 @@ def test_semantic_search_restrict_to_view(tmp_path: Path) -> None:
     assert "#bob" in just_bob._entities
     assert "#alice" not in just_bob._entities
 
-    # Default: restrict_to_view=True
-    hits = just_bob.semantic_search("Alice", store_path=store, k=10)
-    returned_ids = {h.entity_id for h in hits}
+    # Default: restrict_to_view=True — view-bounded subgraph
+    restricted = just_bob.search("Alice", mode="semantic", store_path=store, k=10)
+    returned_ids = {e.id for e in restricted.entities}
     assert "#alice" not in returned_ids, (
         "view-restricted search should not leak filtered-out entities"
     )
 
-    # Opt out — full index visible
-    hits_unrestricted = just_bob.semantic_search(
-        "Alice", store_path=store, k=10, restrict_to_view=False
+    # Opt out — full index visible. This catches the _root._subgraph bug:
+    # without the root build path, #alice would be silently dropped because
+    # it isn't in just_bob._entities.
+    unrestricted = just_bob.search(
+        "Alice", mode="semantic", store_path=store, k=10, restrict_to_view=False
     )
-    unrestricted_ids = {h.entity_id for h in hits_unrestricted}
+    unrestricted_ids = {e.id for e in unrestricted.entities}
     assert "#alice" in unrestricted_ids
 
 
@@ -406,7 +408,7 @@ def test_default_index_path_raises_when_no_source(tmp_path: Path) -> None:
 
 
 def test_build_and_search_use_default_path(tmp_path: Path, monkeypatch) -> None:
-    """End-to-end: build_semantic_index() and semantic_search() with no args."""
+    """End-to-end: build_semantic_index() and search(mode="semantic") with no args."""
     monkeypatch.chdir(tmp_path)
     crate = Crate(str(FIXTURE))
 
@@ -416,18 +418,17 @@ def test_build_and_search_use_default_path(tmp_path: Path, monkeypatch) -> None:
     crate.build_semantic_index(progress=False)
     assert expected.exists(), "build should have created the default index"
 
-    hits = crate.semantic_search("Alice", k=3)
-    assert hits
-    assert any(h.entity_id == "#alice" for h in hits[:3])
+    result = crate.search("Alice", mode="semantic", k=3)
+    assert "#alice" in {e.id for e in result.entities}
 
 
 def test_search_without_index_raises_helpful_error(tmp_path: Path, monkeypatch) -> None:
-    """Calling semantic_search() before build raises a clear error."""
+    """Calling search(mode="semantic") before build raises a clear error."""
     monkeypatch.chdir(tmp_path)
     crate = Crate(str(FIXTURE))
 
     with pytest.raises(FileNotFoundError, match="default location"):
-        crate.semantic_search("anything", k=1)
+        crate.search("anything", mode="semantic", k=1)
 
 
 def test_chunk_records_uses_default_path(tmp_path: Path, monkeypatch) -> None:
@@ -454,8 +455,38 @@ def test_explicit_store_path_overrides_default(tmp_path: Path, monkeypatch) -> N
     # Default location should NOT have been touched.
     assert not (elsewhere / ".crategraph" / "minimal-crate.db").exists()
 
-    hits = crate.semantic_search("Alice", store_path=custom, k=3)
-    assert hits
+    result = crate.search("Alice", mode="semantic", store_path=custom, k=3)
+    assert "#alice" in {e.id for e in result.entities}
+
+
+def test_search_invalid_mode_raises(tmp_path: Path) -> None:
+    """An unknown mode= value must error rather than silently no-op."""
+    crate = Crate(str(FIXTURE))
+    with pytest.raises(ValueError, match="Unknown search mode"):
+        crate.search("anything", mode="invalid")
+
+
+def test_search_unrelated_index_warns(tmp_path: Path) -> None:
+    """Searching against an index built for a different crate emits a warning."""
+    import warnings
+
+    second = Path(__file__).parent.parent / "fixtures" / "second-crate"
+    if not second.exists():
+        pytest.skip("second-crate fixture missing")
+
+    # Build an index against a *different* crate.
+    other_store = tmp_path / "second.db"
+    Crate(str(second)).build_semantic_index(other_store, progress=False)
+
+    # Now search from the minimal-crate against that unrelated index.
+    crate = Crate(str(FIXTURE))
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        crate.search("anything", mode="semantic", store_path=other_store, k=1)
+
+    assert any("don't overlap" in str(w.message) for w in caught), (
+        f"expected source-mismatch warning; got: {[str(w.message) for w in caught]}"
+    )
 
 
 def test_chunk_records_with_query_returns_ranked_records(tmp_path: Path) -> None:
@@ -550,25 +581,34 @@ def test_semantic_search_intersects_user_entity_id_with_view(tmp_path: Path) -> 
 
     # User asks for Alice from a view that excludes her — should be empty,
     # not leak.
-    hits = just_bob.semantic_search(
-        "Alice", store_path=store, k=10, filters={"entity_id": ["#alice"]}
+    result = just_bob.search(
+        "Alice",
+        mode="semantic",
+        store_path=store,
+        k=10,
+        filters={"entity_id": ["#alice"]},
     )
-    assert hits == [], f"view-restricted search must intersect user entity_id filter; got {hits}"
+    assert list(result.entities) == [], (
+        f"view-restricted search must intersect user entity_id filter; got {list(result.entities)}"
+    )
 
     # User asks for Bob (in view) — intersection is {#bob}, search should
     # still work.
-    hits_bob = just_bob.semantic_search(
-        "person", store_path=store, k=10, filters={"entity_id": ["#bob"]}
+    result_bob = just_bob.search(
+        "person",
+        mode="semantic",
+        store_path=store,
+        k=10,
+        filters={"entity_id": ["#bob"]},
     )
-    assert hits_bob, "intersection within the view should still return hits"
-    assert all(h.entity_id == "#bob" for h in hits_bob)
+    assert "#bob" in {e.id for e in result_bob.entities}
 
     # User asks for {Alice, Bob} from Bob-only view — intersection is {#bob}.
-    hits_both = just_bob.semantic_search(
+    result_both = just_bob.search(
         "anything",
+        mode="semantic",
         store_path=store,
         k=10,
         filters={"entity_id": ["#alice", "#bob"]},
     )
-    assert hits_both
-    assert {h.entity_id for h in hits_both} == {"#bob"}
+    assert {e.id for e in result_both.entities} == {"#bob"}

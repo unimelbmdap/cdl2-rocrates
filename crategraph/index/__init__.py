@@ -13,10 +13,11 @@ Two layers of API:
 
 1. Sugar on ``Graph`` / ``Crate``::
 
-       crate.build_semantic_index(store_path="search.db")
-       hits = crate.semantic_search("query", store_path="search.db")
+       crate.build_semantic_index()                       # default path
+       subgraph = crate.search("query", mode="semantic")  # → Graph
+       records = crate.chunk_records("query", k=10)       # → ranked dicts
 
-2. Explicit classes (this module)::
+2. Explicit classes (this module) for typed ``SearchHit`` objects::
 
        from crategraph.index import Indexer, Searcher
 

@@ -537,6 +537,10 @@ class Graph:
             )
             raise ImportError(msg) from None
 
+        # Sanity-check that the index file looks like it belongs to
+        # this graph's sources before running retrieval.
+        self._warn_if_unrelated_index(store_path)
+
         searcher = Searcher(store_path)
         hits = searcher.search(query, k=k, filters=filters)
 
@@ -671,75 +675,71 @@ class Graph:
         resolved = self._resolve_index_path(store_path, must_exist=False)
         return Indexer(self, resolved, **kwargs).build()
 
-    def semantic_search(
+    def _semantic_search_subgraph(
         self,
         query: str,
         *,
-        store_path: str | Path | None = None,
-        k: int = 10,
-        filters: Mapping[str, Any] | None = None,
-        restrict_to_view: bool = True,
-    ) -> list[Any]:
-        """Run a semantic search against an existing index.
+        k: int,
+        store_path: str | Path | None,
+        filters: Mapping[str, Any] | None,
+        restrict_to_view: bool,
+    ) -> Graph:
+        """Roll ranked chunk hits up to a top-*k* entity subgraph.
 
-        Requires the ``[index]`` extra and a previously-built index.
-        ``store_path`` defaults to :attr:`default_index_path`; if no
-        index exists there a clear error is raised. Filter keys:
-        ``source_id``, ``entity_id``, ``entity_types``, ``source_kind``.
+        Oversamples chunks (5x) so dedup-to-entity yields enough unique
+        candidates, picks the best score per entity, returns the top *k*.
 
-        By default (``restrict_to_view=True``), search results are
-        restricted to entities present in *this* graph — so a filtered
-        subgraph (``crate.where(...)``) only returns hits from its own
-        entities, not from filtered-out ones. Pass
-        ``restrict_to_view=False`` to query the full index regardless
-        of the current view.
+        Builds the result from ``self._root._subgraph(...)`` rather than
+        ``self._subgraph(...)``: when ``restrict_to_view=False`` the
+        returned ids may be outside ``self._entities``, and
+        ``_build_derived_graph`` filters node_ids through ``self._entities``,
+        which would silently drop them. The root carries the full set, so
+        builds from there preserve every legitimate hit.
+        """
+        records = self.chunk_records(
+            query,
+            k=k * 5,
+            store_path=store_path,
+            filters=filters,
+            restrict_to_view=restrict_to_view,
+        )
+        best: dict[str, float] = {}
+        for record in records:
+            eid = record["entity_id"]
+            score = record["score"]
+            if score > best.get(eid, float("-inf")):
+                best[eid] = score
+        top_ids = sorted(best, key=lambda eid: best[eid], reverse=True)[:k]
+        return self._root._subgraph(set(top_ids))
 
-        Issues a warning if the graph's source ids don't overlap with
-        the index's known sources (likely sign of an unrelated index).
+    def _warn_if_unrelated_index(self, store_path: str | Path) -> None:
+        """Emit a UserWarning when this graph's sources don't overlap with
+        the index's known sources — likely sign of the wrong index file.
 
-        Returns a list of :class:`~crategraph.index.SearchHit`.
+        Stack level reaches the user's call site rather than the
+        internal generator wrapper, so the warning location is useful.
         """
         import warnings
 
         try:
             from crategraph.index import Searcher
         except ImportError:
-            msg = (
-                "Semantic search requires the [index] extra. "
-                "Install it with: pip install crategraph[index]"
-            )
-            raise ImportError(msg) from None
+            return
 
-        resolved = self._resolve_index_path(store_path, must_exist=True)
-        searcher = Searcher(resolved)
-
-        # Manifest / source-set sanity check.
         graph_sources = set(self.sources)
-        if graph_sources:
-            indexed_sources = set(searcher.known_source_ids())
-            if indexed_sources and not (graph_sources & indexed_sources):
-                warnings.warn(
-                    f"Graph sources {sorted(graph_sources)} don't overlap "
-                    f"with index sources {sorted(indexed_sources)}; "
-                    "this may be the wrong index file.",
-                    stacklevel=2,
-                )
-
-        merged_filters: dict[str, Any] = dict(filters) if filters else {}
-        if restrict_to_view:
-            view_ids = set(self._entities.keys())
-            if "entity_id" in merged_filters:
-                # Intersect a user-supplied entity_id filter with the current
-                # view rather than letting the user's filter bypass it.
-                user_ids = set(merged_filters["entity_id"])
-                intersected = list(user_ids & view_ids)
-                if not intersected:
-                    return []
-                merged_filters["entity_id"] = intersected
-            else:
-                merged_filters["entity_id"] = list(view_ids)
-
-        return searcher.search(query, k=k, filters=merged_filters)
+        if not graph_sources:
+            return
+        try:
+            indexed = set(Searcher(store_path).known_source_ids())
+        except (FileNotFoundError, ValueError):
+            return
+        if indexed and not (graph_sources & indexed):
+            warnings.warn(
+                f"Graph sources {sorted(graph_sources)} don't overlap "
+                f"with index sources {sorted(indexed)}; "
+                "this may be the wrong index file.",
+                stacklevel=3,
+            )
 
     # --- Transform methods ---
 
@@ -817,15 +817,56 @@ class Graph:
     def search(
         self,
         query: str,
+        mode: str = "fuzzy",
         *,
+        # Fuzzy-mode kwargs (ignored by other modes)
         properties: list[str] | None = None,
         threshold: int = 80,
         top_n: int = 10,
+        # Index-backed mode kwargs (ignored by fuzzy)
+        k: int = 10,
+        store_path: str | Path | None = None,
+        filters: Mapping[str, Any] | None = None,
+        restrict_to_view: bool = True,
     ) -> Graph:
-        """Fuzzy content search across entity properties."""
-        return filtering.search(
-            self, query, properties=properties, threshold=threshold, top_n=top_n
+        """Search this graph and return a matching subgraph.
+
+        Modes:
+
+        - ``"fuzzy"`` (default): rapidfuzz match over entity properties.
+          Uses ``properties``, ``threshold``, ``top_n``. No index required.
+        - ``"semantic"``: embedding-backed retrieval via the index. Uses
+          ``k``, ``store_path``, ``filters``, ``restrict_to_view``.
+          Requires the ``[index]`` extra and a previously-built index;
+          ``store_path`` defaults to :attr:`default_index_path`.
+
+        Both modes return a :class:`Graph` (subgraph of matching
+        entities) so they compose with the rest of the pipeline
+        (``where``, ``expand``, etc.). For chunk-level retrieval with
+        scores, use :meth:`chunk_records` (returns dicts) or
+        :class:`crategraph.index.Searcher` (typed ``SearchHit`` objects).
+
+        ``mode="keyword"`` and ``mode="hybrid"`` are reserved for a
+        future FTS5-backed implementation.
+        """
+        if mode == "fuzzy":
+            return filtering.search(
+                self, query, properties=properties, threshold=threshold, top_n=top_n
+            )
+        if mode == "semantic":
+            return self._semantic_search_subgraph(
+                query,
+                k=k,
+                store_path=store_path,
+                filters=filters,
+                restrict_to_view=restrict_to_view,
+            )
+        msg = (
+            f"Unknown search mode {mode!r}. "
+            "Supported: 'fuzzy' (default), 'semantic'. "
+            "'keyword' and 'hybrid' are forthcoming."
         )
+        raise ValueError(msg)
 
     def expand(
         self,

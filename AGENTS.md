@@ -21,6 +21,7 @@ Read the linked documents before making changes.
 - **Plugin architecture** via ABCs defined in `crategraph/core/interfaces.py` (Reader, Writer, Renderer, Validator, Inspector, Viewer).
 - **Chainable API** — `crate.select(...).where(...).expand(...)`.
 - **Code style** — Ruff formatting and linting enforced via pre-commit hooks (see `.pre-commit-config.yaml`).
+- **Search returns Graph or records.** Methods on `Graph` return either a `Graph` (composing with `where`, `expand`, etc.) or a `_records`-shaped iterator of dicts (DataFrame-friendly). Use `Graph.search(query, mode=...)` for subgraph results, `Graph.chunk_records(query=...)` for ranked dict records with scores. For typed `SearchHit` objects (chunk-level provenance with score/text as fields), use `crategraph.index.Searcher` directly.
 
 ## Project Layout
 
