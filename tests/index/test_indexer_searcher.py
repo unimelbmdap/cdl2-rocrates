@@ -458,6 +458,64 @@ def test_explicit_store_path_overrides_default(tmp_path: Path, monkeypatch) -> N
     assert hits
 
 
+def test_chunk_records_with_query_returns_ranked_records(tmp_path: Path) -> None:
+    """chunk_records(query=...) yields scored records ranked by relevance."""
+    store = tmp_path / "ranked.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    records = list(crate.chunk_records("Alice Smith director", store_path=store, k=5))
+    assert records, "expected ranked chunk records"
+
+    # Scores must be descending (higher is more relevant).
+    scores = [r["score"] for r in records]
+    assert scores == sorted(scores, reverse=True)
+
+    # Top hit should be Alice's chunk.
+    top_ids = {r["entity_id"] for r in records[:3]}
+    assert "#alice" in top_ids
+
+    # Records carry chunk-level provenance fields plus score.
+    expected_keys = {
+        "source_id",
+        "entity_id",
+        "entity_types",
+        "source_kind",
+        "chunk_index",
+        "char_start",
+        "char_end",
+        "token_count",
+        "text",
+        "score",
+    }
+    assert set(records[0].keys()) == expected_keys
+
+
+def test_chunk_records_without_query_unchanged(tmp_path: Path) -> None:
+    """chunk_records() with no query still does the full unranked iteration."""
+    store = tmp_path / "iter.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    records = list(crate.chunk_records(store_path=store))
+    assert records
+    # No score field on unranked records.
+    assert "score" not in records[0]
+
+
+def test_ranked_chunk_records_respects_view(tmp_path: Path) -> None:
+    """Ranked chunk_records also intersects with the current graph view."""
+    store = tmp_path / "ranked_view.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    just_bob = crate.where(name="Bob Jones")
+
+    records = list(just_bob.chunk_records("Alice", store_path=store, k=10))
+    returned_ids = {r["entity_id"] for r in records}
+    assert "#alice" not in returned_ids, "ranked chunk_records must intersect with the view"
+
+
 def test_chunk_records_text_matches_text_units(tmp_path: Path) -> None:
     """Reconstructed chunk text must equal the SUBSTR of the parent text_unit."""
     store = tmp_path / "verify.db"

@@ -157,6 +157,9 @@ _SQL_VECTOR_SEARCH_TEMPLATE = (
     "  t.entity_types, "
     "  t.source_kind, "
     "  c.chunk_index, "
+    "  c.char_start, "
+    "  c.char_end, "
+    "  c.token_count, "
     "  SUBSTR(t.text, c.char_start + 1, c.char_end - c.char_start) AS text, "
     "  knn.distance "
     "FROM knn "
@@ -697,4 +700,7 @@ def _row_to_hit(row: Any) -> SearchHit:
         chunk_index=row["chunk_index"],
         score=score,
         text=row["text"],
+        char_start=row["char_start"],
+        char_end=row["char_end"],
+        token_count=row["token_count"],
     )

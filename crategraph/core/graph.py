@@ -458,7 +458,9 @@ class Graph:
 
     def chunk_records(
         self,
+        query: str | None = None,
         *,
+        k: int = 10,
         store_path: str | Path | None = None,
         filters: Mapping[str, Any] | None = None,
         restrict_to_view: bool = True,
@@ -467,13 +469,24 @@ class Graph:
 
         Requires the ``[index]`` extra and a previously-built index.
         ``store_path`` defaults to :attr:`default_index_path`; raises
-        ``FileNotFoundError`` if no index exists at the default. Each
-        record is a dict with keys ``source_id``, ``entity_id``,
+        ``FileNotFoundError`` if no index exists at the default.
+
+        Two modes, switched by ``query``:
+
+        - **Unranked iteration (``query=None``, default)**: yields every
+          chunk in the index in stable order (by source_id, entity_id,
+          source_kind, chunk_index). Streaming. For analytical use —
+          inspecting what's there, debugging, custom pipelines.
+        - **Ranked retrieval (``query="..."``)**: runs the index's
+          embedding model on the query and yields the top ``k`` chunks
+          by relevance, with a ``score`` field on each record (higher is
+          better). For RAG-style use.
+
+        Each record is a dict with keys ``source_id``, ``entity_id``,
         ``source_kind``, ``entity_types``, ``chunk_index``,
-        ``char_start``, ``char_end``, ``token_count``, ``text`` —
-        with ``text`` reconstructed at query time from the canonical
-        ``text_units`` row via SUBSTR. Streaming: peak memory ≈ one
-        chunk's text.
+        ``char_start``, ``char_end``, ``token_count``, ``text`` (text
+        reconstructed at query time from ``text_units`` via SUBSTR),
+        plus ``score`` when ``query`` is provided.
 
         Filters: ``source_id``, ``entity_id``, ``entity_types``,
         ``source_kind``.
@@ -497,9 +510,50 @@ class Graph:
         if merged is None:
             return iter(())
 
+        if query is not None:
+            return self._ranked_chunk_records(resolved, query, k=k, filters=merged)
+
         def _iter() -> Iterator[dict[str, Any]]:
             with Store(resolved) as store:
                 yield from store.iter_chunk_records(filters=merged)
+
+        return _iter()
+
+    def _ranked_chunk_records(
+        self,
+        store_path: Path,
+        query: str,
+        *,
+        k: int,
+        filters: dict[str, Any],
+    ) -> Iterator[dict[str, Any]]:
+        """Embed *query* and yield the top *k* chunks as records, ranked by score."""
+        try:
+            from crategraph.index import Searcher
+        except ImportError:
+            msg = (
+                "Ranked chunk_records requires the [index] extra. "
+                "Install it with: pip install crategraph[index]"
+            )
+            raise ImportError(msg) from None
+
+        searcher = Searcher(store_path)
+        hits = searcher.search(query, k=k, filters=filters)
+
+        def _iter() -> Iterator[dict[str, Any]]:
+            for hit in hits:
+                yield {
+                    "source_id": hit.source_id,
+                    "entity_id": hit.entity_id,
+                    "entity_types": hit.entity_types,
+                    "source_kind": hit.source_kind,
+                    "chunk_index": hit.chunk_index,
+                    "char_start": hit.char_start,
+                    "char_end": hit.char_end,
+                    "token_count": hit.token_count,
+                    "text": hit.text,
+                    "score": hit.score,
+                }
 
         return _iter()
 

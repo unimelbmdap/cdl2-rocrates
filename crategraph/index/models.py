@@ -46,7 +46,13 @@ class TextUnitSpec:
 
 @dataclass(frozen=True)
 class SearchHit:
-    """A single search result."""
+    """A single search result.
+
+    ``char_start``/``char_end`` are offsets into the parent text unit's
+    canonical text and ``token_count`` is the chunk's tokenizer-counted
+    length; both are populated when the search reads via the index
+    schema (current implementation).
+    """
 
     source_id: str
     entity_id: str
@@ -55,6 +61,9 @@ class SearchHit:
     chunk_index: int
     score: float
     text: str
+    char_start: int = 0
+    char_end: int = 0
+    token_count: int = 0
 
     def __repr__(self) -> str:
         snippet = self.text.strip().replace("\n", " ")
