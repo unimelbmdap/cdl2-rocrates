@@ -1,4 +1,4 @@
-"""Tests for Graph.subtract() — remove one graph from another."""
+"""Tests for Graph.substract() — remove one graph from another."""
 
 from __future__ import annotations
 
@@ -23,34 +23,34 @@ def _build_graph() -> Graph:
     return g
 
 
-class TestSubtract:
+class TestSubstract:
     def test_removes_entities_in_other(self):
         g = _build_graph()
         melbourne = g.where(location="Melbourne")
-        result = g.subtract(melbourne)
+        result = g.substract(melbourne)
         assert "#alice" not in result._entities
         assert "#bob" in result._entities
 
-    def test_subtracting_empty_graph_returns_full_graph(self):
+    def test_substracting_empty_graph_returns_full_graph(self):
         g = _build_graph()
         empty = g.where(location="Canberra")
-        result = g.subtract(empty)
+        result = g.substract(empty)
         assert len(result) == len(g)
 
-    def test_subtracting_full_graph_returns_empty(self):
+    def test_substracting_full_graph_returns_empty(self):
         g = _build_graph()
-        result = g.subtract(g)
+        result = g.substract(g)
         assert len(result) == 0
 
     def test_preserves_pre_existing_isolates(self):
         g = _build_graph()
         melbourne = g.where(location="Melbourne")
-        result = g.subtract(melbourne)
+        result = g.substract(melbourne)
         assert "#orphan" in result._entities
 
     def test_chainable(self):
         g = _build_graph()
         melbourne = g.where(location="Melbourne")
-        result = g.subtract(melbourne).select(entity_types=["Person"])
+        result = g.substract(melbourne).select(entity_types=["Person"])
         assert "#bob" in result._entities
         assert "#alice" not in result._entities

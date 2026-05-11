@@ -230,7 +230,7 @@ def drop(
     return graph._build_derived_graph(node_ids=node_ids)
 
 
-def subtract(graph: Graph, other: Graph) -> Graph:
+def substract(graph: Graph, other: Graph) -> Graph:
     """Return a new Graph with all entities from *other* removed."""
     node_ids = set(graph._entities.keys()) - set(other._entities.keys())
     return graph._build_derived_graph(node_ids=node_ids)
