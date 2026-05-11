@@ -213,23 +213,26 @@ def drop(
         values = [values]
     value_set = set(values)
 
-    node_ids: set[str] = set()
+    node_ids = set(graph._entities.keys())
     for eid, entity in graph._entities.items():
         if property is not None:
-            if entity.properties.get(property) not in value_set:
-                node_ids.add(eid)
+            if entity.properties.get(property) in value_set:
+                node_ids.discard(eid)
         else:
-            matched = False
             for v in entity.properties.values():
                 try:
                     if v in value_set:
-                        matched = True
+                        node_ids.discard(eid)
                         break
                 except TypeError:
                     continue
-            if not matched:
-                node_ids.add(eid)
 
+    return graph._build_derived_graph(node_ids=node_ids)
+
+
+def subtract(graph: Graph, other: Graph) -> Graph:
+    """Return a new Graph with all entities from *other* removed."""
+    node_ids = set(graph._entities.keys()) - set(other._entities.keys())
     return graph._build_derived_graph(node_ids=node_ids)
 
 

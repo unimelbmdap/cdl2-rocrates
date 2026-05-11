@@ -832,6 +832,10 @@ class Graph:
         """Remove entities whose properties contain any of the given values."""
         return filtering.drop(self, values, property=property)
 
+    def subtract(self, other: Graph) -> Graph:
+        """Return a new Graph with all entities from *other* removed."""
+        return filtering.subtract(self, other)
+
     def where(self, **kwargs: Any) -> Graph:
         """Filter by entity property values."""
         return filtering.where(self, **kwargs)
