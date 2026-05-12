@@ -85,7 +85,7 @@ crategraph/
 │   ├── __init__.py        # Viewer registry and find_viewer()
 │   └── default.py         # DefaultViewer — images, CSV tables, audio, etc.
 ├── validators/            # Data quality checks (planned, ABC only)
-└── writers/               # Export/serialisation (GraphML, CSV shipped; RDF planned)
+└── writers/               # Export/serialisation (GraphML, CSV, text shipped; RDF planned)
 ```
 
 ## Subsystems
@@ -166,7 +166,7 @@ Validators check a graph for data quality issues and return a report of problems
 
 **ABC:** `Writer` — `can_write(path) -> bool` and `write(graph, path, **kwargs) -> None`
 
-Writers serialise a `Graph` to an external format. The writer registry (`writers/__init__.py`) maps format names to writer classes via `register_writer(name, cls)` and `get_writer(name)`. Requesting an unknown format raises `UnknownFormatError` (a `ValueError` subclass).
+Writers serialise a `Graph` or graph-associated material to an external format. The writer registry (`writers/__init__.py`) maps format names to writer classes via `register_writer(name, cls)` and `get_writer(name)`. Requesting an unknown format raises `UnknownFormatError` (a `ValueError` subclass).
 
 The public entry point is `graph.write(path, *, format, overwrite=False, **kwargs)` on the `Graph` class, which dispatches to the registered writer for `format`.
 
@@ -174,8 +174,9 @@ The public entry point is `graph.write(path, *, format, overwrite=False, **kwarg
 
 - `GraphMLWriter` (`writers/graphml.py`) — writes a single `.graphml` file. Compatible with Gephi, yEd, and NetworkX's `read_graphml`. Uses `nx.write_graphml_lxml` with a pure-Python fallback.
 - `CsvWriter` (`writers/csv_writer.py`) — writes `nodes.csv` and `edges.csv` into a target directory. A non-empty directory without `overwrite=True` raises `FileExistsError`.
+- `TextWriter` (`writers/text_writer.py`) — writes graph-associated text records to a single UTF-8 `.txt` or `.md` file for corpus and NLP handoff.
 
-Both writers rely on the shared flattening module (`writers/_flatten.py`) to convert nested `Entity`/`Relationship` properties to scalar-only attributes. See [docs/writers.md](writers.md) for the attribute-flattening rules.
+GraphML and CSV rely on the shared flattening module (`writers/_flatten.py`) to convert nested `Entity`/`Relationship` properties to scalar-only attributes. Text export uses the public `Graph.text_records()` API. See [docs/writers.md](writers.md) for writer-specific details.
 
 **Contribution ideas:** JSON-LD / RDF export, GEXF export, RO-Crate round-trip export, Neo4j import format.
 

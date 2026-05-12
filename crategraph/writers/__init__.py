@@ -43,3 +43,8 @@ register_writer("graphml", GraphMLWriter)
 from crategraph.writers.csv_writer import CsvWriter  # noqa: E402
 
 register_writer("csv", CsvWriter)
+
+from crategraph.writers.text_writer import TextWriter  # noqa: E402
+
+register_writer("text", TextWriter)
+register_writer("txt", TextWriter)

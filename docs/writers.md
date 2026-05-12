@@ -1,8 +1,8 @@
 # Writers Guide
 
-The writer subsystem serialises a `Graph` to external formats for use in other tools — Gephi, yEd, pandas, R, Excel, or any tool that reads GraphML or CSV. The single entry point is `graph.write(path, format=...)`. Researchers who want to hand off filtered graph data to a separate analysis environment will use this most often.
+The writer subsystem serialises a `Graph` to external formats for use in other tools — Gephi, yEd, pandas, R, Excel, text-analysis packages, or any tool that reads GraphML, CSV, or plain text. The single entry point is `graph.write(path, format=...)`. Researchers who want to hand off filtered graph data or graph-associated material to a separate analysis environment will use this most often.
 
-Format registration is open: third-party packages can add new formats by subclassing `Writer` and calling `register_writer`. The two built-in formats are GraphML and CSV.
+Format registration is open: third-party packages can add new formats by subclassing `Writer` and calling `register_writer`. The built-in formats are GraphML, CSV, and plain text.
 
 ## Tabular export
 
@@ -33,12 +33,24 @@ edges_df = pd.DataFrame(relationship_rows)
 
 `entity_records()` returns one dict per entity with promoted keys `id`, `label`, `type`, `types` first, then non-colliding property keys sorted alphabetically, then any properties whose names collide with a promoted key emitted as `prop_<key>` (e.g. an entity with a property named `"id"` becomes `prop_id` so the entity's own id stays untouched). `relationship_records()` returns one dict per relationship with promoted keys `source`, `target`, `type`, `rel_id` first under the same ordering rule. `rel_id` is `None` for inline (non-reified) relationships and a string for reified ones — the CSV writer uses an empty string in the same position, so this is the one place the two paths differ. Property values are deep-copied — mutating a returned record does not affect graph state.
 
+## Text export
+
+Two paths to a text view of graph-associated content:
+
+| Output | Method | When to use |
+| --- | --- | --- |
+| In-memory text records | `graph.text_records()` | Notebook analysis, NLP pipelines, preserving document boundaries and provenance. |
+| On-disk corpus file | `graph.write(path, format="text")` (see [Text](#text) below) | Hand-off to text-analysis tools, archival, sharing, or any workflow that expects a plain text file. |
+
+The text writer is a thin export layer over `text_records()`. It does not perform separate extraction logic: file text, property text, filtering, cached index reads, and view restriction all flow through the public text-records API.
+
 ## Formats
 
 | Format key | Output shape | Typical consumer | Notes |
 |---|---|---|---|
 | `"graphml"` | Single `.graphml` file | Gephi, yEd, NetworkX `read_graphml`, pandas | All attributes serialised as scalars; lxml preferred, pure-Python fallback. Round-tripping preserves string values; numeric types (`int`, `float`, `bool`) survive GraphML's typed attribute system. |
 | `"csv"` | Directory with `nodes.csv` + `edges.csv` | pandas `read_csv`, R `read.csv`, Excel | All cells are strings when read back. Pipe-delimited lists and JSON blobs can be decoded with `decode_pipe_list` and `json.loads` respectively. |
+| `"text"` / `"txt"` | Single `.txt` or `.md` file | Voyant, AntConc, quanteda, NLP notebooks, plain text readers | Writes text records with optional provenance headers. Defaults to file-derived text; can also export property text. |
 
 ## Usage
 
@@ -83,12 +95,53 @@ edges = pd.read_csv("output_tables/edges.csv")
 
 CSV is export-only — there is no CSV reader that reconstructs a `Graph`. Use GraphML (via `nx.read_graphml`) if you need a round-trippable format, or reload the data into pandas/R for downstream analysis.
 
+### Text
+
+```python
+# Write extracted file text to one corpus file
+crate.write("corpus.txt", format="text")
+
+# Include text built from selected metadata properties instead
+crate.write("metadata-text.md", format="text", source_kind="properties")
+
+# Export both file text and property text
+crate.write("all-text.txt", format="text", source_kind="all")
+
+# Use cached text from a previously-built semantic index
+crate.write("corpus.txt", format="text", store_path="index.db", overwrite=True)
+```
+
+Text export writes one UTF-8 file. By default it exports `source_kind="file"`, meaning file contents extracted by `graph.text_records()`. Pass `source_kind="properties"` for metadata-derived text records, or `source_kind="all"` to export both.
+
+Each text unit is separated by a plain `---` delimiter and, by default, begins with provenance headers:
+
+```text
+# source_id: minimal-crate
+# entity_id: sample.txt
+# source_kind: file
+# entity_types: File
+
+Extracted text...
+```
+
+The writer accepts the same filtering concepts as `text_records()`:
+
+```python
+crate.write(
+    "selected-corpus.txt",
+    format="text",
+    filters={"entity_id": ["sample.txt", "notes.md"]},
+)
+```
+
+When using the writer-level `source_kind` option, do not also include `source_kind` inside `filters`; pass `source_kind="all"` if you want full control through `filters`.
+
 ## Listing registered formats
 
 ```python
 from crategraph.writers import list_formats
 
-list_formats()  # ['csv', 'graphml']
+list_formats()  # ['csv', 'graphml', 'text', 'txt']
 ```
 
 Third-party packages that register additional formats show up here automatically once imported.
@@ -212,4 +265,4 @@ To add a new export format:
 2. Call `register_writer("myformat", MyWriter)` at import time (e.g. at the bottom of your module).
 3. Users can then call `graph.write("output.xyz", format="myformat")`.
 
-The existing `GraphMLWriter` (`crategraph/writers/graphml.py`) and `CsvWriter` (`crategraph/writers/csv_writer.py`) are the canonical references. Both use `flatten_node` and `flatten_edge` from `crategraph.writers._flatten` to handle the scalar-conversion step — reuse these if your target format also requires scalar-only attributes.
+The existing `GraphMLWriter` (`crategraph/writers/graphml.py`), `CsvWriter` (`crategraph/writers/csv_writer.py`), and `TextWriter` (`crategraph/writers/text_writer.py`) are the canonical references. GraphML and CSV use `flatten_node` and `flatten_edge` from `crategraph.writers._flatten` to handle the scalar-conversion step — reuse these if your target format also requires scalar-only attributes. Text export instead uses the public `graph.text_records()` API, which is the better pattern for writers over graph-associated content rather than the graph structure itself.
