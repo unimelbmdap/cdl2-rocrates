@@ -8,6 +8,11 @@ source unit:
 - For every other entity, yields a short text block built from selected
   text-typed properties with the entity's types as a header.
 
+This low-level helper can yield both source kinds. The public
+``Graph.text_records()`` method defaults to file records and uses
+``source_kind="properties"`` or ``source_kind="all"`` to opt into
+metadata-derived text.
+
 This module is reader-agnostic: it produces the same records regardless
 of whether the graph came from RO-Crate, RDF, CSV, or any other reader.
 The vocabulary uses ``source_id`` (the stable per-source identifier

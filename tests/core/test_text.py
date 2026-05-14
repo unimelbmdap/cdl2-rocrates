@@ -64,14 +64,30 @@ def test_source_id_for_uses_entity_source() -> None:
 # --- text_records on a real fixture ---
 
 
-def test_text_records_emits_property_records() -> None:
+def test_text_records_defaults_to_file_records() -> None:
     crate = Crate(str(FIXTURE))
     records = list(crate.text_records())
+
+    assert records
+    assert {r["source_kind"] for r in records} == {"file"}
+
+
+def test_text_records_emits_property_records_when_requested() -> None:
+    crate = Crate(str(FIXTURE))
+    records = list(crate.text_records(source_kind="properties"))
 
     by_id = {(r["entity_id"], r["source_kind"]) for r in records}
     assert ("#alice", "properties") in by_id
     assert ("#bob", "properties") in by_id
     assert ("#acme", "properties") in by_id
+
+
+def test_text_records_source_kind_all_returns_files_and_properties() -> None:
+    crate = Crate(str(FIXTURE))
+    records = list(crate.text_records(source_kind="all"))
+
+    kinds = {r["source_kind"] for r in records}
+    assert kinds == {"file", "properties"}
 
 
 def test_text_records_emits_file_records_for_data_entities() -> None:
@@ -107,9 +123,21 @@ def test_text_records_filters_by_source_kind() -> None:
     assert only_props
 
 
+def test_text_records_rejects_invalid_source_kind() -> None:
+    crate = Crate(str(FIXTURE))
+
+    with pytest.raises(ValueError, match="source_kind"):
+        list(crate.text_records(source_kind="metadata"))
+
+
 def test_text_records_filters_by_entity_id() -> None:
     crate = Crate(str(FIXTURE))
-    records = list(crate.text_records(filters={"entity_id": ["#alice"]}))
+    records = list(
+        crate.text_records(
+            source_kind="properties",
+            filters={"entity_id": ["#alice"]},
+        )
+    )
 
     assert records
     assert all(r["entity_id"] == "#alice" for r in records)
@@ -117,7 +145,12 @@ def test_text_records_filters_by_entity_id() -> None:
 
 def test_text_records_filters_by_entity_types() -> None:
     crate = Crate(str(FIXTURE))
-    records = list(crate.text_records(filters={"entity_types": ["Person"]}))
+    records = list(
+        crate.text_records(
+            source_kind="properties",
+            filters={"entity_types": ["Person"]},
+        )
+    )
 
     assert records
     assert all("Person" in r["entity_types"] for r in records)
@@ -128,7 +161,7 @@ def test_text_records_handles_multi_crate() -> None:
     if not second.exists():
         pytest.skip("second-crate fixture missing")
     crate = Crate(str(FIXTURE), str(second))
-    records = list(crate.text_records())
+    records = list(crate.text_records(source_kind="all"))
 
     source_ids = {r["source_id"] for r in records}
     assert "minimal-crate" in source_ids

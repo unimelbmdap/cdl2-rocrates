@@ -91,6 +91,11 @@ def _merge_source_kind_filter(
 
     merged = dict(filters) if filters else {}
     if source_kind == "all":
+        # "all" means the writer does not narrow source_kind further:
+        # preserve an explicit user filter, otherwise request both kinds
+        # under Graph.text_records()'s file-only default.
+        if "source_kind" not in merged:
+            merged["source_kind"] = ["file", "properties"]
         return merged or None
 
     if "source_kind" in merged:

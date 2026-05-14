@@ -44,6 +44,10 @@ Two paths to a text view of graph-associated content:
 
 The text writer is a thin export layer over `text_records()`. It does not perform separate extraction logic: file text, property text, filtering, cached index reads, and view restriction all flow through the public text-records API.
 
+`graph.text_records()` defaults to `source_kind="file"`. Pass
+`source_kind="properties"` to work with metadata-derived text records, or
+`source_kind="all"` to include both file and property text.
+
 ## Formats
 
 | Format key | Output shape | Typical consumer | Notes |

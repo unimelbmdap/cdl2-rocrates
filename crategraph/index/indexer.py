@@ -172,6 +172,7 @@ class Indexer:
         units: list[TextUnitSpec] = []
         chunk_texts: list[str] = []
         records = self.graph.text_records(
+            source_kind="all",
             text_properties=self.config.text_properties,
             filters={"source_id": [source_id]},
         )

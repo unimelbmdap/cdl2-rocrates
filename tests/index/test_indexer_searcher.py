@@ -269,6 +269,7 @@ def test_cached_text_records_via_graph(tmp_path: Path) -> None:
 
     cached = list(crate.text_records(store_path=store))
     assert cached, "expected cached text records"
+    assert {r["source_kind"] for r in cached} == {"file"}
 
     # Cached records carry token_count; live records don't.
     assert all("token_count" in r for r in cached)
@@ -325,13 +326,19 @@ def test_cached_text_records_respects_view(tmp_path: Path) -> None:
     assert "#alice" not in just_bob._entities
 
     # Default: restrict_to_view=True. Cached path must mirror live path.
-    cached = list(just_bob.text_records(store_path=store))
+    cached = list(just_bob.text_records(store_path=store, source_kind="all"))
     cached_ids = {r["entity_id"] for r in cached}
     assert "#alice" not in cached_ids, "cached text_records leaked filtered-out entity"
     assert "#bob" in cached_ids
 
     # Opt out — full index visible.
-    full = list(just_bob.text_records(store_path=store, restrict_to_view=False))
+    full = list(
+        just_bob.text_records(
+            store_path=store,
+            source_kind="all",
+            restrict_to_view=False,
+        )
+    )
     full_ids = {r["entity_id"] for r in full}
     assert "#alice" in full_ids
     assert "#bob" in full_ids
@@ -346,11 +353,23 @@ def test_cached_text_records_intersects_user_entity_id_filter(tmp_path: Path) ->
     just_bob = crate.where(name="Bob Jones")
 
     # Asking for Alice from a Bob-only view yields nothing.
-    nothing = list(just_bob.text_records(store_path=store, filters={"entity_id": ["#alice"]}))
+    nothing = list(
+        just_bob.text_records(
+            store_path=store,
+            source_kind="all",
+            filters={"entity_id": ["#alice"]},
+        )
+    )
     assert nothing == []
 
     # Asking for Bob (in view) still works.
-    bob = list(just_bob.text_records(store_path=store, filters={"entity_id": ["#bob"]}))
+    bob = list(
+        just_bob.text_records(
+            store_path=store,
+            source_kind="all",
+            filters={"entity_id": ["#bob"]},
+        )
+    )
     assert bob
     assert all(r["entity_id"] == "#bob" for r in bob)
 
@@ -551,7 +570,7 @@ def test_text_records_token_count_matches_chunker(tmp_path: Path) -> None:
     crate.build_semantic_index(store, progress=False)
 
     chunker = Chunker(model=DEFAULT_MODEL)
-    for record in crate.text_records(store_path=store):
+    for record in crate.text_records(store_path=store, source_kind="all"):
         expected = chunker.count_tokens(record["text"])
         assert record["token_count"] == expected, (
             f"token_count mismatch for {record['entity_id']}/{record['source_kind']}: "
@@ -654,7 +673,8 @@ def test_chunk_records_text_matches_text_units(tmp_path: Path) -> None:
     crate.build_semantic_index(store, progress=False)
 
     units = {
-        (r["entity_id"], r["source_kind"]): r["text"] for r in crate.text_records(store_path=store)
+        (r["entity_id"], r["source_kind"]): r["text"]
+        for r in crate.text_records(store_path=store, source_kind="all")
     }
     for chunk in crate.chunk_records(store_path=store):
         key = (chunk["entity_id"], chunk["source_kind"])

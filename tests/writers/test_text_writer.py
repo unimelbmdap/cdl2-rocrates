@@ -93,12 +93,12 @@ def test_defaults_to_file_text_records(tmp_path: Path) -> None:
     ]
 
 
-def test_source_kind_all_does_not_add_source_kind_filter(tmp_path: Path) -> None:
+def test_source_kind_all_requests_both_text_record_kinds(tmp_path: Path) -> None:
     graph = _TextRecordGraph([_record("#alice", "name: Alice", source_kind="properties")])
 
     TextWriter().write(graph, str(tmp_path / "corpus.txt"), source_kind="all")
 
-    assert graph.calls[0]["filters"] is None
+    assert graph.calls[0]["filters"] == {"source_kind": ["file", "properties"]}
 
 
 def test_forwards_text_records_options(tmp_path: Path) -> None:

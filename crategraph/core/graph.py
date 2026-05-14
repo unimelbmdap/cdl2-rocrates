@@ -401,6 +401,7 @@ class Graph:
         self,
         *,
         store_path: str | Path | None = None,
+        source_kind: str = "file",
         text_properties: Sequence[str] | None = None,
         filters: Mapping[str, Any] | None = None,
         restrict_to_view: bool = True,
@@ -411,6 +412,10 @@ class Graph:
         ``source_kind`` (``"file"`` or ``"properties"``),
         ``entity_types``, ``text``. Generator — peak memory is one
         record at a time.
+
+        ``source_kind`` controls which text units are yielded:
+        ``"file"`` (default), ``"properties"``, or ``"all"``. An explicit
+        ``filters["source_kind"]`` overrides this convenience argument.
 
         ``store_path`` switches between two read paths:
 
@@ -438,9 +443,13 @@ class Graph:
         See :func:`crategraph.core.text.text_records` for the live
         implementation.
         """
+        merged_filters = self._merge_text_record_filters(filters, source_kind)
+
         if store_path is not None:
             return self._cached_text_records(
-                store_path, filters, restrict_to_view=restrict_to_view
+                store_path,
+                merged_filters,
+                restrict_to_view=restrict_to_view,
             )
 
         from crategraph.core.text import DEFAULT_TEXT_PROPERTIES, text_records
@@ -453,8 +462,26 @@ class Graph:
         return text_records(
             self,
             text_properties=text_properties,
-            filters=dict(filters) if filters else None,
+            filters=merged_filters,
         )
+
+    @staticmethod
+    def _merge_text_record_filters(
+        filters: Mapping[str, Any] | None,
+        source_kind: str,
+    ) -> dict[str, Any] | None:
+        """Apply the text-record source-kind default without clobbering filters."""
+        if source_kind not in {"file", "properties", "all"}:
+            msg = "source_kind must be 'file', 'properties', or 'all'."
+            raise ValueError(msg)
+
+        merged = dict(filters) if filters else {}
+        if "source_kind" in merged:
+            return merged
+        if source_kind == "all":
+            return merged or None
+        merged["source_kind"] = [source_kind]
+        return merged
 
     def chunk_records(
         self,
