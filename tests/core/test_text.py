@@ -182,6 +182,74 @@ def test_include_properties_prefixes_colliding_record_keys() -> None:
     assert record["prop_prop_text"] == "metadata text"
 
 
+def test_include_properties_true_excludes_internal_underscore_properties() -> None:
+    """``include_properties=True`` means *public* metadata only.
+
+    Internal loader flags like ``_is_root`` are an implementation
+    detail; surfacing them in an NLP/index record is leaky.
+    """
+    entity = Entity(
+        id="#root",
+        types=("Dataset",),
+        properties={"name": "Root crate", "_is_root": True},
+    )
+    record = enrich_record_with_entity_properties(
+        {
+            "source_id": "source",
+            "entity_id": "#root",
+            "source_kind": "properties",
+            "entity_types": ("Dataset",),
+            "text": "text",
+        },
+        entity,
+        include_properties=True,
+    )
+
+    assert record["name"] == "Root crate"
+    assert "_is_root" not in record
+    assert "prop__is_root" not in record
+
+
+def test_include_properties_preserves_non_string_values() -> None:
+    """Requested properties keep native types and are deep-copied.
+
+    Unlike the text-content path (which stringifies via
+    ``_render_value``), ``include_properties`` preserves lists, nested
+    dicts and numbers verbatim, deep-copied so callers can mutate the
+    returned record without touching graph state.
+    """
+    entity = Entity(
+        id="#alice",
+        types=("Person",),
+        properties={
+            "keywords": ["leadership", "engineering"],
+            "worksFor": {"@id": "#acme", "name": "Acme"},
+            "age": 42,
+        },
+    )
+    record = enrich_record_with_entity_properties(
+        {
+            "source_id": "source",
+            "entity_id": "#alice",
+            "source_kind": "properties",
+            "entity_types": ("Person",),
+            "text": "text",
+        },
+        entity,
+        include_properties=["keywords", "worksFor", "age"],
+    )
+
+    assert record["keywords"] == ["leadership", "engineering"]
+    assert record["worksFor"] == {"@id": "#acme", "name": "Acme"}
+    assert record["age"] == 42
+
+    # Deep-copied: mutating the returned record must not touch the entity.
+    record["keywords"].append("mutated")
+    record["worksFor"]["name"] = "Mutated"
+    assert entity.properties["keywords"] == ["leadership", "engineering"]
+    assert entity.properties["worksFor"] == {"@id": "#acme", "name": "Acme"}
+
+
 def test_text_records_filters_by_source_kind() -> None:
     crate = Crate(str(FIXTURE))
     only_files = list(crate.text_records(filters={"source_kind": ["file"]}))

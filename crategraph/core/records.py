@@ -28,8 +28,9 @@ This module has no third-party dependencies.
 
 from __future__ import annotations
 
-import copy
 from typing import TYPE_CHECKING, Any
+
+from crategraph.core._properties import merge_properties
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
@@ -80,20 +81,17 @@ def _add_properties(
     so that user-defined names are preserved when possible. Property
     names that collide with a promoted key (or with an already-emitted
     key) get ``prop_`` prepended repeatedly until the name is unique.
-    Values are deep-copied. Mirrors
+    Values are deep-copied. The collision/deep-copy rule itself lives in
+    :func:`crategraph.core._properties.merge_properties` (shared with
+    ``text_records``'s ``include_properties``); this function only owns
+    the records-export ordering policy. Mirrors
     :func:`crategraph.writers._flatten._encode_properties` and
     :func:`crategraph.writers._flatten._unique_key`.
     """
-    taken: set[str] = set(record)
     # Sort with non-colliding keys first so user-defined names survive when
-    # there is no actual collision in *taken* yet.
+    # there is no actual collision yet.
     ordered = sorted(properties, key=lambda k: (k in promoted_keys, k))
-    for key in ordered:
-        out_key = key
-        while out_key in promoted_keys or out_key in taken:
-            out_key = f"prop_{out_key}"
-        record[out_key] = copy.deepcopy(properties[key])
-        taken.add(out_key)
+    merge_properties(record, properties, ordered, reserved=promoted_keys)
 
 
 def entity_records(graph: Graph) -> list[dict[str, Any]]:

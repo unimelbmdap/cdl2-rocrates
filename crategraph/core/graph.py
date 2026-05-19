@@ -420,7 +420,9 @@ class Graph:
 
         ``include_properties`` optionally copies entity properties into
         each output record. Pass a sequence of property names, or ``True``
-        to include all entity properties. Defaults to ``False`` so the
+        to include all *public* entity properties (internal ``_``-prefixed
+        loader flags such as ``_is_root`` are excluded; an explicit
+        allowlist is honoured verbatim). Defaults to ``False`` so the
         record schema remains compact and stable.
 
         ``store_path`` switches between two read paths:

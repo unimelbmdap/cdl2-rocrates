@@ -58,8 +58,10 @@ records = list(
 ```
 
 Requested properties are added as top-level keys in each record when
-present. Pass `include_properties=True` to include all entity properties.
-The default is `False`, so the base record shape remains compact.
+present. Pass `include_properties=True` to include all *public* entity
+properties (internal `_`-prefixed loader flags such as `_is_root` are
+excluded; an explicit allowlist is honoured verbatim). The default is
+`False`, so the base record shape remains compact.
 
 ## Formats
 

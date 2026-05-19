@@ -27,11 +27,12 @@ and lives in the index.
 
 from __future__ import annotations
 
-import copy
 import logging
 from collections.abc import Iterable, Iterator, Sequence
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Any, Literal
+
+from crategraph.core._properties import merge_properties
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
@@ -72,9 +73,12 @@ def text_records(
             non-string values are skipped).
         include_properties: Entity properties to copy into each output
             record. Pass a sequence of property names, or ``True`` to
-            include all entity properties. Values are deep-copied and
-            emitted as top-level keys; collisions with standard record
-            keys are prefixed with ``prop_``.
+            include all *public* entity properties (internal
+            ``_``-prefixed loader flags such as ``_is_root`` are
+            excluded; an explicit allowlist is honoured verbatim).
+            Values are deep-copied and emitted as top-level keys;
+            collisions with standard record keys are prefixed with
+            ``prop_``.
         filters: Optional ``{"source_id": [...], "entity_types": [...],
             "source_kind": ["file" | "properties"], "entity_id": [...]}``.
             Filters are applied as the records are produced — non-matching
@@ -144,30 +148,30 @@ def enrich_record_with_entity_properties(
 ) -> dict[str, Any]:
     """Return *record* with requested entity properties added.
 
+    With ``include_properties=True``, internal ``_``-prefixed loader
+    flags (e.g. ``_is_root``) are excluded — ``True`` means *public*
+    entity metadata. An explicit allowlist is honoured verbatim.
+
     Property values are deep-copied so callers can freely mutate returned
     records. Property names that collide with existing record keys are
     prefixed with ``prop_`` repeatedly until unique, matching the graph
-    record export convention.
+    record export convention — the shared rule lives in
+    :func:`crategraph.core._properties.merge_properties`.
     """
     included = _normalise_include_properties(include_properties)
     if not included:
         return record
 
     out = dict(record)
-    taken = set(out)
     keys = (
-        sorted(entity.properties, key=lambda key: (key in taken, key))
+        sorted(
+            (key for key in entity.properties if not key.startswith("_")),
+            key=lambda key: (key in out, key),
+        )
         if included is True
         else included
     )
-    for key in keys:
-        if key not in entity.properties:
-            continue
-        out_key = key
-        while out_key in taken:
-            out_key = f"prop_{out_key}"
-        out[out_key] = copy.deepcopy(entity.properties[key])
-        taken.add(out_key)
+    merge_properties(out, entity.properties, keys)
     return out
 
 
