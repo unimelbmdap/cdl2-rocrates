@@ -131,3 +131,34 @@ class Related:
         for val in self._project(key):
             return val
         return default
+
+    def join(
+        self,
+        key: str | Callable[[EntityView], Any] | None = None,
+        *,
+        sep: str = ", ",
+        unique: bool = True,
+        sort: bool = True,
+        default: Any = None,
+    ) -> Any:
+        """Project, ``str()``-coerce, optionally dedup+sort, join to one scalar.
+
+        ``key=None`` uses each related entity's ``label``. Returns
+        ``default`` when nothing contributes. Dedup is order-preserving
+        by equality; values are strings here so ``sort`` is safe.
+        """
+        if key is None:
+            values = [view.label for view in self._views]
+        else:
+            values = [str(val) for val in self._project(key)]
+        if unique:
+            deduped: list[str] = []
+            for val in values:
+                if val not in deduped:
+                    deduped.append(val)
+            values = deduped
+        if sort:
+            values = sorted(values)
+        if not values:
+            return default
+        return sep.join(values)

@@ -92,3 +92,23 @@ def test_related_first_strict_raises_on_multiple() -> None:
     # strict counts related entities, not projected values:
     one = Related(_views(("a", {"name": "A"})))
     assert one.first("name", strict=True) == "A"
+
+
+def test_related_join_label_default_dedup_sort() -> None:
+    r = Related(_views(("a", {"name": "B"}), ("b", {"name": "A"}), ("c", {"name": "A"})))
+    # key="name": deduped + sorted by default, ", " join
+    assert r.join("name") == "A, B"
+    assert Related([]).join("name") is None
+    assert Related([]).join("name", default="None") == "None"
+
+
+def test_related_join_key_none_uses_label() -> None:
+    r = Related(_views(("a", {"name": "Zed"}), ("b", {"name": "Amy"})))
+    assert r.join() == "Amy, Zed"  # labels, sorted+deduped
+
+
+def test_related_join_str_coerces_and_respects_flags() -> None:
+    r = Related(_views(("a", {"n": 2}), ("b", {"n": 1}), ("c", {"n": 1})))
+    assert r.join("n") == "1, 2"  # str-coerced, unique, sorted
+    assert r.join("n", unique=False, sort=False) == "2, 1, 1"
+    assert r.join("n", sep="|", sort=True, unique=True) == "1|2"
