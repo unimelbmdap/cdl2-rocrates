@@ -56,6 +56,25 @@ class TestMarkItDownInspectorInspect:
         assert info.size_bytes > 0
         assert isinstance(info.content, str)
 
+    def test_inspect_text_file_falls_back_to_utf8_when_markitdown_decoding_fails(
+        self, tmp_path, monkeypatch
+    ):
+        import markitdown
+
+        class FailingMarkItDown:
+            def convert(self, path):
+                raise RuntimeError("PlainTextConverter threw UnicodeDecodeError")
+
+        monkeypatch.setattr(markitdown, "MarkItDown", FailingMarkItDown)
+
+        path = tmp_path / "sample.txt"
+        path.write_text("Temperature below 16°C\n", encoding="utf-8")
+
+        info = MarkItDownInspector().inspect(path)
+
+        assert info.content == "Temperature below 16°C\n"
+        assert info.media_type == "text/plain"
+
     def test_inspect_without_markitdown_raises(self):
         import unittest.mock
 
