@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
@@ -47,6 +48,7 @@ class Graph:
         self._graph: nx.MultiDiGraph = nx.MultiDiGraph()
         self._root: Graph = self  # reference to the root/full graph for expand()
         self._simplification_k: int | None = None
+        self._derived_fields: dict[str, str | None] = {}
 
     # --- Public read-only properties ---
 
@@ -138,6 +140,16 @@ class Graph:
     def sources(self) -> list[str]:
         """Distinct source directory names, sorted."""
         return sorted(self._source_names)
+
+    @property
+    def derived_fields(self) -> Mapping[str, str | None]:
+        """Read-only registry of fields added by ``annotate_entities``.
+
+        Maps field name -> short descriptor (callable ``__qualname__``,
+        or ``None`` for an anonymous lambda). Distinguishes derived
+        columns from native crate metadata for honest export.
+        """
+        return MappingProxyType(self._derived_fields)
 
     @property
     def default_index_path(self) -> Path:
@@ -1087,6 +1099,7 @@ class Graph:
             )
         derived._root = self._root
         derived._simplification_k = None
+        derived._derived_fields = dict(self._derived_fields)
         return derived
 
     def _subgraph(self, node_ids: set[str]) -> Graph:
