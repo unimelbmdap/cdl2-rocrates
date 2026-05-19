@@ -1077,3 +1077,42 @@ class Graph:
     def _subgraph(self, node_ids: set[str]) -> Graph:
         """Return a new Graph containing only the specified nodes and their mutual edges."""
         return self._build_derived_graph(node_ids=node_ids)
+
+    def _related_ids(
+        self,
+        entity_id: str,
+        rel: str,
+        direction: str = "out",
+    ) -> list[str]:
+        """Return ids of entities related to *entity_id* via *rel*.
+
+        Validates *rel* against this graph's relationship types — an
+        unknown type raises ``ValueError`` (parity with ``select`` /
+        ``exclude``). ``direction``: ``"out"`` (this entity is the
+        source), ``"in"`` (this entity is the target), or ``"any"``
+        (out then in). Results are deduplicated by id, preserving
+        ``_relationships`` (RO-Crate source) order, and restricted to
+        ids present in this graph.
+        """
+        self.relationship_types.validate(rel)
+        out_ids = [
+            r.target for r in self._relationships if r.source == entity_id and r.type == rel
+        ]
+        in_ids = [r.source for r in self._relationships if r.target == entity_id and r.type == rel]
+        if direction == "out":
+            ordered = out_ids
+        elif direction == "in":
+            ordered = in_ids
+        elif direction == "any":
+            ordered = out_ids + in_ids
+        else:
+            msg = f"direction must be 'out', 'in', or 'any', got {direction!r}"
+            raise ValueError(msg)
+
+        seen: set[str] = set()
+        result: list[str] = []
+        for rid in ordered:
+            if rid not in seen and rid in self._entities:
+                seen.add(rid)
+                result.append(rid)
+        return result
