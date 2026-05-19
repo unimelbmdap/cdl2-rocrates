@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping, Sequence
 
     from crategraph.core.models import CoverageResult, FileInfo, ViewInfo
+    from crategraph.core.views import EntityView
 
 
 class Graph:
@@ -102,6 +103,20 @@ class Graph:
     def relationships(self) -> list[Relationship]:
         """All relationships in the graph."""
         return list(self._relationships)
+
+    def entity_view(self, entity_id: str) -> EntityView:
+        """Return a graph-aware :class:`EntityView` for *entity_id*.
+
+        Useful in a REPL/notebook and for testing ``annotate_entities``
+        derivation functions on a single entity.
+        """
+        from crategraph.core.views import EntityView
+
+        entity = self._entities.get(entity_id)
+        if entity is None:
+            msg = f"Entity {entity_id!r} not in graph."
+            raise ValueError(msg)
+        return EntityView(entity, self)
 
     @property
     def files(self) -> list[Entity]:
