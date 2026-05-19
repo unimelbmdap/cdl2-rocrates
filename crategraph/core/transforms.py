@@ -303,4 +303,5 @@ def collapse_edges(graph: Graph) -> Graph:
             )
         )
 
+    collapsed._derived_fields = dict(graph._derived_fields)
     return collapsed

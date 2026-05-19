@@ -91,3 +91,19 @@ def test_annotate_survives_select_then_expand() -> None:
     out = g.select(id="#alice").expand()
     assert out._entities["#alice"].properties["x"] == "v"
     assert "x" in out.derived_fields
+
+
+def test_provenance_survives_select_where() -> None:
+    g = _g().annotate_entities(org=lambda e: e.related("worksFor").join("name"))
+    out = g.select(entity_types=["Person"]).where()
+    assert "org" in out.derived_fields
+
+
+def test_provenance_survives_collapse_edges() -> None:
+    g = _g().annotate_entities(org=lambda e: "x")
+    assert "org" in g.collapse_edges().derived_fields
+
+
+def test_provenance_dropped_by_merge_nodes() -> None:
+    g = _g().annotate_entities(org=lambda e: "x")
+    assert "org" not in g.merge_nodes(by="type").derived_fields
