@@ -14,6 +14,7 @@ from crategraph.core.text import (
     _format_property_text,
     _render_value,
     _source_id_for,
+    enrich_record_with_entity_properties,
 )
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "minimal-crate"
@@ -70,6 +71,8 @@ def test_text_records_defaults_to_file_records() -> None:
 
     assert records
     assert {r["source_kind"] for r in records} == {"file"}
+    assert "name" not in records[0]
+    assert "encodingFormat" not in records[0]
 
 
 def test_text_records_emits_property_records_when_requested() -> None:
@@ -110,6 +113,73 @@ def test_text_records_has_no_token_count() -> None:
     crate = Crate(str(FIXTURE))
     record = next(iter(crate.text_records()))
     assert "token_count" not in record
+
+
+def test_text_records_include_properties_adds_requested_entity_properties() -> None:
+    crate = Crate(str(FIXTURE))
+    records = list(
+        crate.text_records(
+            include_properties=["name", "encodingFormat", "missing"],
+            filters={"entity_id": ["sample.txt"]},
+        )
+    )
+
+    assert records
+    record = records[0]
+    assert record["entity_id"] == "sample.txt"
+    assert record["name"] == "Sample text file"
+    assert record["encodingFormat"] == "text/plain"
+    assert "missing" not in record
+
+
+def test_text_records_include_properties_true_adds_all_entity_properties() -> None:
+    crate = Crate(str(FIXTURE))
+    record = next(
+        iter(
+            crate.text_records(
+                include_properties=True,
+                filters={"entity_id": ["sample.txt"]},
+            )
+        )
+    )
+
+    assert record["name"] == "Sample text file"
+    assert record["encodingFormat"] == "text/plain"
+
+
+def test_text_records_include_properties_rejects_bare_string() -> None:
+    crate = Crate(str(FIXTURE))
+
+    with pytest.raises(TypeError, match="include_properties"):
+        list(crate.text_records(include_properties="name"))  # type: ignore[arg-type]
+
+
+def test_include_properties_prefixes_colliding_record_keys() -> None:
+    entity = Entity(
+        id="doc",
+        types=("File",),
+        properties={
+            "text": "metadata text",
+            "entity_id": "metadata id",
+            "prop_text": "already prefixed",
+        },
+    )
+    record = enrich_record_with_entity_properties(
+        {
+            "source_id": "source",
+            "entity_id": "doc",
+            "source_kind": "file",
+            "entity_types": ("File",),
+            "text": "file text",
+        },
+        entity,
+        include_properties=True,
+    )
+
+    assert record["text"] == "file text"
+    assert record["prop_text"] == "already prefixed"
+    assert record["prop_entity_id"] == "metadata id"
+    assert record["prop_prop_text"] == "metadata text"
 
 
 def test_text_records_filters_by_source_kind() -> None:

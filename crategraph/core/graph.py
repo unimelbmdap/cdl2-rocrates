@@ -403,6 +403,7 @@ class Graph:
         store_path: str | Path | None = None,
         source_kind: str = "file",
         text_properties: Sequence[str] | None = None,
+        include_properties: Sequence[str] | bool = False,
         filters: Mapping[str, Any] | None = None,
         restrict_to_view: bool = True,
     ) -> Iterator[dict[str, Any]]:
@@ -410,12 +411,17 @@ class Graph:
 
         Each record is a dict with keys ``source_id``, ``entity_id``,
         ``source_kind`` (``"file"`` or ``"properties"``),
-        ``entity_types``, ``text``. Generator — peak memory is one
-        record at a time.
+        ``entity_types``, ``text``, plus any requested entity properties.
+        Generator — peak memory is one record at a time.
 
         ``source_kind`` controls which text units are yielded:
         ``"file"`` (default), ``"properties"``, or ``"all"``. An explicit
         ``filters["source_kind"]`` overrides this convenience argument.
+
+        ``include_properties`` optionally copies entity properties into
+        each output record. Pass a sequence of property names, or ``True``
+        to include all entity properties. Defaults to ``False`` so the
+        record schema remains compact and stable.
 
         ``store_path`` switches between two read paths:
 
@@ -449,6 +455,7 @@ class Graph:
             return self._cached_text_records(
                 store_path,
                 merged_filters,
+                include_properties=include_properties,
                 restrict_to_view=restrict_to_view,
             )
 
@@ -462,6 +469,7 @@ class Graph:
         return text_records(
             self,
             text_properties=text_properties,
+            include_properties=include_properties,
             filters=merged_filters,
         )
 
@@ -593,6 +601,7 @@ class Graph:
         store_path: str | Path,
         filters: Mapping[str, Any] | None,
         *,
+        include_properties: Sequence[str] | bool,
         restrict_to_view: bool,
     ) -> Iterator[dict[str, Any]]:
         """Stream text_units rows from a built index. Lazy-imports the index module."""
@@ -610,8 +619,19 @@ class Graph:
             return iter(())
 
         def _iter() -> Iterator[dict[str, Any]]:
+            from crategraph.core.text import enrich_record_with_entity_properties
+
             with Store(store_path) as store:
-                yield from store.iter_text_records(filters=merged)
+                for record in store.iter_text_records(filters=merged):
+                    entity = self._entities.get(record["entity_id"])
+                    if entity is None:
+                        yield record
+                    else:
+                        yield enrich_record_with_entity_properties(
+                            record,
+                            entity,
+                            include_properties,
+                        )
 
         return _iter()
 
