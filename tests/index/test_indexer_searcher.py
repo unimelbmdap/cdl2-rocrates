@@ -290,6 +290,27 @@ def test_cached_text_records_filters(tmp_path: Path) -> None:
     assert all(r["source_kind"] == "file" for r in only_files)
 
 
+def test_cached_text_records_include_properties_from_current_graph(tmp_path: Path) -> None:
+    """Cached text rows can be enriched from the live graph without index schema changes."""
+    store = tmp_path / "cached_with_properties.db"
+    crate = Crate(str(FIXTURE))
+    crate.build_semantic_index(store, progress=False)
+
+    records = list(
+        crate.text_records(
+            store_path=store,
+            include_properties=["name", "encodingFormat"],
+            filters={"entity_id": ["sample.txt"]},
+        )
+    )
+
+    assert records
+    record = records[0]
+    assert record["name"] == "Sample text file"
+    assert record["encodingFormat"] == "text/plain"
+    assert record["token_count"] > 0
+
+
 def test_chunk_records_reconstructs_text(tmp_path: Path) -> None:
     """Graph.chunk_records yields per-chunk dicts with reconstructed text."""
     store = tmp_path / "chunks.db"
@@ -342,6 +363,18 @@ def test_cached_text_records_respects_view(tmp_path: Path) -> None:
     full_ids = {r["entity_id"] for r in full}
     assert "#alice" in full_ids
     assert "#bob" in full_ids
+
+    enriched_full = list(
+        just_bob.text_records(
+            store_path=store,
+            source_kind="all",
+            include_properties=["name"],
+            restrict_to_view=False,
+        )
+    )
+    by_id = {record["entity_id"]: record for record in enriched_full}
+    assert by_id["#bob"]["name"] == "Bob Jones"
+    assert "name" not in by_id["#alice"]
 
 
 def test_cached_text_records_intersects_user_entity_id_filter(tmp_path: Path) -> None:
