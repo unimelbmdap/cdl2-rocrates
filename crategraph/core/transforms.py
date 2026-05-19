@@ -9,13 +9,15 @@ from __future__ import annotations
 
 import warnings
 from collections import Counter, defaultdict, deque
+from collections.abc import Callable
 from dataclasses import replace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from crategraph.core.models import Entity, Relationship
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
+    from crategraph.core.views import EntityView
 
 
 def merge_nodes(graph: Graph, *, by: str) -> Graph:
@@ -75,6 +77,56 @@ def merge_nodes(graph: Graph, *, by: str) -> Graph:
         )
 
     return merged
+
+
+def annotate_entities(graph: Graph, **fields: Callable[[EntityView], Any]) -> Graph:
+    """Return a new graph with a derived property per entity.
+
+    Two-phase and order-independent: every callable is evaluated
+    against an ``EntityView`` over the *source* graph (fields in one
+    call do not see each other), then the new graph is built. A
+    callable error is re-raised with field + entity id context. New
+    field names are recorded in ``derived_fields``.
+    """
+    from crategraph.core.views import EntityView
+
+    new_entities: dict[str, Entity] = {}
+    for eid, entity in graph._entities.items():
+        view = EntityView(entity, graph)
+        derived: dict[str, Any] = {}
+        for name, fn in fields.items():
+            try:
+                derived[name] = fn(view)
+            except Exception as exc:
+                msg = f"annotate_entities: field {name!r} failed on entity {entity.id!r}: {exc!r}"
+                raise RuntimeError(msg) from exc
+        new_entities[eid] = Entity(
+            id=entity.id,
+            types=entity.types,
+            properties={**entity.properties, **derived},
+            source=entity.source,
+        )
+
+    result = graph._build_derived_graph(
+        node_ids=set(graph._entities),
+        entities=new_entities,
+        relationships=list(graph._relationships),
+    )
+    descriptors: dict[str, str | None] = {}
+    for name, fn in fields.items():
+        qual = getattr(fn, "__qualname__", None)
+        short = None if qual is None else qual.rsplit(".", maxsplit=1)[-1]
+        descriptors[name] = None if short in (None, "<lambda>") else short
+    result._derived_fields = {**result._derived_fields, **descriptors}
+    # annotate_entities is a whole-graph transform over ALL entities, so
+    # the result is the new authoritative full-graph baseline. expand()
+    # rebuilds from graph._root; without this, annotate -> select ->
+    # expand() would rebuild entities from the UNANNOTATED root and
+    # silently drop both the derived values and the registry. Reset the
+    # expansion root to the annotated graph (as a loaded crate is its
+    # own root).
+    result._root = result
+    return result
 
 
 def simplify(graph: Graph, *, min_connections: int | None = None) -> Graph:

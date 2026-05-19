@@ -20,7 +20,7 @@ from crategraph.core.models import Entity, Relationship
 from crategraph.core.types import TypeRegistry
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Mapping, Sequence
+    from collections.abc import Callable, Iterator, Mapping, Sequence
 
     from crategraph.core.models import CoverageResult, FileInfo, ViewInfo
     from crategraph.core.views import EntityView
@@ -829,6 +829,13 @@ class Graph:
     def merge_nodes(self, *, by: str) -> Graph:
         """Aggregate nodes by a property, returning a collapsed graph."""
         return transforms.merge_nodes(self, by=by)
+
+    def annotate_entities(self, **fields: Callable[[EntityView], Any]) -> Graph:
+        """Derive a property per entity from callables; returns a new Graph.
+
+        See ``docs/superpowers/specs/2026-05-19-annotate-entities-design.md``.
+        """
+        return transforms.annotate_entities(self, **fields)
 
     def simplify(
         self,
