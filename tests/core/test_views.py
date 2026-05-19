@@ -112,3 +112,24 @@ def test_related_join_str_coerces_and_respects_flags() -> None:
     assert r.join("n") == "1, 2"  # str-coerced, unique, sorted
     assert r.join("n", unique=False, sort=False) == "2, 1, 1"
     assert r.join("n", sep="|", sort=True, unique=True) == "1|2"
+
+
+def test_related_list_key_none_returns_views() -> None:
+    r = Related(_views(("a", {}), ("b", {})))
+    assert [v.id for v in r.list()] == ["a", "b"]
+
+
+def test_related_list_default_preserves_order_no_dedup() -> None:
+    r = Related(_views(("a", {"g": "X"}), ("b", {"g": "Y"}), ("c", {"g": "X"})))
+    assert r.list("g") == ["X", "Y", "X"]  # source order, no dedup
+
+
+def test_related_list_unique_order_preserving_handles_unhashable() -> None:
+    r = Related(_views(("a", {"g": ["X"]}), ("b", {"g": ["X"]}), ("c", {"g": ["Y"]})))
+    assert r.list("g", unique=True) == [["X"], ["Y"]]  # equality dedup, unhashable ok
+
+
+def test_related_list_sort_never_raises_on_mixed() -> None:
+    r = Related(_views(("a", {"g": 2}), ("b", {"g": "x"}), ("c", {"g": 1})))
+    # mixed int/str: str() fallback, deterministic, no TypeError
+    assert r.list("g", sort=True) == [1, 2, "x"]

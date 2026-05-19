@@ -162,3 +162,34 @@ class Related:
         if not values:
             return default
         return sep.join(values)
+
+    def list(
+        self,
+        key: str | Callable[[EntityView], Any] | None = None,
+        *,
+        unique: bool = False,
+        sort: bool = False,
+    ) -> list:
+        """Project to a list. ``key=None`` -> the views themselves.
+
+        ``unique`` is order-preserving by equality (works for
+        unhashable list/dict values). ``sort`` never raises: natural
+        order, falling back to ``str(value)`` keys for mixed /
+        non-comparable values.
+        """
+        if key is None:
+            values: list = [*self._views]
+        else:
+            values = [val for val in self._project(key)]
+        if unique:
+            deduped: list = []
+            for val in values:
+                if val not in deduped:
+                    deduped.append(val)
+            values = deduped
+        if sort:
+            try:
+                values = sorted(values)
+            except TypeError:
+                values = sorted(values, key=lambda v: str(v))
+        return values
