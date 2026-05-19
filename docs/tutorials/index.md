@@ -9,3 +9,4 @@ If you haven't already, start with the [Getting Started](../getting-started.md) 
 - [Exploring a heritage collection](exploring-a-heritage-collection.md) — Load and navigate an archival dataset from the OHRM Upload Project
 - [Comparing multiple collections](comparing-multiple-collections.md) — Load several crates together and explore connections across them
 - [Searching and filtering](searching-and-filtering.md) — Use search, select, where, and pattern matching to find entities of interest
+- [Basic NLP with text records](basic-nlp-with-text-records.ipynb) — Use graph filtering and metadata grouping before handing text to NLP tools

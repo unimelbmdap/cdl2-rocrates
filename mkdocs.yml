@@ -63,6 +63,7 @@ nav:
     - Exploring a Heritage Collection: tutorials/exploring-a-heritage-collection.md
     - Comparing Multiple Collections: tutorials/comparing-multiple-collections.md
     - Searching and Filtering: tutorials/searching-and-filtering.md
+    - Basic NLP with Text Records: tutorials/basic-nlp-with-text-records.ipynb
   - User Stories:
     - Overview: user-stories/index.md
     - "Walkthrough: The Wallaby Club": user-stories/walkthrough-wall-club.ipynb
