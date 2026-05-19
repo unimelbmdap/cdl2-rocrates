@@ -77,6 +77,21 @@ class EntityView:
         """The owning graph (``None`` for a test-constructed view)."""
         return self._graph
 
+    def related(self, rel: str, direction: str = "out") -> Related:
+        """Entities one hop from this one via *rel*.
+
+        Validates *rel* against the graph (unknown type ->
+        ``ValueError``, parity with ``select``). A graphless view
+        (test constructor) skips validation and returns empty.
+        """
+        if self._graph is None:
+            return Related(())
+        ids = self._graph._related_ids(self._entity.id, rel, direction)
+        return Related(tuple(EntityView(self._graph._entities[i], self._graph) for i in ids))
+
+    def has(self, rel: str, direction: str = "out") -> bool:
+        return bool(self.related(rel, direction))
+
     def __repr__(self) -> str:
         return f"EntityView(id={self._entity.id!r})"
 

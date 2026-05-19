@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
+from crategraph import Crate
 from crategraph.core.models import Entity
 from crategraph.core.views import CardinalityError, EntityView, Related
+
+_FIXTURE = Path(__file__).parent.parent / "fixtures" / "minimal-crate"
 
 
 def test_cardinality_error_is_a_value_error() -> None:
@@ -133,3 +138,27 @@ def test_related_list_sort_never_raises_on_mixed() -> None:
     r = Related(_views(("a", {"g": 2}), ("b", {"g": "x"}), ("c", {"g": 1})))
     # mixed int/str: str() fallback, deterministic, no TypeError
     assert r.list("g", sort=True) == [1, 2, "x"]
+
+
+def test_related_traversal_against_real_graph() -> None:
+    g = Crate(str(_FIXTURE))
+    bob = (
+        g.entity_view("#bob") if hasattr(g, "entity_view") else EntityView(g._entities["#bob"], g)
+    )
+    rel = bob.related("worksFor")
+    assert isinstance(rel, Related)
+    assert "#acme" in [v.id for v in rel]
+    assert bob.has("worksFor") is True
+
+
+def test_related_unknown_type_raises_value_error() -> None:
+    g = Crate(str(_FIXTURE))
+    bob = EntityView(g._entities["#bob"], g)
+    with pytest.raises(ValueError):
+        bob.related("definitely_not_a_rel")
+
+
+def test_related_graphless_view_skips_validation_returns_empty() -> None:
+    e = EntityView(Entity(id="x", properties={}))  # no graph
+    assert list(e.related("anything")) == []
+    assert e.has("anything") is False
