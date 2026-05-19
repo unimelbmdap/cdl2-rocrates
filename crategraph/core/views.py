@@ -16,7 +16,7 @@ adjacency through the narrow ``Graph._related_ids`` primitive.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
@@ -79,3 +79,55 @@ class EntityView:
 
     def __repr__(self) -> str:
         return f"EntityView(id={self._entity.id!r})"
+
+
+class Related:
+    """The collection ``EntityView.related`` returns.
+
+    A sequence of ``EntityView`` in ``_relationships`` (RO-Crate
+    source) order. Protocols: iterable, sized, truthy. Reducers:
+    ``first``, ``join``, ``list``. ``key`` is ``None`` (the view /
+    its label), a ``str`` (that property), or a callable applied to
+    each view; absent/``None`` projected values are skipped.
+    """
+
+    __slots__ = ("_views",)
+
+    def __init__(self, views: list[EntityView] | tuple[EntityView, ...]) -> None:
+        self._views: tuple[EntityView, ...] = tuple(views)
+
+    def __iter__(self):
+        return iter(self._views)
+
+    def __len__(self) -> int:
+        return len(self._views)
+
+    def __bool__(self) -> bool:
+        return bool(self._views)
+
+    def _project(self, key: str | Callable[[EntityView], Any]):
+        """Yield present, non-None projected values in order."""
+        for view in self._views:
+            val = key(view) if callable(key) else view._entity.properties.get(key)
+            if val is not None:
+                yield val
+
+    def first(
+        self,
+        key: str | Callable[[EntityView], Any] | None = None,
+        *,
+        default: Any = None,
+        strict: bool = False,
+    ) -> Any:
+        # CardinalityError is defined at the top of this module.
+        if strict and len(self._views) > 1:
+            msg = (
+                f"first(strict=True) expected at most one related entity, "
+                f"found {len(self._views)}: {[v.id for v in self._views]!r}"
+            )
+            raise CardinalityError(msg)
+        if key is None:
+            return self._views[0] if self._views else default
+        for val in self._project(key):
+            return val
+        return default
