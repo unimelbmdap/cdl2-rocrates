@@ -17,7 +17,7 @@ from crategraph.core.models import Entity, Relationship
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
-    from crategraph.core.views import EntityView
+    from crategraph.core.views import EntityView, RelationshipView
 
 
 def merge_nodes(graph: Graph, *, by: str) -> Graph:
@@ -112,12 +112,10 @@ def annotate_entities(graph: Graph, **fields: Callable[[EntityView], Any]) -> Gr
         entities=new_entities,
         relationships=list(graph._relationships),
     )
-    descriptors: dict[str, str | None] = {}
-    for name, fn in fields.items():
-        qual = getattr(fn, "__qualname__", None)
-        short = None if qual is None else qual.rsplit(".", maxsplit=1)[-1]
-        descriptors[name] = None if short in (None, "<lambda>") else short
-    result._derived_fields = {**result._derived_fields, **descriptors}
+    result._derived_fields = {
+        **result._derived_fields,
+        **_callable_descriptors(fields),
+    }
     # annotate_entities is a whole-graph transform over ALL entities, so
     # the result is the new authoritative full-graph baseline. expand()
     # rebuilds from graph._root; without this, annotate -> select ->
@@ -127,6 +125,74 @@ def annotate_entities(graph: Graph, **fields: Callable[[EntityView], Any]) -> Gr
     # own root).
     result._root = result
     return result
+
+
+def annotate_relationships(
+    graph: Graph,
+    **fields: Callable[[RelationshipView], Any],
+) -> Graph:
+    """Return a new graph with a derived property per relationship.
+
+    Two-phase and order-independent: every callable is evaluated
+    against a ``RelationshipView`` over the *source* graph (fields in
+    one call do not see each other), then the new graph is built. A
+    callable error is re-raised with field + relationship context. New
+    field names are recorded in ``relationship_derived_fields``.
+    """
+    from crategraph.core.views import RelationshipView
+
+    new_relationships: list[Relationship] = []
+    for relationship in graph._relationships:
+        view = RelationshipView(relationship, graph)
+        derived: dict[str, Any] = {}
+        for name, fn in fields.items():
+            try:
+                derived[name] = fn(view)
+            except Exception as exc:
+                identity = _relationship_identity(relationship)
+                msg = (
+                    f"annotate_relationships: field {name!r} failed on "
+                    f"relationship {identity}: {exc!r}"
+                )
+                raise RuntimeError(msg) from exc
+        new_relationships.append(
+            Relationship(
+                source=relationship.source,
+                target=relationship.target,
+                type=relationship.type,
+                properties={**relationship.properties, **derived},
+                id=relationship.id,
+            )
+        )
+
+    result = graph._build_derived_graph(
+        node_ids=set(graph._entities),
+        entities=dict(graph._entities),
+        relationships=new_relationships,
+    )
+    result._relationship_derived_fields = {
+        **result._relationship_derived_fields,
+        **_callable_descriptors(fields),
+    }
+    # Relationship annotation is a whole-graph transform over ALL
+    # relationships, so make the annotated graph the expansion baseline.
+    result._root = result
+    return result
+
+
+def _callable_descriptors(fields: dict[str, Callable[..., Any]]) -> dict[str, str | None]:
+    descriptors: dict[str, str | None] = {}
+    for name, fn in fields.items():
+        qual = getattr(fn, "__qualname__", None)
+        short = None if qual is None else qual.rsplit(".", maxsplit=1)[-1]
+        descriptors[name] = None if short in (None, "<lambda>") else short
+    return descriptors
+
+
+def _relationship_identity(relationship: Relationship) -> str:
+    if relationship.id is not None:
+        return repr(relationship.id)
+    return f"{relationship.source!r} --{relationship.type}--> {relationship.target!r}"
 
 
 def simplify(graph: Graph, *, min_connections: int | None = None) -> Graph:
@@ -304,4 +370,5 @@ def collapse_edges(graph: Graph) -> Graph:
         )
 
     collapsed._derived_fields = dict(graph._derived_fields)
+    collapsed._relationship_derived_fields = {}
     return collapsed

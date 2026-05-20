@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Mapping, Sequence
 
     from crategraph.core.models import CoverageResult, FileInfo, ViewInfo
-    from crategraph.core.views import EntityView
+    from crategraph.core.views import EntityView, RelationshipView
 
 
 class Graph:
@@ -49,6 +49,7 @@ class Graph:
         self._root: Graph = self  # reference to the root/full graph for expand()
         self._simplification_k: int | None = None
         self._derived_fields: dict[str, str | None] = {}
+        self._relationship_derived_fields: dict[str, str | None] = {}
 
     # --- Public read-only properties ---
 
@@ -150,6 +151,15 @@ class Graph:
         columns from native crate metadata for honest export.
         """
         return MappingProxyType(self._derived_fields)
+
+    @property
+    def relationship_derived_fields(self) -> Mapping[str, str | None]:
+        """Read-only registry of fields added by ``annotate_relationships``.
+
+        Kept separate from entity ``derived_fields`` so edge and node
+        property names can overlap without muddying provenance.
+        """
+        return MappingProxyType(self._relationship_derived_fields)
 
     @property
     def default_index_path(self) -> Path:
@@ -859,6 +869,13 @@ class Graph:
         """
         return transforms.annotate_entities(self, **fields)
 
+    def annotate_relationships(
+        self,
+        **fields: Callable[[RelationshipView], Any],
+    ) -> Graph:
+        """Derive a property per relationship from callables; returns a new Graph."""
+        return transforms.annotate_relationships(self, **fields)
+
     def simplify(
         self,
         *,
@@ -1129,6 +1146,7 @@ class Graph:
         derived._root = self._root
         derived._simplification_k = None
         derived._derived_fields = dict(self._derived_fields)
+        derived._relationship_derived_fields = dict(self._relationship_derived_fields)
         return derived
 
     def _subgraph(self, node_ids: set[str]) -> Graph:

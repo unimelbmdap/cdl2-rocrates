@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
-    from crategraph.core.models import Entity
+    from crategraph.core.models import Entity, Relationship
 
 
 class CardinalityError(ValueError):
@@ -94,6 +94,67 @@ class EntityView:
 
     def __repr__(self) -> str:
         return f"EntityView(id={self._entity.id!r})"
+
+
+class RelationshipView:
+    """A relationship made graph-aware for ``annotate_relationships`` callables."""
+
+    __slots__ = ("_graph", "_relationship")
+
+    def __init__(
+        self,
+        relationship: Relationship,
+        graph: Graph | None = None,
+    ) -> None:
+        self._relationship = relationship
+        self._graph = graph
+
+    @property
+    def id(self) -> str | None:
+        return self._relationship.id
+
+    @property
+    def type(self) -> str:
+        return self._relationship.type
+
+    @property
+    def source_id(self) -> str:
+        return self._relationship.source
+
+    @property
+    def target_id(self) -> str:
+        return self._relationship.target
+
+    @property
+    def properties(self) -> Mapping[str, Any]:
+        """Shallow read-only view (top-level mutation raises ``TypeError``)."""
+        return MappingProxyType(self._relationship.properties)
+
+    @property
+    def source(self) -> EntityView:
+        if self._graph is None:
+            msg = "RelationshipView.source requires a graph."
+            raise ValueError(msg)
+        return EntityView(self._graph._entities[self._relationship.source], self._graph)
+
+    @property
+    def target(self) -> EntityView:
+        if self._graph is None:
+            msg = "RelationshipView.target requires a graph."
+            raise ValueError(msg)
+        return EntityView(self._graph._entities[self._relationship.target], self._graph)
+
+    @property
+    def graph(self) -> Graph | None:
+        """The owning graph (``None`` for a test-constructed view)."""
+        return self._graph
+
+    def __repr__(self) -> str:
+        return (
+            f"RelationshipView(source={self._relationship.source!r}, "
+            f"type={self._relationship.type!r}, "
+            f"target={self._relationship.target!r})"
+        )
 
 
 class Related:

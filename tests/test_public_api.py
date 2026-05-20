@@ -7,9 +7,10 @@ def test_entity_view_and_related_are_public() -> None:
     import crategraph
 
     assert hasattr(crategraph, "EntityView")
+    assert hasattr(crategraph, "RelationshipView")
     assert hasattr(crategraph, "Related")
     assert hasattr(crategraph, "CardinalityError")
-    from crategraph import CardinalityError, EntityView, Related  # noqa: F401
+    from crategraph import CardinalityError, EntityView, Related, RelationshipView  # noqa: F401
 
 
 def test_all_includes_new_and_existing_public_names() -> None:
@@ -24,4 +25,5 @@ def test_all_includes_new_and_existing_public_names() -> None:
         "Graph",
         "Related",
         "Relationship",
+        "RelationshipView",
     }

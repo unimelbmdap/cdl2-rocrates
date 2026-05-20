@@ -7,8 +7,9 @@ from pathlib import Path
 import pytest
 
 from crategraph import Crate
-from crategraph.core.models import Entity
-from crategraph.core.views import CardinalityError, EntityView, Related
+from crategraph.core.graph import Graph
+from crategraph.core.models import Entity, Relationship
+from crategraph.core.views import CardinalityError, EntityView, Related, RelationshipView
 
 _FIXTURE = Path(__file__).parent.parent / "fixtures" / "minimal-crate"
 
@@ -57,6 +58,72 @@ def test_entity_view_properties_is_shallow_documented_limit() -> None:
     e = EntityView(src)
     e.properties["keywords"].append("b")
     assert src.properties["keywords"] == ["a", "b"]
+
+
+def test_relationship_view_record_style_fields() -> None:
+    rel = Relationship(
+        source="#bob",
+        target="#acme",
+        type="worksFor",
+        properties={"role": "Analyst"},
+        id="#r1",
+    )
+    view = RelationshipView(rel)
+    assert view.id == "#r1"
+    assert view.type == "worksFor"
+    assert view.source_id == "#bob"
+    assert view.target_id == "#acme"
+    assert view.properties["role"] == "Analyst"
+
+
+def test_relationship_view_properties_top_level_read_only() -> None:
+    rel = Relationship(source="#bob", target="#acme", type="worksFor", properties={"a": 1})
+    view = RelationshipView(rel)
+    with pytest.raises(TypeError):
+        view.properties["a"] = 2
+    assert rel.properties == {"a": 1}
+
+
+def test_relationship_view_properties_is_shallow_documented_limit() -> None:
+    rel = Relationship(
+        source="#bob",
+        target="#acme",
+        type="worksFor",
+        properties={"tags": ["a"]},
+    )
+    view = RelationshipView(rel)
+    view.properties["tags"].append("b")
+    assert rel.properties["tags"] == ["a", "b"]
+
+
+def test_relationship_view_source_and_target_are_entity_views() -> None:
+    g = Graph()
+    g._add_node(Entity(id="#bob", types=["Person"], properties={"name": "Bob"}))
+    g._add_node(Entity(id="#acme", types=["Organisation"], properties={"name": "ACME"}))
+    rel = Relationship(source="#bob", target="#acme", type="worksFor")
+    g._add_edge(rel)
+
+    view = RelationshipView(rel, g)
+    assert isinstance(view.source, EntityView)
+    assert isinstance(view.target, EntityView)
+    assert view.source.id == "#bob"
+    assert view.target.id == "#acme"
+    assert view.source.graph is g
+    assert view.target.graph is g
+
+
+def test_relationship_view_graphless_endpoint_access_raises() -> None:
+    view = RelationshipView(Relationship(source="#bob", target="#acme", type="worksFor"))
+    with pytest.raises(ValueError, match="source"):
+        _ = view.source
+    with pytest.raises(ValueError, match="target"):
+        _ = view.target
+
+
+def test_relationship_view_slots_prevent_arbitrary_assignment() -> None:
+    view = RelationshipView(Relationship(source="#bob", target="#acme", type="worksFor"))
+    with pytest.raises(AttributeError):
+        view.extra = "nope"
 
 
 def _views(*specs):
