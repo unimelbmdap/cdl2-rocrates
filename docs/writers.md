@@ -48,6 +48,21 @@ The text writer is a thin export layer over `text_records()`. It does not perfor
 `source_kind="properties"` to work with metadata-derived text records, or
 `source_kind="all"` to include both file and property text.
 
+For notebook and NLP workflows that need lightweight metadata alongside
+the extracted text, pass `include_properties`:
+
+```python
+records = list(
+    graph.text_records(include_properties=["name", "encodingFormat"])
+)
+```
+
+Requested properties are added as top-level keys in each record when
+present. Pass `include_properties=True` to include all *public* entity
+properties (internal `_`-prefixed loader flags such as `_is_root` are
+excluded; an explicit allowlist is honoured verbatim). The default is
+`False`, so the base record shape remains compact.
+
 ## Formats
 
 | Format key | Output shape | Typical consumer | Notes |

@@ -20,8 +20,9 @@ derived from ``entity.source``) rather than reader-specific terms.
 
 Returned records are dicts with keys: ``source_id``, ``entity_id``,
 ``source_kind`` (``"file"`` or ``"properties"``), ``entity_types``,
-``text``. No ``token_count`` — that depends on a tokenizer and lives in
-the index.
+``text``. Callers may opt into additional entity properties with
+``include_properties``. No ``token_count`` — that depends on a tokenizer
+and lives in the index.
 """
 
 from __future__ import annotations
@@ -30,6 +31,8 @@ import logging
 from collections.abc import Iterable, Iterator, Sequence
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Any, Literal
+
+from crategraph.core._properties import merge_properties
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
@@ -58,6 +61,7 @@ def text_records(
     graph: Graph,
     *,
     text_properties: Sequence[str] = DEFAULT_TEXT_PROPERTIES,
+    include_properties: Sequence[str] | bool = False,
     filters: dict[str, Any] | None = None,
 ) -> Iterator[dict[str, Any]]:
     """Yield one text record per source unit in *graph*.
@@ -67,6 +71,14 @@ def text_records(
         text_properties: Which entity properties contribute text content
             (used for the property-record path; reference dicts and
             non-string values are skipped).
+        include_properties: Entity properties to copy into each output
+            record. Pass a sequence of property names, or ``True`` to
+            include all *public* entity properties (internal
+            ``_``-prefixed loader flags such as ``_is_root`` are
+            excluded; an explicit allowlist is honoured verbatim).
+            Values are deep-copied and emitted as top-level keys;
+            collisions with standard record keys are prefixed with
+            ``prop_``.
         filters: Optional ``{"source_id": [...], "entity_types": [...],
             "source_kind": ["file" | "properties"], "entity_id": [...]}``.
             Filters are applied as the records are produced — non-matching
@@ -74,7 +86,7 @@ def text_records(
 
     Yields:
         Dicts with keys ``source_id``, ``entity_id``, ``source_kind``,
-        ``entity_types``, ``text``.
+        ``entity_types``, ``text``, plus any requested entity properties.
 
     Notes:
         - File extraction relies on the registered ``Inspector`` (see
@@ -88,6 +100,7 @@ def text_records(
     keep_entity_types = _as_set(filters, "entity_types")
     keep_source_kind = _as_set(filters, "source_kind")
     allowed = tuple(text_properties)
+    included = _normalise_include_properties(include_properties)
 
     for entity in graph.entities:
         if entity.properties.get("_is_root"):
@@ -105,25 +118,75 @@ def text_records(
         if keep_source_kind is None or "properties" in keep_source_kind:
             text = _format_property_text(entity, allowed)
             if text.strip():
-                yield {
+                record = {
                     "source_id": source_id,
                     "entity_id": entity.id,
                     "source_kind": "properties",
                     "entity_types": tuple(entity.types),
                     "text": text,
                 }
+                yield enrich_record_with_entity_properties(record, entity, included)
 
         # File record (data entities only).
         if entity.has_data and (keep_source_kind is None or "file" in keep_source_kind):
             file_text = _extract_file_text(graph, entity)
             if file_text and file_text.strip():
-                yield {
+                record = {
                     "source_id": source_id,
                     "entity_id": entity.id,
                     "source_kind": "file",
                     "entity_types": tuple(entity.types),
                     "text": file_text,
                 }
+                yield enrich_record_with_entity_properties(record, entity, included)
+
+
+def enrich_record_with_entity_properties(
+    record: dict[str, Any],
+    entity: Entity,
+    include_properties: Sequence[str] | bool = False,
+) -> dict[str, Any]:
+    """Return *record* with requested entity properties added.
+
+    With ``include_properties=True``, internal ``_``-prefixed loader
+    flags (e.g. ``_is_root``) are excluded — ``True`` means *public*
+    entity metadata. An explicit allowlist is honoured verbatim.
+
+    Property values are deep-copied so callers can freely mutate returned
+    records. Property names that collide with existing record keys are
+    prefixed with ``prop_`` repeatedly until unique, matching the graph
+    record export convention — the shared rule lives in
+    :func:`crategraph.core._properties.merge_properties`.
+    """
+    included = _normalise_include_properties(include_properties)
+    if not included:
+        return record
+
+    out = dict(record)
+    keys = (
+        sorted(
+            (key for key in entity.properties if not key.startswith("_")),
+            key=lambda key: (key in out, key),
+        )
+        if included is True
+        else included
+    )
+    merge_properties(out, entity.properties, keys)
+    return out
+
+
+def _normalise_include_properties(
+    include_properties: Sequence[str] | bool,
+) -> tuple[str, ...] | Literal[True]:
+    """Return a stable representation of the requested metadata properties."""
+    if include_properties is True:
+        return True
+    if include_properties is False:
+        return ()
+    if isinstance(include_properties, str):
+        msg = "include_properties must be a sequence of property names, True, or False."
+        raise TypeError(msg)
+    return tuple(include_properties)
 
 
 def _source_id_for(entity: Entity, graph: Graph) -> str:

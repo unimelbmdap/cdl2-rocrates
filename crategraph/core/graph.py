@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
@@ -19,9 +20,10 @@ from crategraph.core.models import Entity, Relationship
 from crategraph.core.types import TypeRegistry
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Mapping, Sequence
+    from collections.abc import Callable, Iterator, Mapping, Sequence
 
     from crategraph.core.models import CoverageResult, FileInfo, ViewInfo
+    from crategraph.core.views import EntityView
 
 
 class Graph:
@@ -46,6 +48,7 @@ class Graph:
         self._graph: nx.MultiDiGraph = nx.MultiDiGraph()
         self._root: Graph = self  # reference to the root/full graph for expand()
         self._simplification_k: int | None = None
+        self._derived_fields: dict[str, str | None] = {}
 
     # --- Public read-only properties ---
 
@@ -103,6 +106,20 @@ class Graph:
         """All relationships in the graph."""
         return list(self._relationships)
 
+    def entity_view(self, entity_id: str) -> EntityView:
+        """Return a graph-aware :class:`EntityView` for *entity_id*.
+
+        Useful in a REPL/notebook and for testing ``annotate_entities``
+        derivation functions on a single entity.
+        """
+        from crategraph.core.views import EntityView
+
+        entity = self._entities.get(entity_id)
+        if entity is None:
+            msg = f"Entity {entity_id!r} not in graph."
+            raise ValueError(msg)
+        return EntityView(entity, self)
+
     @property
     def files(self) -> list[Entity]:
         """Data entities (files and directories) in the graph.
@@ -123,6 +140,16 @@ class Graph:
     def sources(self) -> list[str]:
         """Distinct source directory names, sorted."""
         return sorted(self._source_names)
+
+    @property
+    def derived_fields(self) -> Mapping[str, str | None]:
+        """Read-only registry of fields added by ``annotate_entities``.
+
+        Maps field name -> short descriptor (callable ``__qualname__``,
+        or ``None`` for an anonymous lambda). Distinguishes derived
+        columns from native crate metadata for honest export.
+        """
+        return MappingProxyType(self._derived_fields)
 
     @property
     def default_index_path(self) -> Path:
@@ -403,6 +430,7 @@ class Graph:
         store_path: str | Path | None = None,
         source_kind: str = "file",
         text_properties: Sequence[str] | None = None,
+        include_properties: Sequence[str] | bool = False,
         filters: Mapping[str, Any] | None = None,
         restrict_to_view: bool = True,
     ) -> Iterator[dict[str, Any]]:
@@ -410,12 +438,19 @@ class Graph:
 
         Each record is a dict with keys ``source_id``, ``entity_id``,
         ``source_kind`` (``"file"`` or ``"properties"``),
-        ``entity_types``, ``text``. Generator — peak memory is one
-        record at a time.
+        ``entity_types``, ``text``, plus any requested entity properties.
+        Generator — peak memory is one record at a time.
 
         ``source_kind`` controls which text units are yielded:
         ``"file"`` (default), ``"properties"``, or ``"all"``. An explicit
         ``filters["source_kind"]`` overrides this convenience argument.
+
+        ``include_properties`` optionally copies entity properties into
+        each output record. Pass a sequence of property names, or ``True``
+        to include all *public* entity properties (internal ``_``-prefixed
+        loader flags such as ``_is_root`` are excluded; an explicit
+        allowlist is honoured verbatim). Defaults to ``False`` so the
+        record schema remains compact and stable.
 
         ``store_path`` switches between two read paths:
 
@@ -449,6 +484,7 @@ class Graph:
             return self._cached_text_records(
                 store_path,
                 merged_filters,
+                include_properties=include_properties,
                 restrict_to_view=restrict_to_view,
             )
 
@@ -462,6 +498,7 @@ class Graph:
         return text_records(
             self,
             text_properties=text_properties,
+            include_properties=include_properties,
             filters=merged_filters,
         )
 
@@ -593,6 +630,7 @@ class Graph:
         store_path: str | Path,
         filters: Mapping[str, Any] | None,
         *,
+        include_properties: Sequence[str] | bool,
         restrict_to_view: bool,
     ) -> Iterator[dict[str, Any]]:
         """Stream text_units rows from a built index. Lazy-imports the index module."""
@@ -610,8 +648,19 @@ class Graph:
             return iter(())
 
         def _iter() -> Iterator[dict[str, Any]]:
+            from crategraph.core.text import enrich_record_with_entity_properties
+
             with Store(store_path) as store:
-                yield from store.iter_text_records(filters=merged)
+                for record in store.iter_text_records(filters=merged):
+                    entity = self._entities.get(record["entity_id"])
+                    if entity is None:
+                        yield record
+                    else:
+                        yield enrich_record_with_entity_properties(
+                            record,
+                            entity,
+                            include_properties,
+                        )
 
         return _iter()
 
@@ -802,6 +851,13 @@ class Graph:
     def merge_nodes(self, *, by: str) -> Graph:
         """Aggregate nodes by a property, returning a collapsed graph."""
         return transforms.merge_nodes(self, by=by)
+
+    def annotate_entities(self, **fields: Callable[[EntityView], Any]) -> Graph:
+        """Derive a property per entity from callables; returns a new Graph.
+
+        See ``docs/superpowers/specs/2026-05-19-annotate-entities-design.md``.
+        """
+        return transforms.annotate_entities(self, **fields)
 
     def simplify(
         self,
@@ -1072,8 +1128,48 @@ class Graph:
             )
         derived._root = self._root
         derived._simplification_k = None
+        derived._derived_fields = dict(self._derived_fields)
         return derived
 
     def _subgraph(self, node_ids: set[str]) -> Graph:
         """Return a new Graph containing only the specified nodes and their mutual edges."""
         return self._build_derived_graph(node_ids=node_ids)
+
+    def _related_ids(
+        self,
+        entity_id: str,
+        rel: str,
+        direction: str = "out",
+    ) -> list[str]:
+        """Return ids of entities related to *entity_id* via *rel*.
+
+        Validates *rel* against this graph's relationship types — an
+        unknown type raises ``ValueError`` (parity with ``select`` /
+        ``exclude``). ``direction``: ``"out"`` (this entity is the
+        source), ``"in"`` (this entity is the target), or ``"any"``
+        (out then in). Results are deduplicated by id, preserving
+        ``_relationships`` (RO-Crate source) order, and restricted to
+        ids present in this graph.
+        """
+        self.relationship_types.validate(rel)
+        out_ids = [
+            r.target for r in self._relationships if r.source == entity_id and r.type == rel
+        ]
+        in_ids = [r.source for r in self._relationships if r.target == entity_id and r.type == rel]
+        if direction == "out":
+            ordered = out_ids
+        elif direction == "in":
+            ordered = in_ids
+        elif direction == "any":
+            ordered = out_ids + in_ids
+        else:
+            msg = f"direction must be 'out', 'in', or 'any', got {direction!r}"
+            raise ValueError(msg)
+
+        seen: set[str] = set()
+        result: list[str] = []
+        for rid in ordered:
+            if rid not in seen and rid in self._entities:
+                seen.add(rid)
+                result.append(rid)
+        return result
