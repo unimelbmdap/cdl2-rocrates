@@ -76,6 +76,31 @@ function hexToRgba(hex, alpha) {
   return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
 }
 
+// Returns true if `value` parses as an http: or https: URL. Used to
+// gate whether a string property value becomes a clickable <a href>.
+function isHttpUrl(value) {
+  if (typeof value !== "string") return false;
+  try {
+    var u = new URL(value);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch (e) {
+    return false;
+  }
+}
+
+// Build a clickable reference element pointing at `targetId` and
+// append it to `parent`. The label is set via textContent and the
+// node id via setAttribute, so attribute-context injection is
+// structurally impossible — no escaping required at call sites.
+function appendClickableRef(parent, targetId, label) {
+  var el = document.createElement("a");
+  el.className = "detail-link";
+  el.setAttribute("data-node-id", targetId);
+  el.setAttribute("title", targetId);
+  el.textContent = label;
+  parent.appendChild(el);
+}
+
 // ---------------------------------------------------------------------------
 // Graph construction
 // ---------------------------------------------------------------------------
@@ -269,4 +294,6 @@ export {
   hexToRgba,
   escapeHtml,
   toggleTheme,
+  isHttpUrl,
+  appendClickableRef,
 };
