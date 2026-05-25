@@ -367,45 +367,57 @@ function setupInteractions(graph, renderer, typeColours) {
 
   var container = document.getElementById("sigma-container");
 
-  // Click node — show details panel and highlight neighbourhood
-  renderer.on("clickNode", function (ev) {
-    var attrs = graph.getNodeAttributes(ev.node);
-    var det = document.getElementById("details");
-    det.innerHTML =
-      "<h4>" +
-      escapeHtml(attrs.label) +
-      "</h4>" +
-      '<div class="detail-row"><span class="detail-label">Type:</span> ' +
-      escapeHtml(attrs.entityType) +
-      "</div>" +
-      '<div class="detail-row"><span class="detail-label">Connections:</span> ' +
-      attrs.degree +
-      "</div>" +
-      '<div class="detail-row"><span class="detail-label">ID:</span> ' +
-      escapeHtml(ev.node) +
-      "</div>";
-    det.style.display = "block";
-
-    var neighbours = new Set(graph.neighbors(ev.node));
-    neighbours.add(ev.node);
-    var dimColour = isDark ? DIM_DARK : DIM_LIGHT;
-    graph.forEachNode(function (nid, na) {
-      graph.setNodeAttribute(
-        nid,
-        "color",
-        neighbours.has(nid) ? na.originalColor : dimColour
+  // selectNode is the single entry point used by clickNode AND by the
+  // panel's delegated click listener, so a click on a property
+  // reference behaves identically to a click on the rendered node.
+  function selectNode(nodeId) {
+    if (!graph.hasNode(nodeId)) return;
+    renderPanel(nodeId, graph);
+    var neighbours = new Set(graph.neighbors(nodeId));
+    neighbours.add(nodeId);
+    applyColours(graph, neighbours);
+    var displayData = renderer.getNodeDisplayData(nodeId);
+    if (displayData) {
+      // Build the camera target by hand so we explicitly preserve the
+      // current ratio (and angle). Passing displayData whole would
+      // leave "what happens to zoom" up to sigma; this removes the
+      // ambiguity and matches the spec's "recentre, do not zoom" rule.
+      var camState = renderer.getCamera().getState();
+      renderer.getCamera().animate(
+        {
+          x: displayData.x,
+          y: displayData.y,
+          ratio: camState.ratio,
+          angle: camState.angle,
+        },
+        { duration: 400 }
       );
-    });
+    }
+    renderer.refresh();
+  }
+
+  renderer.on("clickNode", function (ev) {
+    selectNode(ev.node);
+  });
+
+  renderer.on("clickStage", function () {
+    document.getElementById("details").style.display = "none";
+    applyColours(graph, null);
     renderer.refresh();
   });
 
-  // Click stage — reset highlights
-  renderer.on("clickStage", function () {
-    document.getElementById("details").style.display = "none";
-    graph.forEachNode(function (nid, na) {
-      graph.setNodeAttribute(nid, "color", na.originalColor);
-    });
-    renderer.refresh();
+  // Delegated click handler for the panel. Any element with a
+  // `data-node-id` attribute — rendered by appendClickableRef — moves
+  // the camera and updates the panel via selectNode.
+  document.getElementById("details").addEventListener("click", function (ev) {
+    var el = ev.target;
+    while (el && el !== this && !el.getAttribute("data-node-id")) {
+      el = el.parentElement;
+    }
+    if (el && el.getAttribute("data-node-id")) {
+      ev.preventDefault();
+      selectNode(el.getAttribute("data-node-id"));
+    }
   });
 
   // Cursor changes
