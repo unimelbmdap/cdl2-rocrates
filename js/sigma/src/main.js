@@ -459,17 +459,41 @@ function initGridInternal() {
   initGrid({ buildGraph: buildGraph });
 }
 
-function init() {
+// The Python renderer ships the graph JSON as gzip-compressed bytes
+// encoded as a base64 string in window.graphDataPacked. This unpacks
+// it via the browser-native DecompressionStream API. Required browser
+// support: Chrome 80+, Firefox 113+, Safari 16.4+.
+async function unpackGraphData(packed) {
+  if (typeof DecompressionStream === "undefined") {
+    throw new Error(
+      "Sigma renderer requires DecompressionStream (Chrome 80+, " +
+        "Firefox 113+, Safari 16.4+). Update your browser."
+    );
+  }
+  var binary = atob(packed);
+  var bytes = new Uint8Array(binary.length);
+  for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  var stream = new Blob([bytes])
+    .stream()
+    .pipeThrough(new DecompressionStream("gzip"));
+  var text = await new Response(stream).text();
+  return JSON.parse(text);
+}
+
+async function init() {
   var config = window.sigmaConfig || {};
 
-  // Grid mode — multiple graphs on one page (FA2-driven).
+  // Grid mode — multiple graphs on one page (FA2-driven). Grid still
+  // uses window.gridData (uncompressed list of cells) — out of scope
+  // for the gzip path because per-cell graphs are small.
   if (config.grid) {
     initGridInternal();
     return;
   }
 
   var container = document.getElementById("sigma-container");
-  var graph = buildGraph(window.graphData);
+  var graphData = await unpackGraphData(window.graphDataPacked);
+  var graph = buildGraph(graphData);
 
   // Theme toggle
   var btnTheme = document.getElementById("btn-theme");
@@ -507,7 +531,15 @@ function init() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", init);
+// init() is async; surface any error to the console rather than
+// swallowing it in an unhandled promise rejection.
+document.addEventListener("DOMContentLoaded", function () {
+  init().catch(function (err) {
+    console.error("Sigma renderer failed to start:", err);
+    var status = document.getElementById("status");
+    if (status) status.textContent = "Failed to load: " + err.message;
+  });
+});
 
 // Export for IIFE global access
 export {
@@ -524,4 +556,5 @@ export {
   appendClickableRef,
   renderValue,
   renderPanel,
+  unpackGraphData,
 };

@@ -2,13 +2,31 @@
 
 from __future__ import annotations
 
+import base64
+import gzip
 import json
+import re
 import tempfile
 from pathlib import Path
 
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
 from crategraph.renderers.sigma import SigmaRenderer
+
+_PACKED_RE = re.compile(r'window\.graphDataPacked\s*=\s*"([^"]+)"')
+
+
+def _unpack_graph_data(html: str) -> dict:
+    """Extract and decompress the gzip+base64 graph payload from rendered HTML.
+
+    Mirrors what the JS-side ``unpackGraphData`` does at page load. Tests
+    that used to assert on plain JSON substrings in the HTML now decompress
+    first.
+    """
+    match = _PACKED_RE.search(html)
+    if match is None:
+        raise AssertionError("HTML did not contain a window.graphDataPacked assignment")
+    return json.loads(gzip.decompress(base64.b64decode(match.group(1))))
 
 
 def _build_graph() -> Graph:
@@ -141,7 +159,8 @@ class TestSigmaRenderer:
             result = SigmaRenderer().render(g, filepath=filepath)
             assert result == filepath
             content = Path(filepath).read_text()
-            assert "Alice" in content
+            data = _unpack_graph_data(content)
+            assert any(n["label"] == "Alice" for n in data["nodes"])
 
     def test_html_contains_graph_data(self):
         g = _build_graph()
@@ -149,8 +168,10 @@ class TestSigmaRenderer:
             filepath = str(Path(tmpdir) / "test.html")
             SigmaRenderer().render(g, filepath=filepath)
             content = Path(filepath).read_text()
-            assert '"#a"' in content
-            assert '"#b"' in content
+            data = _unpack_graph_data(content)
+            ids = {n["id"] for n in data["nodes"]}
+            assert "#a" in ids
+            assert "#b" in ids
 
     def test_html_contains_vendored_bundle(self):
         g = _build_graph()
@@ -221,10 +242,18 @@ class TestSigmaRenderer:
             filepath = str(Path(tmpdir) / "test.html")
             SigmaRenderer().render(g, filepath=filepath, colour_by="community")
             content = Path(filepath).read_text()
-            assert "Alice" in content
+            data = _unpack_graph_data(content)
+            assert any(n["label"] == "Alice" for n in data["nodes"])
 
-    def test_script_tag_in_entity_name_is_escaped(self):
-        """Verify </script> in node data cannot break out of the JSON script block."""
+    def test_script_tag_in_entity_name_cannot_break_out(self):
+        """A </script> in node data must not escape into HTML script context.
+
+        The graph payload is gzip-compressed and base64-encoded into a JS
+        string literal — base64 cannot contain `</script>` or quote
+        characters, so the old ``_safe_json`` ``<\\/`` escape is no longer
+        the line of defence. The packing format itself makes this
+        attack-class structurally impossible.
+        """
         g = Graph()
         g._add_node(
             Entity(
@@ -237,8 +266,12 @@ class TestSigmaRenderer:
             filepath = str(Path(tmpdir) / "xss.html")
             SigmaRenderer().render(g, filepath=filepath)
             content = Path(filepath).read_text()
-            assert "</script><script>" not in content
-            assert "<\\/script>" in content
+        # The script tag string must not appear anywhere in the HTML text.
+        assert "</script><script>" not in content
+        # And when decompressed, the original string survives intact —
+        # confirming round-trip fidelity for adversarial inputs.
+        data = _unpack_graph_data(content)
+        assert any(n["label"] == "</script><script>alert(1)//" for n in data["nodes"])
 
 
 class TestGraphVisualiseSigma:
@@ -304,8 +337,10 @@ class TestSigmaSimple:
             filepath = str(Path(tmpdir) / "thumb.html")
             SigmaRenderer().render(g, filepath=filepath, simple=True)
             content = Path(filepath).read_text()
-            assert '"#a"' in content
-            assert '"#b"' in content
+            data = _unpack_graph_data(content)
+            ids = {n["id"] for n in data["nodes"]}
+            assert "#a" in ids
+            assert "#b" in ids
 
     def test_simple_has_no_panels(self):
         g = _build_graph()
@@ -547,6 +582,25 @@ class TestBundleFreshness:
             "cp dist/sigma-fa2.min.js ../../crategraph/renderers/templates/vendor/"
         )
 
+    def test_bundle_reads_packed_graph_data(self):
+        from importlib.resources import files
+
+        bundle = (
+            files("crategraph.renderers.templates")
+            .joinpath("vendor/sigma-fa2.min.js")
+            .read_text(encoding="utf-8")
+        )
+        # `graphDataPacked` is the new window-global the JS reads from
+        # to find the gzip-compressed graph payload. If this marker is
+        # missing, the bundle is still on the old plain-JSON path and
+        # the page will fail with `undefined is not an object` at load.
+        assert "graphDataPacked" in bundle, (
+            "sigma bundle appears stale — JS must read window.graphDataPacked. "
+            "Rebuild with:\n"
+            "  cd js/sigma && npm install && npm run build && "
+            "cp dist/sigma-fa2.min.js ../../crategraph/renderers/templates/vendor/"
+        )
+
 
 class TestSerialisedProperties:
     """Each node carries its entity properties when include_properties is set
@@ -710,7 +764,8 @@ class TestSerialisedProperties:
 
     def test_render_include_properties_true_embeds_in_html(self):
         # Opt-in: include_properties=True ships entity properties in the
-        # JSON payload so the click-node details panel can render them.
+        # JSON payload (decompressed from the packed payload) so the
+        # click-node details panel can render them.
         g = Graph()
         g._add_node(
             Entity(
@@ -723,7 +778,8 @@ class TestSerialisedProperties:
             path = Path(tmpdir) / "out.html"
             SigmaRenderer().render(g, filepath=str(path), include_properties=True)
             html = path.read_text(encoding="utf-8")
-        assert "SHOULD-EMBED-WHEN-OPTED-IN" in html
+        data = _unpack_graph_data(html)
+        assert data["nodes"][0]["properties"]["secret"] == "SHOULD-EMBED-WHEN-OPTED-IN"
 
     def test_render_simple_wins_over_include_properties_true(self):
         # Simple template has no panel — include_properties=True must be

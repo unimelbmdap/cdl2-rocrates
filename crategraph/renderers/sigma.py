@@ -257,8 +257,20 @@ class SigmaRenderer(Renderer):
         def _safe_json(obj: object) -> Markup:
             return Markup(json.dumps(obj).replace("</", "<\\/"))
 
+        # Graph payload is the biggest contributor to HTML size on real
+        # crates (~25 MB on EOASI). gzip+base64 typically shrinks it
+        # 5-10x; the JS side unpacks via the browser-native
+        # DecompressionStream (Chrome 80+, Firefox 113+, Safari 16.4+).
+        import base64
+        import gzip
+
+        graph_json_bytes = json.dumps(graph_json).encode("utf-8")
+        graph_data_packed = base64.b64encode(
+            gzip.compress(graph_json_bytes, compresslevel=6)
+        ).decode("ascii")
+
         html = template % {
-            "graph_data": _safe_json(graph_json),
+            "graph_data_packed": graph_data_packed,
             "title": graph.title,
             "type_colours": _safe_json(type_colours),
             "config": _safe_json(config),
