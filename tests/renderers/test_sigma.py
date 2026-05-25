@@ -455,6 +455,78 @@ class TestBundleFreshness:
             "cp dist/sigma-fa2.min.js ../../crategraph/renderers/templates/vendor/"
         )
 
+    def test_bundle_forwards_node_properties(self):
+        from importlib.resources import files
+
+        bundle = (
+            files("crategraph.renderers.templates")
+            .joinpath("vendor/sigma-fa2.min.js")
+            .read_text(encoding="utf-8")
+        )
+        # esbuild minifies the `n` parameter name, so we check for the
+        # property-assignment pattern `properties:<var>.properties` which is
+        # unique to the node-properties forwarding line in buildGraph.
+        assert "properties" in bundle and ".properties" in bundle, (
+            "sigma bundle appears stale — buildGraph must forward "
+            "node properties. Rebuild with:\n"
+            "  cd js/sigma && npm install && npm run build && "
+            "cp dist/sigma-fa2.min.js ../../crategraph/renderers/templates/vendor/"
+        )
+        # More precisely, verify the assignment pattern survives minification.
+        assert "properties:e.properties" in bundle or "properties:n.properties" in bundle, (
+            "sigma bundle appears stale — buildGraph must forward "
+            "node properties (expected `properties:<var>.properties` in bundle). "
+            "Rebuild with:\n"
+            "  cd js/sigma && npm install && npm run build && "
+            "cp dist/sigma-fa2.min.js ../../crategraph/renderers/templates/vendor/"
+        )
+
+    def test_bundle_forwards_edge_type(self):
+        from importlib.resources import files
+
+        bundle = (
+            files("crategraph.renderers.templates")
+            .joinpath("vendor/sigma-fa2.min.js")
+            .read_text(encoding="utf-8")
+        )
+        # We grep for the property-assignment pattern `type:e.type` — NOT the
+        # bare substring `e.type`. The bare form appears throughout graphology's
+        # own library code (e.g. its internal edge-type checks), so it would
+        # pass even against a stale pre-Task-4 bundle.  The key-value pattern
+        # `type:e.type` is unique to OUR attribute object literal inside
+        # buildGraph's `addDirectedEdgeWithKey` call. esbuild preserves property
+        # names and object key literals, so this survives --minify.
+        assert "type:e.type" in bundle, (
+            "sigma bundle appears stale — buildGraph must forward "
+            "edge type (expected `type:e.type` in bundle). Rebuild with:\n"
+            "  cd js/sigma && npm install && npm run build && "
+            "cp dist/sigma-fa2.min.js ../../crategraph/renderers/templates/vendor/"
+        )
+
+    def test_bundle_uses_directed_multigraph(self):
+        from importlib.resources import files
+
+        bundle = (
+            files("crategraph.renderers.templates")
+            .joinpath("vendor/sigma-fa2.min.js")
+            .read_text(encoding="utf-8")
+        )
+        # We grep for `{multi:!0,type:"directed"}` — the minified form of our
+        # Graph constructor literal `{ multi: true, type: "directed" }`.
+        # esbuild replaces boolean `true` with `!0` under --minify, but
+        # preserves string literals and property names.  The bare method name
+        # `addDirectedEdgeWithKey` also appears in graphology's own library code
+        # (where it is *defined*), so it would pass even against a stale bundle.
+        # The constructor object literal is unique to OUR buildGraph call and
+        # was absent in the pre-Task-4 bundle.
+        assert 'multi:!0,type:"directed"' in bundle, (
+            "sigma bundle appears stale — buildGraph must construct a directed "
+            'multigraph (expected `multi:!0,type:"directed"` in bundle). '
+            "Rebuild with:\n"
+            "  cd js/sigma && npm install && npm run build && "
+            "cp dist/sigma-fa2.min.js ../../crategraph/renderers/templates/vendor/"
+        )
+
 
 class TestSerialisedProperties:
     """Each node carries its entity properties when include_properties is set
