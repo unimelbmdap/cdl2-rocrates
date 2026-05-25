@@ -865,7 +865,30 @@ class Graph:
     def annotate_entities(self, **fields: Callable[[EntityView], Any]) -> Graph:
         """Derive a property per entity from callables; returns a new Graph.
 
-        See ``docs/superpowers/specs/2026-05-19-annotate-entities-design.md``.
+        Each keyword argument names a new property; its callable receives
+        an :class:`EntityView` over the source graph and returns the value
+        for that entity. Callables are independent — fields in one call
+        do not see each other. Added field names are recorded in
+        :attr:`derived_fields` so derived columns stay distinguishable
+        from native crate metadata, and overlapping names overwrite
+        existing properties on the returned graph.
+
+        Chain :meth:`where` straight after to filter on the new fields.
+
+        Args:
+            **fields: ``name=callable`` pairs. Each callable takes an
+                ``EntityView`` and returns the value to attach as
+                ``name``. Use ``.related(rel)``, ``.has(rel)``,
+                ``.get(key)``, ``.type``, ``.id``, etc. on the view.
+
+        Examples::
+
+            tagged = crate.annotate_entities(
+                genre=lambda e: e.related("ldac:linguisticGenre").join("name"),
+                has_genre=lambda e: e.has("ldac:linguisticGenre"),
+                is_plain_text=lambda e: e.type == "File" and e.id.endswith("-plain.txt"),
+            )
+            reports = tagged.where(genre="Report", is_plain_text=True)
         """
         return transforms.annotate_entities(self, **fields)
 
@@ -873,7 +896,32 @@ class Graph:
         self,
         **fields: Callable[[RelationshipView], Any],
     ) -> Graph:
-        """Derive a property per relationship from callables; returns a new Graph."""
+        """Derive a property per relationship from callables; returns a new Graph.
+
+        Each keyword argument names a new property; its callable receives
+        a :class:`RelationshipView` over the source graph and returns the
+        value for that relationship. Callables are independent — fields
+        in one call do not see each other. Added field names are recorded
+        in :attr:`relationship_derived_fields`, kept separate from entity
+        :attr:`derived_fields` so edge and node property names can overlap
+        without muddying provenance.
+
+        Args:
+            **fields: ``name=callable`` pairs. Each callable takes a
+                ``RelationshipView`` and returns the value to attach as
+                ``name``. Use ``.source``, ``.target`` (both
+                ``EntityView``), ``.type``, ``.source_id``,
+                ``.target_id``, ``.get(key)`` on the view.
+
+        Examples::
+
+            labelled = crate.annotate_relationships(
+                source_type=lambda r: r.source.type,
+                target_type=lambda r: r.target.type,
+                is_authorship=lambda r: r.type == "author",
+            )
+            labelled.relationship_records()[0]  # includes the new fields
+        """
         return transforms.annotate_relationships(self, **fields)
 
     def simplify(
