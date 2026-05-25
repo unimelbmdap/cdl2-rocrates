@@ -690,6 +690,58 @@ class TestSerialisedProperties:
             html = path.read_text(encoding="utf-8")
         assert "DO-NOT-EMBED-IN-THUMBNAIL" not in html
 
+    def test_render_default_excludes_properties_from_html(self):
+        # Default is include_properties=False — properties stay in the
+        # source graph but the HTML payload omits them. Keeps output
+        # size manageable on metadata-rich crates.
+        g = Graph()
+        g._add_node(
+            Entity(
+                id="#a",
+                types=["File"],
+                properties={"name": "Doc", "secret": "DO-NOT-EMBED-BY-DEFAULT"},
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "out.html"
+            SigmaRenderer().render(g, filepath=str(path))
+            html = path.read_text(encoding="utf-8")
+        assert "DO-NOT-EMBED-BY-DEFAULT" not in html
+
+    def test_render_include_properties_true_embeds_in_html(self):
+        # Opt-in: include_properties=True ships entity properties in the
+        # JSON payload so the click-node details panel can render them.
+        g = Graph()
+        g._add_node(
+            Entity(
+                id="#a",
+                types=["File"],
+                properties={"name": "Doc", "secret": "SHOULD-EMBED-WHEN-OPTED-IN"},
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "out.html"
+            SigmaRenderer().render(g, filepath=str(path), include_properties=True)
+            html = path.read_text(encoding="utf-8")
+        assert "SHOULD-EMBED-WHEN-OPTED-IN" in html
+
+    def test_render_simple_wins_over_include_properties_true(self):
+        # Simple template has no panel — include_properties=True must be
+        # ignored, not embedded.
+        g = Graph()
+        g._add_node(
+            Entity(
+                id="#a",
+                types=["File"],
+                properties={"name": "Doc", "secret": "SHOULD-NOT-LEAK-INTO-SIMPLE"},
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "out.html"
+            SigmaRenderer().render(g, filepath=str(path), simple=True, include_properties=True)
+            html = path.read_text(encoding="utf-8")
+        assert "SHOULD-NOT-LEAK-INTO-SIMPLE" not in html
+
 
 class TestSerialisedEdgeType:
     """Edges in the JSON carry their relationship type so the JS side

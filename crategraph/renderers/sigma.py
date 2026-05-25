@@ -198,6 +198,7 @@ class SigmaRenderer(Renderer):
         filepath: str | None = None,
         animated: bool = False,
         simple: bool = False,
+        include_properties: bool = False,
         **kwargs: Any,
     ) -> Any:
         """Build a Sigma.js HTML visualisation from *graph*.
@@ -217,6 +218,14 @@ class SigmaRenderer(Renderer):
                 mode; otherwise run a synchronous layout pass.
             simple: If ``True``, use a minimal template with no UI panels
                 — suitable for grid thumbnails and embedding.
+            include_properties: If ``True``, embed each entity's properties
+                in the page so the click-node details panel can display
+                them. Defaults to ``False`` — properties can multiply
+                output size by 2-3x on metadata-rich crates (e.g. ~25 MB
+                added on a 43k-entity OHRM crate). Force-disabled when
+                ``simple=True`` (the simple template has no panel). The
+                name matches ``text_records(include_properties=...)`` —
+                same semantic, different surface.
 
         Returns an ``IPython.display.HTML`` object for notebook display,
         or the filepath string if *filepath* was provided.
@@ -231,7 +240,7 @@ class SigmaRenderer(Renderer):
             colour_by=colour_by,
             size_by=size_by,
             edge_width=edge_width,
-            include_properties=not simple,
+            include_properties=include_properties and not simple,
         )
 
         # Build type → colour mapping for the legend.
