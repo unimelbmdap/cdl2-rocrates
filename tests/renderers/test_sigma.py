@@ -182,6 +182,26 @@ class TestSigmaRenderer:
             # The vendored bundle should be inlined.
             assert "graphology" in content.lower() or "sigma" in content.lower()
 
+    def test_packed_payload_uses_zero_mtime(self):
+        """gzip.compress embeds an mtime in its header by default; without
+        mtime=0 the same graph renders to different bytes seconds apart,
+        making docs/caching/regression diffs noisy.
+
+        Asserted at the header level (bytes 4-7 of the gzip stream) so the
+        check is independent of FA2 layout stochasticity, which would
+        otherwise make two renders differ for unrelated reasons.
+        """
+        import struct
+
+        g = _build_graph()
+        result = SigmaRenderer().render(g)
+        match = _PACKED_RE.search(result.data)
+        assert match is not None
+        raw = base64.b64decode(match.group(1))
+        # Gzip stream layout: magic (2) + method (1) + flags (1) + mtime (4) + xfl (1) + os (1)
+        mtime = struct.unpack("<I", raw[4:8])[0]
+        assert mtime == 0, f"expected mtime=0 in gzip header, got {mtime}"
+
     def test_returns_html_object_when_no_filepath(self):
         g = _build_graph()
         result = SigmaRenderer().render(g)

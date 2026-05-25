@@ -265,8 +265,12 @@ class SigmaRenderer(Renderer):
         import gzip
 
         graph_json_bytes = json.dumps(graph_json).encode("utf-8")
+        # mtime=0 strips the timestamp from the gzip header so identical
+        # input produces byte-identical output. Without it, re-rendering
+        # the same graph seconds apart yields diff-noisy HTML — bad for
+        # docs/caching/regression diffs.
         graph_data_packed = base64.b64encode(
-            gzip.compress(graph_json_bytes, compresslevel=6)
+            gzip.compress(graph_json_bytes, compresslevel=6, mtime=0)
         ).decode("ascii")
 
         html = template % {
