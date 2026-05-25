@@ -456,6 +456,149 @@ class TestBundleFreshness:
         )
 
 
+class TestSerialisedProperties:
+    """Each node carries its entity properties when include_properties is set
+    (the default). Internal keys and the redundant `name` key are stripped.
+    Non-JSON-safe values are stringified so json.dumps cannot raise."""
+
+    def test_properties_always_present_even_when_empty(self):
+        g = Graph()
+        g._add_node(Entity(id="#a", types=["Thing"], properties={"_is_root": True}))
+        data = SigmaRenderer().graph_to_json(g, colour_by="type", size_by="connections")
+        node = data["nodes"][0]
+        assert "properties" in node
+        assert node["properties"] == {}
+
+    def test_underscore_prefixed_keys_stripped(self):
+        g = Graph()
+        g._add_node(
+            Entity(
+                id="#a",
+                types=["File"],
+                properties={"_is_root": True, "_internal": "x", "encoding": "utf-8"},
+            )
+        )
+        data = SigmaRenderer().graph_to_json(g, colour_by="type", size_by="connections")
+        props = data["nodes"][0]["properties"]
+        assert "_is_root" not in props
+        assert "_internal" not in props
+        assert props["encoding"] == "utf-8"
+
+    def test_name_key_stripped(self):
+        # name is already in the node `label`; do not duplicate it.
+        g = Graph()
+        g._add_node(Entity(id="#a", types=["Person"], properties={"name": "Alice", "age": 30}))
+        data = SigmaRenderer().graph_to_json(g, colour_by="type", size_by="connections")
+        props = data["nodes"][0]["properties"]
+        assert "name" not in props
+        assert props["age"] == 30
+
+    def test_reference_value_preserved_verbatim(self):
+        g = Graph()
+        g._add_node(
+            Entity(
+                id="#a",
+                types=["CreativeWork"],
+                properties={"name": "Doc", "author": {"@id": "#b"}},
+            )
+        )
+        g._add_node(Entity(id="#b", types=["Person"], properties={"name": "Author"}))
+        data = SigmaRenderer().graph_to_json(g, colour_by="type", size_by="connections")
+        node_a = next(n for n in data["nodes"] if n["id"] == "#a")
+        assert node_a["properties"]["author"] == {"@id": "#b"}
+
+    def test_list_of_references_preserved(self):
+        g = Graph()
+        g._add_node(
+            Entity(
+                id="#a",
+                types=["CreativeWork"],
+                properties={
+                    "name": "Doc",
+                    "authors": [{"@id": "#b"}, {"@id": "#c"}],
+                },
+            )
+        )
+        g._add_node(Entity(id="#b", types=["Person"], properties={"name": "X"}))
+        g._add_node(Entity(id="#c", types=["Person"], properties={"name": "Y"}))
+        data = SigmaRenderer().graph_to_json(g, colour_by="type", size_by="connections")
+        node_a = next(n for n in data["nodes"] if n["id"] == "#a")
+        assert node_a["properties"]["authors"] == [{"@id": "#b"}, {"@id": "#c"}]
+
+    def test_non_json_safe_values_are_stringified(self):
+        import json
+        from datetime import date
+        from pathlib import PurePosixPath
+
+        g = Graph()
+        g._add_node(
+            Entity(
+                id="#a",
+                types=["File"],
+                properties={
+                    "name": "Doc",
+                    "path": PurePosixPath("/data/foo.csv"),
+                    "created": date(2024, 9, 1),
+                },
+            )
+        )
+        data = SigmaRenderer().graph_to_json(g, colour_by="type", size_by="connections")
+        props = data["nodes"][0]["properties"]
+        # Stringified — exact str() output is fine to assert because
+        # both stdlib types have stable __str__.
+        assert props["path"] == "/data/foo.csv"
+        assert props["created"] == "2024-09-01"
+        # And the result round-trips through json (this is the real reason
+        # we normalise — render() does json.dumps internally).
+        json.dumps(data)
+
+    def test_nested_non_json_safe_values_normalised(self):
+        from datetime import date
+
+        g = Graph()
+        g._add_node(
+            Entity(
+                id="#a",
+                types=["File"],
+                properties={
+                    "name": "Doc",
+                    "dates": [date(2024, 1, 1), date(2024, 6, 1)],
+                    "meta": {"created": date(2024, 9, 1), "rev": 3},
+                },
+            )
+        )
+        data = SigmaRenderer().graph_to_json(g, colour_by="type", size_by="connections")
+        props = data["nodes"][0]["properties"]
+        assert props["dates"] == ["2024-01-01", "2024-06-01"]
+        assert props["meta"] == {"created": "2024-09-01", "rev": 3}
+
+    def test_include_properties_false_omits_field(self):
+        g = Graph()
+        g._add_node(Entity(id="#a", types=["Thing"], properties={"description": "x"}))
+        data = SigmaRenderer().graph_to_json(
+            g, colour_by="type", size_by="connections", include_properties=False
+        )
+        node = data["nodes"][0]
+        assert "properties" not in node
+
+    def test_render_simple_excludes_properties_from_html(self):
+        # Smoke test: render(..., simple=True) should not embed
+        # property values in the output HTML.
+        g = Graph()
+        g._add_node(
+            Entity(
+                id="#a",
+                types=["File"],
+                properties={"name": "Doc", "secret": "DO-NOT-EMBED-IN-THUMBNAIL"},
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "thumb.html"
+            SigmaRenderer().render(g, filepath=str(path), simple=True)
+            html = path.read_text(encoding="utf-8")
+        assert "DO-NOT-EMBED-IN-THUMBNAIL" not in html
+
+
 class TestSerialisedEdgeType:
     """Edges in the JSON carry their relationship type so the JS side
     can group neighbours in the details panel."""

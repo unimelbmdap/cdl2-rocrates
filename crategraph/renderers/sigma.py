@@ -42,6 +42,42 @@ def _node_size(degree: int, max_degree: int) -> float:
     return max(3.0, min(20.0, 3.0 + math.sqrt(degree / max_degree) * 17.0))
 
 
+def _normalise_value(value: Any) -> Any:
+    """Recursively make *value* JSON-safe for the sigma payload.
+
+    Scalars (``str``, ``int``, ``float``, ``bool``, ``None``) pass through. Lists
+    and tuples are normalised element-wise into a list. Dicts are
+    normalised value-wise (keys are coerced to ``str``). Anything else
+    is converted via ``str(value)``. This catches ``Path``,
+    ``datetime``, and any custom object an upstream reader or
+    ``annotate_entities`` callable may have placed in a property.
+    """
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, (list, tuple)):
+        return [_normalise_value(item) for item in value]
+    if isinstance(value, dict):
+        return {str(k): _normalise_value(v) for k, v in value.items()}
+    return str(value)
+
+
+def _serialisable_properties(properties: dict[str, Any]) -> dict[str, Any]:
+    """Filter and normalise an entity's properties for client-side display.
+
+    Drops keys starting with ``_`` (internal flags) and ``name`` (already
+    shown in the node's label). Surviving values are passed through
+    :func:`_normalise_value` so the result is always JSON-serialisable —
+    a graph that previously rendered fine should never start raising in
+    ``json.dumps`` because someone annotated it with a ``Path`` or
+    ``datetime``.
+    """
+    return {
+        k: _normalise_value(v)
+        for k, v in properties.items()
+        if not k.startswith("_") and k != "name"
+    }
+
+
 class SigmaRenderer(Renderer):
     """Render a ``Graph`` as an interactive WebGL visualisation using Sigma.js.
 
@@ -55,6 +91,7 @@ class SigmaRenderer(Renderer):
         colour_by: str = "type",
         size_by: str = "connections",
         edge_width: int | float | str | None = None,
+        include_properties: bool = True,
     ) -> dict[str, Any]:
         """Convert *graph* to the JSON structure expected by the Sigma.js template."""
         if not graph._entities:
@@ -81,18 +118,19 @@ class SigmaRenderer(Renderer):
             hex_colour = colour_map.get(eid, "#45B7D1")
             x, y = positions[eid]
 
-            nodes.append(
-                {
-                    "id": eid,
-                    "label": entity.name or eid[:30],
-                    "x": x,
-                    "y": y,
-                    "size": size,
-                    "color": _hex_to_rgba(hex_colour, 0.6),
-                    "entityType": entity.type,
-                    "degree": degree,
-                }
-            )
+            node: dict[str, Any] = {
+                "id": eid,
+                "label": entity.name or eid[:30],
+                "x": x,
+                "y": y,
+                "size": size,
+                "color": _hex_to_rgba(hex_colour, 0.6),
+                "entityType": entity.type,
+                "degree": degree,
+            }
+            if include_properties:
+                node["properties"] = _serialisable_properties(entity.properties)
+            nodes.append(node)
 
         # Build a lookup for source node hex colours (for edge colouring).
         node_hex: dict[str, str] = {}
@@ -193,6 +231,7 @@ class SigmaRenderer(Renderer):
             colour_by=colour_by,
             size_by=size_by,
             edge_width=edge_width,
+            include_properties=not simple,
         )
 
         # Build type → colour mapping for the legend.
