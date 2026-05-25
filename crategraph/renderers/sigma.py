@@ -112,6 +112,7 @@ class SigmaRenderer(Renderer):
                     "source": rel.source,
                     "target": rel.target,
                     "color": _dim_hex(source_hex, 0.3),
+                    "type": rel.type,
                 }
                 if widths is not None:
                     edge["size"] = widths[i]

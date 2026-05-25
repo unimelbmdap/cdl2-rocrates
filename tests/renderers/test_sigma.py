@@ -454,3 +454,30 @@ class TestBundleFreshness:
             "  cd js/sigma && npm install && npm run build && "
             "cp dist/sigma-fa2.min.js ../../crategraph/renderers/templates/vendor/"
         )
+
+
+class TestSerialisedEdgeType:
+    """Edges in the JSON carry their relationship type so the JS side
+    can group neighbours in the details panel."""
+
+    def test_each_edge_has_type_field(self):
+        g = _build_graph()
+        data = SigmaRenderer().graph_to_json(g, colour_by="type", size_by="connections")
+        for edge in data["edges"]:
+            assert "type" in edge
+
+    def test_edge_type_matches_relationship(self):
+        g = _build_graph()
+        data = SigmaRenderer().graph_to_json(g, colour_by="type", size_by="connections")
+        # _build_graph creates two "memberOf" edges.
+        assert {edge["type"] for edge in data["edges"]} == {"memberOf"}
+
+    def test_parallel_edges_with_different_types_both_appear(self):
+        g = Graph()
+        g._add_node(Entity(id="#x", types=["Person"], properties={"name": "X"}))
+        g._add_node(Entity(id="#y", types=["Person"], properties={"name": "Y"}))
+        g._add_edge(Relationship(source="#x", target="#y", type="knows"))
+        g._add_edge(Relationship(source="#x", target="#y", type="employs"))
+        data = SigmaRenderer().graph_to_json(g, colour_by="type", size_by="connections")
+        types = [edge["type"] for edge in data["edges"]]
+        assert sorted(types) == ["employs", "knows"]
