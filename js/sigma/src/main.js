@@ -81,7 +81,7 @@ function hexToRgba(hex, alpha) {
 // ---------------------------------------------------------------------------
 
 function buildGraph(graphData) {
-  var graph = new Graph();
+  var graph = new Graph({ multi: true, type: "directed" });
 
   graphData.nodes.forEach(function (n) {
     graph.addNode(n.id, {
@@ -93,16 +93,16 @@ function buildGraph(graphData) {
       entityType: n.entityType,
       degree: n.degree,
       originalColor: n.color,
+      properties: n.properties || {},
     });
   });
 
   graphData.edges.forEach(function (e) {
-    if (!graph.hasEdge(e.source, e.target)) {
-      graph.addEdge(e.source, e.target, {
-        color: e.color,
-        size: e.size !== undefined ? e.size : 0.3,
-      });
-    }
+    graph.addDirectedEdgeWithKey(e.id, e.source, e.target, {
+      color: e.color,
+      size: e.size !== undefined ? e.size : 0.3,
+      type: e.type,
+    });
   });
 
   return graph;
