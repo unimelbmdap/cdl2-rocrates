@@ -489,16 +489,18 @@ class TestBundleFreshness:
             .joinpath("vendor/sigma-fa2.min.js")
             .read_text(encoding="utf-8")
         )
-        # We grep for the property-assignment pattern `type:e.type` — NOT the
-        # bare substring `e.type`. The bare form appears throughout graphology's
-        # own library code (e.g. its internal edge-type checks), so it would
-        # pass even against a stale pre-Task-4 bundle.  The key-value pattern
-        # `type:e.type` is unique to OUR attribute object literal inside
-        # buildGraph's `addDirectedEdgeWithKey` call. esbuild preserves property
-        # names and object key literals, so this survives --minify.
-        assert "type:e.type" in bundle, (
-            "sigma bundle appears stale — buildGraph must forward "
-            "edge type (expected `type:e.type` in bundle). Rebuild with:\n"
+        # We grep for the property-assignment pattern `relType:e.type`. The
+        # attribute on the graphology edge is `relType`, not `type` — sigma
+        # reserves `data.type` for the edge-program selector ("line", "arrow"),
+        # and putting domain relationship types there crashes the WebGL render
+        # at `edgePrograms[data.type].process`. The key-value pattern
+        # `relType:e.type` is unique to OUR attribute object literal inside
+        # buildGraph's `addDirectedEdgeWithKey` call. esbuild preserves
+        # property names and object key literals, so this survives --minify.
+        assert "relType:e.type" in bundle, (
+            "sigma bundle appears stale — buildGraph must forward edge "
+            "relationship type as `relType` (expected `relType:e.type` in "
+            "bundle). Rebuild with:\n"
             "  cd js/sigma && npm install && npm run build && "
             "cp dist/sigma-fa2.min.js ../../crategraph/renderers/templates/vendor/"
         )

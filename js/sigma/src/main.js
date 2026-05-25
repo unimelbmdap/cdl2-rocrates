@@ -251,7 +251,7 @@ function renderPanel(nodeId, graph) {
     graph.forEachEdge(nodeId, function (edge, eattrs, source, target) {
       var outgoing = source === nodeId;
       var other = outgoing ? target : source;
-      var type = eattrs.type || "related";
+      var type = eattrs.relType || "related";
       var groupKey = (outgoing ? "out:" : "in:") + type;
       if (!groups[groupKey]) {
         groups[groupKey] = {
@@ -318,10 +318,14 @@ function buildGraph(graphData) {
   });
 
   graphData.edges.forEach(function (e) {
+    // Stored as `relType`, not `type`: sigma reserves `data.type` as the
+    // edge-program selector (e.g. "line", "arrow"). Putting domain
+    // relationship types like "memberOf" there sends sigma looking for
+    // an edge program by that name and crashes the WebGL render.
     graph.addDirectedEdgeWithKey(e.id, e.source, e.target, {
       color: e.color,
       size: e.size !== undefined ? e.size : 0.3,
-      type: e.type,
+      relType: e.type,
     });
   });
 
