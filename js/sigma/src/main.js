@@ -191,6 +191,111 @@ function renderValue(v, graph) {
   return '<span class="detail-row">' + escapeHtml(String(v)) + "</span>";
 }
 
+// Ordered list of property keys to surface first in the panel,
+// if present. Everything else is appended alphabetically after.
+var WELL_KNOWN_PROPERTY_KEYS = ["description", "datePublished", "author"];
+
+function renderPanel(nodeId, graph) {
+  var det = document.getElementById("details");
+  det.innerHTML = "";
+
+  var attrs = graph.getNodeAttributes(nodeId);
+
+  // (a) Header
+  var header = document.createElement("div");
+  header.className = "detail-section";
+  header.innerHTML =
+    "<h4>" + escapeHtml(attrs.label) + "</h4>" +
+    '<div class="detail-row"><span class="detail-label">Type:</span> ' +
+    escapeHtml(attrs.entityType) + "</div>" +
+    '<div class="detail-row"><span class="detail-label">ID:</span> ' +
+    escapeHtml(nodeId) + "</div>" +
+    '<div class="detail-row"><span class="detail-label">Connections:</span> ' +
+    escapeHtml(String(attrs.degree)) + "</div>";
+  det.appendChild(header);
+
+  // (b) Properties
+  var props = attrs.properties || {};
+  var keys = Object.keys(props);
+  if (keys.length > 0) {
+    var orderedKeys = [];
+    WELL_KNOWN_PROPERTY_KEYS.forEach(function (k) {
+      if (Object.prototype.hasOwnProperty.call(props, k)) orderedKeys.push(k);
+    });
+    keys
+      .filter(function (k) { return WELL_KNOWN_PROPERTY_KEYS.indexOf(k) === -1; })
+      .sort()
+      .forEach(function (k) { orderedKeys.push(k); });
+
+    var propSection = document.createElement("div");
+    propSection.className = "detail-section";
+    var propHead = document.createElement("div");
+    propHead.className = "detail-subhead";
+    propHead.textContent = "Properties";
+    propSection.appendChild(propHead);
+
+    orderedKeys.forEach(function (k) {
+      var row = document.createElement("div");
+      row.className = "detail-row";
+      row.innerHTML =
+        '<span class="detail-label">' + escapeHtml(k) + ":</span> " +
+        renderValue(props[k], graph);
+      propSection.appendChild(row);
+    });
+    det.appendChild(propSection);
+  }
+
+  // (c) Connected to — neighbours grouped by direction + edge type.
+  if (graph.degree(nodeId) > 0) {
+    var groups = {}; // key: e.g. "out:authoredBy" -> { label: "authoredBy →", entries: [{id, name}] }
+    graph.forEachEdge(nodeId, function (edge, eattrs, source, target) {
+      var outgoing = source === nodeId;
+      var other = outgoing ? target : source;
+      var type = eattrs.type || "related";
+      var groupKey = (outgoing ? "out:" : "in:") + type;
+      if (!groups[groupKey]) {
+        groups[groupKey] = {
+          label: outgoing ? type + " →" : "← " + type,
+          entries: [],
+        };
+      }
+      groups[groupKey].entries.push({
+        id: other,
+        name: graph.getNodeAttribute(other, "label") || other,
+      });
+    });
+
+    var connSection = document.createElement("div");
+    connSection.className = "detail-section";
+    var connHead = document.createElement("div");
+    connHead.className = "detail-subhead";
+    connHead.textContent = "Connected to";
+    connSection.appendChild(connHead);
+
+    Object.keys(groups).sort().forEach(function (gk) {
+      var group = groups[gk];
+      var groupEl = document.createElement("div");
+      groupEl.className = "detail-group";
+      var groupLabel = document.createElement("div");
+      groupLabel.className = "detail-group-label";
+      groupLabel.textContent = group.label;
+      groupEl.appendChild(groupLabel);
+
+      var list = document.createElement("div");
+      list.className = "detail-row";
+      group.entries.forEach(function (entry, i) {
+        if (i > 0) list.appendChild(document.createTextNode(", "));
+        appendClickableRef(list, entry.id, entry.name);
+      });
+      groupEl.appendChild(list);
+      connSection.appendChild(groupEl);
+    });
+    det.appendChild(connSection);
+  }
+
+  det.style.display = "block";
+}
+
 // ---------------------------------------------------------------------------
 // Graph construction
 // ---------------------------------------------------------------------------
@@ -388,4 +493,5 @@ export {
   isHttpUrl,
   appendClickableRef,
   renderValue,
+  renderPanel,
 };
