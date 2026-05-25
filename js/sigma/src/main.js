@@ -101,6 +101,76 @@ function appendClickableRef(parent, targetId, label) {
   parent.appendChild(el);
 }
 
+// Render a property value as a safe HTML string. Strings, numbers,
+// and booleans are escaped via escapeHtml. References to known nodes
+// become clickable <a data-node-id> elements built via DOM
+// construction. URLs are gated through isHttpUrl. Arrays render
+// inline (capped at 8 items). Non-reference objects render compactly,
+// one level deep.
+function renderValue(v, graph) {
+  if (v === null || v === undefined) return '<span class="detail-row">—</span>';
+
+  // Reference shape: {"@id": "<id>"}
+  if (
+    typeof v === "object" &&
+    !Array.isArray(v) &&
+    Object.prototype.hasOwnProperty.call(v, "@id")
+  ) {
+    var targetId = v["@id"];
+    if (graph.hasNode(targetId)) {
+      var holder = document.createElement("span");
+      var label = graph.getNodeAttribute(targetId, "label") || targetId;
+      appendClickableRef(holder, targetId, label);
+      return holder.innerHTML;
+    }
+    // Missing reference. Build via DOM construction so an id containing
+    // a quote cannot break out of the surrounding markup. escapeHtml is
+    // text-context only and does NOT escape attribute quotes — never
+    // build attributes by string concatenation here.
+    var missing = document.createElement("span");
+    missing.className = "detail-row";
+    missing.textContent = targetId;
+    var missingHolder = document.createElement("div");
+    missingHolder.appendChild(missing);
+    return missingHolder.innerHTML;
+  }
+
+  if (Array.isArray(v)) {
+    if (v.length === 0) return '<span class="detail-row">—</span>';
+    var cap = 8;
+    var shown = v.slice(0, cap).map(function (item) {
+      return renderValue(item, graph);
+    });
+    var suffix = v.length > cap ? ', <span class="detail-row">+' +
+      (v.length - cap) + " more</span>" : "";
+    return shown.join(", ") + suffix;
+  }
+
+  if (typeof v === "object") {
+    // Non-reference object: compact one-level render.
+    var parts = Object.keys(v).map(function (k) {
+      return escapeHtml(k) + ": " + escapeHtml(String(v[k]));
+    });
+    return '<span class="detail-row">' + parts.join(", ") + "</span>";
+  }
+
+  if (typeof v === "boolean") {
+    return '<span class="detail-row">' + (v ? "true" : "false") + "</span>";
+  }
+
+  if (isHttpUrl(v)) {
+    var a = document.createElement("a");
+    a.setAttribute("href", v);
+    a.setAttribute("target", "_blank");
+    a.setAttribute("rel", "noopener");
+    a.className = "detail-link";
+    a.textContent = v;
+    return a.outerHTML;
+  }
+
+  return '<span class="detail-row">' + escapeHtml(String(v)) + "</span>";
+}
+
 // ---------------------------------------------------------------------------
 // Graph construction
 // ---------------------------------------------------------------------------
@@ -296,4 +366,5 @@ export {
   toggleTheme,
   isHttpUrl,
   appendClickableRef,
+  renderValue,
 };
