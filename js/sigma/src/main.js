@@ -101,6 +101,26 @@ function appendClickableRef(parent, targetId, label) {
   parent.appendChild(el);
 }
 
+// Single point of colour mutation. `highlighted` is either a Set of
+// node ids (those stay full-colour; everything else dims) or null
+// (everything restored to originalColor).
+//
+// The future type-filter spec extends this function with a third
+// branch — filter-hidden nodes always dim, even inside the
+// highlighted set. Priority: filter-hidden > highlight-dimmed > original.
+function applyColours(graph, highlighted) {
+  var dimColour = isDark ? DIM_DARK : DIM_LIGHT;
+  graph.forEachNode(function (nid, na) {
+    var colour;
+    if (highlighted && !highlighted.has(nid)) {
+      colour = dimColour;
+    } else {
+      colour = na.originalColor;
+    }
+    graph.setNodeAttribute(nid, "color", colour);
+  });
+}
+
 // Render a property value as a safe HTML string. Strings, numbers,
 // and booleans are escaped via escapeHtml. References to known nodes
 // become clickable <a data-node-id> elements built via DOM
@@ -361,6 +381,7 @@ export {
   buildGraph,
   createRenderer,
   setupInteractions,
+  applyColours,
   hexToRgba,
   escapeHtml,
   toggleTheme,
