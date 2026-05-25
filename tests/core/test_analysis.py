@@ -54,7 +54,7 @@ class TestSummary:
         g = _build_graph()
         s = g.summary()
         assert isinstance(s.most_connected, list)
-        assert len(s.most_connected) == 3
+        assert len(s.most_connected) == 4
         for name, degree in s.most_connected:
             assert isinstance(name, str)
             assert degree == 2
@@ -110,14 +110,13 @@ class TestSummary:
         r = repr(s)
         assert "Most connected:" in r
 
-    def test_summary_repr_collapses_extra_types(self):
-        """When there are more than 5 types, show top 5 and collapse the rest."""
+    def test_summary_repr_shows_all_types(self):
+        """All entity types are shown with no truncation."""
         g = Graph()
         for i in range(7):
             g._add_node(Entity(id=f"#{i}", types=[f"Type{i}"]))
         s = g.summary()
-        r = repr(s)
-        assert "+2 more" in r
+        assert "more" not in repr(s)
 
     def test_summary_html_is_pre_block(self):
         g = _build_graph()
