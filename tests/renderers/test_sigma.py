@@ -527,6 +527,24 @@ class TestBundleFreshness:
             "cp dist/sigma-fa2.min.js ../../crategraph/renderers/templates/vendor/"
         )
 
+    def test_bundle_contains_data_node_id_marker(self):
+        from importlib.resources import files
+
+        bundle = (
+            files("crategraph.renderers.templates")
+            .joinpath("vendor/sigma-fa2.min.js")
+            .read_text(encoding="utf-8")
+        )
+        # The clickable references in the details panel set this
+        # attribute; its literal value survives minification because it
+        # is an HTML attribute name, not an identifier.
+        assert "data-node-id" in bundle, (
+            "sigma bundle appears stale — appendClickableRef sets "
+            "data-node-id. Rebuild with:\n"
+            "  cd js/sigma && npm install && npm run build && "
+            "cp dist/sigma-fa2.min.js ../../crategraph/renderers/templates/vendor/"
+        )
+
 
 class TestSerialisedProperties:
     """Each node carries its entity properties when include_properties is set
