@@ -60,6 +60,18 @@ def test_entity_view_properties_is_shallow_documented_limit() -> None:
     assert src.properties["keywords"] == ["a", "b"]
 
 
+def test_entity_view_get_returns_property_value() -> None:
+    e = EntityView(Entity(id="x", properties={"gender": "F"}))
+    assert e.get("gender") == "F"
+
+
+def test_entity_view_get_returns_default_when_missing() -> None:
+    e = EntityView(Entity(id="x", properties={}))
+    assert e.get("gender") is None
+    assert e.get("gender", "unknown") == "unknown"
+    assert e.get("preparedBy", "") == ""
+
+
 def test_relationship_view_record_style_fields() -> None:
     rel = Relationship(
         source="#bob",
@@ -82,6 +94,16 @@ def test_relationship_view_properties_top_level_read_only() -> None:
     with pytest.raises(TypeError):
         view.properties["a"] = 2
     assert rel.properties == {"a": 1}
+
+
+def test_relationship_view_get_returns_property_value_or_default() -> None:
+    rel = Relationship(
+        source="#bob", target="#acme", type="worksFor", properties={"role": "Analyst"}
+    )
+    view = RelationshipView(rel)
+    assert view.get("role") == "Analyst"
+    assert view.get("missing") is None
+    assert view.get("missing", "?") == "?"
 
 
 def test_relationship_view_properties_is_shallow_documented_limit() -> None:

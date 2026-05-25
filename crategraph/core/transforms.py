@@ -98,7 +98,11 @@ def annotate_entities(graph: Graph, **fields: Callable[[EntityView], Any]) -> Gr
             try:
                 derived[name] = fn(view)
             except Exception as exc:
-                msg = f"annotate_entities: field {name!r} failed on entity {entity.id!r}: {exc!r}"
+                hint = _view_attribute_hint(exc, "e")
+                msg = (
+                    f"annotate_entities: field {name!r} failed on "
+                    f"entity {entity.id!r}: {exc!r}{hint}"
+                )
                 raise RuntimeError(msg) from exc
         new_entities[eid] = Entity(
             id=entity.id,
@@ -150,9 +154,10 @@ def annotate_relationships(
                 derived[name] = fn(view)
             except Exception as exc:
                 identity = _relationship_identity(relationship)
+                hint = _view_attribute_hint(exc, "r")
                 msg = (
                     f"annotate_relationships: field {name!r} failed on "
-                    f"relationship {identity}: {exc!r}"
+                    f"relationship {identity}: {exc!r}{hint}"
                 )
                 raise RuntimeError(msg) from exc
         new_relationships.append(
@@ -193,6 +198,26 @@ def _relationship_identity(relationship: Relationship) -> str:
     if relationship.id is not None:
         return repr(relationship.id)
     return f"{relationship.source!r} --{relationship.type}--> {relationship.target!r}"
+
+
+def _view_attribute_hint(exc: BaseException, var_name: str) -> str:
+    """Hint when a callable did ``view.foo`` on a View — suggest ``view.get('foo')``.
+
+    Properties live in the ``properties`` dict; attribute access only
+    finds the small fixed View surface (``id``, ``type``, ``name`` …).
+    Returns ``""`` for unrelated errors so the original message is kept.
+    """
+    if not isinstance(exc, AttributeError):
+        return ""
+    if "EntityView" not in str(exc) and "RelationshipView" not in str(exc):
+        return ""
+    attr = getattr(exc, "name", None)
+    if attr is None:
+        return ""
+    return (
+        f" — properties aren't exposed as attributes; "
+        f"use `{var_name}.get({attr!r})` or `{var_name}.properties[{attr!r}]`."
+    )
 
 
 def simplify(graph: Graph, *, min_connections: int | None = None) -> Graph:

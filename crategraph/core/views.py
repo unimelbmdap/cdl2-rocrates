@@ -72,6 +72,10 @@ class EntityView:
         """Shallow read-only view (top-level mutation raises ``TypeError``)."""
         return MappingProxyType(self._entity.properties)
 
+    def get(self, key: str, default: Any = None) -> Any:
+        """Shorthand for ``properties.get(key, default)`` — preferred in lambdas."""
+        return self._entity.properties.get(key, default)
+
     @property
     def graph(self) -> Graph | None:
         """The owning graph (``None`` for a test-constructed view)."""
@@ -129,6 +133,10 @@ class RelationshipView:
     def properties(self) -> Mapping[str, Any]:
         """Shallow read-only view (top-level mutation raises ``TypeError``)."""
         return MappingProxyType(self._relationship.properties)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Shorthand for ``properties.get(key, default)`` — preferred in lambdas."""
+        return self._relationship.properties.get(key, default)
 
     @property
     def source(self) -> EntityView:

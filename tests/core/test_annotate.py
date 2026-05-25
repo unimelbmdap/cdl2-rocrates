@@ -81,6 +81,25 @@ def test_annotate_non_runtime_error_surfaces_as_chained_runtime_error() -> None:
     assert "field 'bad'" in str(excinfo.value)
 
 
+def test_annotate_attribute_error_on_entity_view_hints_at_get() -> None:
+    """A common mistake — `e.gender` instead of `e.get('gender')` — gets a hint."""
+    g = _g()
+    with pytest.raises(RuntimeError) as excinfo:
+        g.annotate_entities(is_f=lambda e: e.gender == "F")
+    msg = str(excinfo.value)
+    assert "gender" in msg
+    assert "e.get(" in msg or "e.properties[" in msg
+
+
+def test_annotate_relationships_attribute_error_hints_at_get() -> None:
+    g = _g()
+    with pytest.raises(RuntimeError) as excinfo:
+        g.annotate_relationships(has_role=lambda r: r.role == "Analyst")
+    msg = str(excinfo.value)
+    assert "role" in msg
+    assert "r.get(" in msg or "r.properties[" in msg
+
+
 def test_annotate_survives_select_then_expand() -> None:
     """Regression: derived property values must NOT be lost via expand().
 
