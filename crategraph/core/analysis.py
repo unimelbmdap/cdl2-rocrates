@@ -34,12 +34,12 @@ class GraphSummary:
         if self.entity_type_counts:
             lines.append("")
             lines.append("Entity types:")
-            lines.extend(_format_type_rows(self.entity_type_counts, top_n=5))
+            lines.extend(_format_type_rows(self.entity_type_counts))
 
         if self.relationship_type_counts:
             lines.append("")
             lines.append("Relationship types:")
-            lines.extend(_format_type_rows(self.relationship_type_counts, top_n=5))
+            lines.extend(_format_type_rows(self.relationship_type_counts))
 
         if self.most_connected:
             lines.append("")
@@ -57,7 +57,7 @@ class GraphSummary:
 
 def summary(graph: Graph) -> GraphSummary:
     """Return a structured summary of the graph."""
-    top = most_connected(graph, n=3)
+    top = most_connected(graph, n=5)
     return GraphSummary(
         entity_count=len(graph._entities),
         relationship_count=len(graph._relationships),
@@ -96,11 +96,13 @@ def most_connected(
     return degrees[:n]
 
 
-def _format_type_rows(counts: dict[str, int], *, top_n: int = 5, max_bar: int = 15) -> list[str]:
+def _format_type_rows(
+    counts: dict[str, int], *, top_n: int | None = None, max_bar: int = 15
+) -> list[str]:
     """Format type counts as aligned rows with Unicode sparkline bars."""
     sorted_items = sorted(counts.items(), key=lambda x: -x[1])
-    top = sorted_items[:top_n]
-    remaining = len(sorted_items) - top_n
+    top = sorted_items if top_n is None else sorted_items[:top_n]
+    remaining = 0 if top_n is None else len(sorted_items) - top_n
 
     if not top:
         return []
@@ -165,7 +167,7 @@ class GraphProfile:
         if self.entity_type_counts:
             lines.append("")
             lines.append("Entity types:")
-            lines.extend(_format_type_rows(self.entity_type_counts, top_n=5))
+            lines.extend(_format_type_rows(self.entity_type_counts))
         lines.append(
             f"Data entities: {self.data_entity_count} ({self.data_entity_fraction:.0%}) "
             f"| Contextual: {self.entity_count - self.data_entity_count} "
