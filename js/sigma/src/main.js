@@ -195,6 +195,12 @@ function renderValue(v, graph) {
 // if present. Everything else is appended alphabetically after.
 var WELL_KNOWN_PROPERTY_KEYS = ["description", "datePublished", "author"];
 
+// Hub entities can have thousands of edges of the same type. Cap each
+// Connected-to group at this many entries with a "+N more" suffix —
+// avoids freezing the browser while constructing DOM nodes for a node
+// that has no realistic chance of being scanned by eye.
+var MAX_NEIGHBOURS_PER_GROUP = 100;
+
 function renderPanel(nodeId, graph) {
   var det = document.getElementById("details");
   det.innerHTML = "";
@@ -283,10 +289,18 @@ function renderPanel(nodeId, graph) {
 
       var list = document.createElement("div");
       list.className = "detail-row";
-      group.entries.forEach(function (entry, i) {
+      var shownEntries = group.entries.slice(0, MAX_NEIGHBOURS_PER_GROUP);
+      shownEntries.forEach(function (entry, i) {
         if (i > 0) list.appendChild(document.createTextNode(", "));
         appendClickableRef(list, entry.id, entry.name);
       });
+      if (group.entries.length > MAX_NEIGHBOURS_PER_GROUP) {
+        var moreSpan = document.createElement("span");
+        moreSpan.className = "detail-row";
+        moreSpan.textContent =
+          ", +" + (group.entries.length - MAX_NEIGHBOURS_PER_GROUP) + " more";
+        list.appendChild(moreSpan);
+      }
       groupEl.appendChild(list);
       connSection.appendChild(groupEl);
     });
