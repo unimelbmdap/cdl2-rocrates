@@ -422,9 +422,9 @@ class Graph:
             **kwargs,
         )
 
-    def glimpse(self, *, filepath: str | None = None, interactive: bool = False) -> Any:
+    def glimpse(self, *, filepath: str | None = None) -> Any:
         """Inline snapshot of the type-level graph structure."""
-        return presentation.glimpse(self, filepath=filepath, interactive=interactive)
+        return presentation.glimpse(self, filepath=filepath)
 
     def inspect(self, entity: Entity | str) -> FileInfo:
         """Inspect the data file associated with an entity."""

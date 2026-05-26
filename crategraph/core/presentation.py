@@ -150,7 +150,7 @@ def visualise(
     )
 
 
-def glimpse(graph: Graph, *, filepath: str | None = None, interactive: bool = False) -> Any:
+def glimpse(graph: Graph, *, filepath: str | None = None) -> Any:
     """Inline snapshot of the type-level graph structure.
 
     Always merges entities by primary type — shows one node per type
@@ -161,8 +161,6 @@ def glimpse(graph: Graph, *, filepath: str | None = None, interactive: bool = Fa
         graph: The graph to glimpse.
         filepath: Save the output to this path instead of displaying
             inline.
-        interactive: If ``True``, return a pan/zoom-enabled HTML page
-            instead of a static SVG.
 
     Returns a display object for notebook rendering, or the filepath
     string if *filepath* was provided.
@@ -177,7 +175,6 @@ def glimpse(graph: Graph, *, filepath: str | None = None, interactive: bool = Fa
         width=600,
         height=450,
         filepath=filepath,
-        interactive=interactive,
     )
 
 
