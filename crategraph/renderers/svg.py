@@ -37,6 +37,7 @@ class SvgRenderer(Renderer):
         width: int | str = DEFAULT_WIDTH,
         height: int | str = DEFAULT_HEIGHT,
         filepath: str | None = None,
+        interactive: bool = False,
         **kwargs: Any,
     ) -> Any:
         """Render *graph* and return an ``IPython.display.SVG`` or filepath.
@@ -109,6 +110,8 @@ class SvgRenderer(Renderer):
             scale=scale,
             edge_width=edge_width,
         )
+        if interactive:
+            return _output_interactive(svg, width, height, filepath)
         return _output(svg, filepath)
 
 
@@ -125,6 +128,70 @@ def _output(svg: str, filepath: str | None) -> Any:
     from IPython.display import SVG
 
     return SVG(data=svg)
+
+
+def _output_interactive(svg: str, width: int, height: int, filepath: str | None) -> Any:
+    """Wrap SVG in an HTML page with pan/zoom. Returns HTML or writes to filepath."""
+    html = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8">
+<style>
+  body {{ margin: 0; background: #fafafa; }}
+  svg {{ display: block; cursor: grab; user-select: none; }}
+</style>
+</head>
+<body>
+{svg}
+<script>
+(function() {{
+  var svg = document.querySelector('svg');
+  var origVB = svg.getAttribute('viewBox').split(' ').map(Number);
+  var vb = origVB.slice();
+
+  function applyVB() {{
+    svg.setAttribute('viewBox', vb.join(' '));
+  }}
+
+  svg.addEventListener('wheel', function(e) {{
+    e.preventDefault();
+    var factor = e.deltaY < 0 ? 0.9 : 1.1;
+    var rect = svg.getBoundingClientRect();
+    var mx = vb[0] + (e.clientX - rect.left) / rect.width * vb[2];
+    var my = vb[1] + (e.clientY - rect.top) / rect.height * vb[3];
+    vb[2] *= factor;
+    vb[3] *= factor;
+    vb[0] = mx - (e.clientX - rect.left) / rect.width * vb[2];
+    vb[1] = my - (e.clientY - rect.top) / rect.height * vb[3];
+    applyVB();
+  }}, {{ passive: false }});
+
+  var dragging = false, startX, startY, startVB;
+  svg.addEventListener('mousedown', function(e) {{
+    dragging = true; startX = e.clientX; startY = e.clientY;
+    startVB = vb.slice(); svg.style.cursor = 'grabbing';
+  }});
+  window.addEventListener('mousemove', function(e) {{
+    if (!dragging) return;
+    vb[0] = startVB[0] + (startX - e.clientX) / svg.clientWidth * vb[2];
+    vb[1] = startVB[1] + (startY - e.clientY) / svg.clientHeight * vb[3];
+    applyVB();
+  }});
+  window.addEventListener('mouseup', function() {{
+    dragging = false; svg.style.cursor = 'grab';
+  }});
+  svg.addEventListener('dblclick', function() {{
+    vb = origVB.slice(); applyVB();
+  }});
+}})();
+</script>
+</body>
+</html>"""
+    if filepath:
+        Path(filepath).write_text(html, encoding="utf-8")
+        return filepath
+    from IPython.display import HTML
+
+    return HTML(html)
 
 
 def _empty_svg(
