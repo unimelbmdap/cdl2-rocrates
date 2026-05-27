@@ -1,0 +1,73 @@
+{
+    "@context": "https://w3id.org/ro/crate/1.1/context",
+    "@graph": [
+        {
+            "@id": "./",
+            "@type": "Dataset",
+            "name": "People demo crate",
+            "description": "A small synthetic crate used by the 'From Graph to DataFrame' tutorial. Five people across four decades, affiliated with two organisations."
+        },
+        {
+            "@id": "#person-elena",
+            "@type": "Person",
+            "name": "Elena Marchetti",
+            "birthDate": "1962-03-04",
+            "affiliation": {"@id": "#org-heritage"},
+            "knows": [
+                {"@id": "#person-tom"},
+                {"@id": "#person-rita"}
+            ]
+        },
+        {
+            "@id": "#person-tom",
+            "@type": "Person",
+            "name": "Tom Pereira",
+            "birthDate": "1968-11-22",
+            "affiliation": {"@id": "#org-heritage"},
+            "knows": {"@id": "#person-rita"}
+        },
+        {
+            "@id": "#person-rita",
+            "@type": "Person",
+            "name": "Rita Okafor",
+            "birthDate": "1975-07-09",
+            "affiliation": {"@id": "#org-riverside"},
+            "knows": [
+                {"@id": "#person-jin"},
+                {"@id": "#person-amelia"}
+            ]
+        },
+        {
+            "@id": "#person-jin",
+            "@type": "Person",
+            "name": "Jin Park",
+            "birthDate": "1983-01-30",
+            "knows": {"@id": "#person-amelia"}
+        },
+        {
+            "@id": "#person-amelia",
+            "@type": "Person",
+            "name": "Amelia Hoxha",
+            "birthDate": "1991-05-17",
+            "affiliation": {"@id": "#org-riverside"},
+            "knows": {"@id": "#person-noah"}
+        },
+        {
+            "@id": "#person-noah",
+            "@type": "Person",
+            "name": "Noah Lindqvist",
+            "birthDate": "1995-09-02",
+            "affiliation": {"@id": "#org-heritage"}
+        },
+        {
+            "@id": "#org-heritage",
+            "@type": "Organisation",
+            "name": "Heritage Studies Centre"
+        },
+        {
+            "@id": "#org-riverside",
+            "@type": "Organisation",
+            "name": "Riverside Historical Society"
+        }
+    ]
+}
