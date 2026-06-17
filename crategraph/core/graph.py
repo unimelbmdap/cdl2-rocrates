@@ -50,16 +50,27 @@ class Graph:
         self._simplification_k: int | None = None
         self._derived_fields: dict[str, str | None] = {}
         self._relationship_derived_fields: dict[str, str | None] = {}
+        # Lazily built (out_by_source, in_by_target) adjacency index over
+        # _relationships, used by _related_ids. Invalidated on mutation.
+        self._rel_adjacency: (
+            tuple[dict[str, list[Relationship]], dict[str, list[Relationship]]] | None
+        ) = None
+        # Cached type registries — rebuilding these scans every entity /
+        # relationship, so memoise them. Invalidated on mutation.
+        self._entity_types_cache: TypeRegistry | None = None
+        self._relationship_types_cache: TypeRegistry | None = None
 
     # --- Public read-only properties ---
 
     @property
     def types(self) -> TypeRegistry:
         """Registry of entity types present in this graph."""
-        all_types: set[str] = set()
-        for e in self._entities.values():
-            all_types.update(e.types)
-        return TypeRegistry(frozenset(all_types), label="entity type")
+        if self._entity_types_cache is None:
+            all_types: set[str] = set()
+            for e in self._entities.values():
+                all_types.update(e.types)
+            self._entity_types_cache = TypeRegistry(frozenset(all_types), label="entity type")
+        return self._entity_types_cache
 
     @property
     def title(self) -> str:
@@ -92,10 +103,12 @@ class Graph:
     @property
     def relationship_types(self) -> TypeRegistry:
         """Registry of relationship types present in this graph."""
-        return TypeRegistry(
-            frozenset(r.type for r in self._relationships),
-            label="relationship type",
-        )
+        if self._relationship_types_cache is None:
+            self._relationship_types_cache = TypeRegistry(
+                frozenset(r.type for r in self._relationships),
+                label="relationship type",
+            )
+        return self._relationship_types_cache
 
     @property
     def entities(self) -> list[Entity]:
@@ -1071,6 +1084,7 @@ class Graph:
     def _add_node(self, entity: Entity) -> None:
         """Add or replace an entity in the graph."""
         self._entities[entity.id] = entity
+        self._entity_types_cache = None  # invalidate cached entity types
         if entity.source is not None:
             from pathlib import PurePosixPath
 
@@ -1095,6 +1109,9 @@ class Graph:
             )
             return
         self._relationships.append(relationship)
+        # invalidate caches derived from _relationships
+        self._rel_adjacency = None
+        self._relationship_types_cache = None
         self._graph.add_edge(
             relationship.source,
             relationship.target,
@@ -1195,11 +1212,37 @@ class Graph:
         derived._simplification_k = None
         derived._derived_fields = dict(self._derived_fields)
         derived._relationship_derived_fields = dict(self._relationship_derived_fields)
+        # caches rebuilt lazily from the derived graph's own nodes/edges
+        derived._rel_adjacency = None
+        derived._entity_types_cache = None
+        derived._relationship_types_cache = None
         return derived
 
     def _subgraph(self, node_ids: set[str]) -> Graph:
         """Return a new Graph containing only the specified nodes and their mutual edges."""
         return self._build_derived_graph(node_ids=node_ids)
+
+    def _relationship_adjacency(
+        self,
+    ) -> tuple[dict[str, list[Relationship]], dict[str, list[Relationship]]]:
+        """Lazily build and cache per-endpoint adjacency indexes.
+
+        Returns ``(out_by_source, in_by_target)`` mapping each entity id
+        to the relationships where it is the source / target. Buckets
+        preserve ``_relationships`` (RO-Crate source) order. This turns
+        ``_related_ids`` from an O(E) scan per call into O(degree),
+        which matters when annotating relationship-following fields
+        across every entity (previously O(N*E)). Invalidated by
+        ``_add_edge``; derived graphs rebuild from their own edges.
+        """
+        if self._rel_adjacency is None:
+            out_by_source: dict[str, list[Relationship]] = {}
+            in_by_target: dict[str, list[Relationship]] = {}
+            for r in self._relationships:
+                out_by_source.setdefault(r.source, []).append(r)
+                in_by_target.setdefault(r.target, []).append(r)
+            self._rel_adjacency = (out_by_source, in_by_target)
+        return self._rel_adjacency
 
     def _related_ids(
         self,
@@ -1218,10 +1261,9 @@ class Graph:
         ids present in this graph.
         """
         self.relationship_types.validate(rel)
-        out_ids = [
-            r.target for r in self._relationships if r.source == entity_id and r.type == rel
-        ]
-        in_ids = [r.source for r in self._relationships if r.target == entity_id and r.type == rel]
+        out_by_source, in_by_target = self._relationship_adjacency()
+        out_ids = [r.target for r in out_by_source.get(entity_id, ()) if r.type == rel]
+        in_ids = [r.source for r in in_by_target.get(entity_id, ()) if r.type == rel]
         if direction == "out":
             ordered = out_ids
         elif direction == "in":
