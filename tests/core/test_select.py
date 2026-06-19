@@ -171,3 +171,37 @@ class TestSelectTimeRange:
         )
         result = g.select(time_range=(1915, 1925))
         assert {e.id for e in result.entities} == {"#a"}
+
+    def test_time_range_matches_human_format_dates(self):
+        # The shared engine now parses human month-name dates the old regex
+        # only saw a year in — overlap still works on "1 July 1935" etc.
+        g = Graph()
+        g._add_node(
+            Entity(
+                id="#a",
+                types=["Membership"],
+                properties={"startDate": "1 July 1935", "endDate": "6 June 1978"},
+            )
+        )
+        g._add_node(
+            Entity(
+                id="#b",
+                types=["Membership"],
+                properties={"startDate": "12 March 2017", "endDate": "3 August 2018"},
+            )
+        )
+        result = g.select(time_range=(1940, 1950))
+        assert {e.id for e in result.entities} == {"#a"}
+
+    def test_time_range_matches_isostring_and_bare_year(self):
+        g = Graph()
+        g._add_node(
+            Entity(
+                id="#a",
+                types=["Event"],
+                properties={"startDateISOString": "1890-05-04 00:00:00"},
+            )
+        )
+        g._add_node(Entity(id="#b", types=["Event"], properties={"endDate": "1607"}))
+        result = g.select(time_range=(1850, 1900))
+        assert {e.id for e in result.entities} == {"#a"}

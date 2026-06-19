@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -251,3 +252,60 @@ def test_related_graphless_view_skips_validation_returns_empty() -> None:
     e = EntityView(Entity(id="x", properties={}))  # no graph
     assert list(e.related("anything")) == []
     assert e.has("anything") is False
+
+
+class TestEntityViewTemporal:
+    """Date accessors delegate to the temporal engine; work on graphless views."""
+
+    def test_year_from_isostring(self) -> None:
+        e = EntityView(Entity(id="x", properties={"startDateISOString": "2017-03-12 00:00:00"}))
+        assert e.year == 2017
+        assert e.start_date == date(2017, 3, 12)
+        assert e.date_precision == "day"
+
+    def test_prefers_isostring_over_human_startdate(self) -> None:
+        e = EntityView(
+            Entity(
+                id="x",
+                properties={
+                    "startDateISOString": "2017-03-12 00:00:00",
+                    "startDate": "12 March 2017",
+                },
+            )
+        )
+        assert e.start_date == date(2017, 3, 12)
+
+    def test_falls_back_to_human_pair_when_iso_blank(self) -> None:
+        e = EntityView(
+            Entity(
+                id="x",
+                properties={"startDateISOString": "", "startDate": "1 Sept 1990"},
+            )
+        )
+        assert e.year == 1990
+        assert e.start_date == date(1990, 9, 1)
+
+    def test_circa_and_uncertain_from_modifier_fields(self) -> None:
+        e = EntityView(
+            Entity(
+                id="x",
+                properties={
+                    "startDate": "1966",
+                    "startDateModifier": "c",
+                    "endDate": "1970",
+                    "endDateModifier": "?",
+                },
+            )
+        )
+        assert e.date_circa is True
+        assert e.date_uncertain is True
+
+    def test_misspelt_end_modifier_is_read(self) -> None:
+        e = EntityView(Entity(id="x", properties={"endDate": "1966", "endDateModifer": "c"}))
+        assert e.date_circa is True
+
+    def test_no_temporal_fields_returns_none(self) -> None:
+        e = EntityView(Entity(id="x", properties={"name": "Alice"}))
+        assert e.year is None
+        assert e.start_date is None
+        assert e.date_circa is False

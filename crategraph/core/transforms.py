@@ -13,11 +13,28 @@ from collections.abc import Callable
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
+from crategraph.core._temporal import (
+    TemporalValue,
+    entity_temporal,
+    parse_temporal,
+    temporal_field_values,
+)
 from crategraph.core.models import Entity, Relationship
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
     from crategraph.core.views import EntityView, RelationshipView
+
+# Columns materialised by convert_dates, in display order.
+_DATE_COLUMNS: tuple[str, ...] = (
+    "start_date",
+    "end_date",
+    "year",
+    "date_precision",
+    "date_circa",
+    "date_uncertain",
+)
+_COVERAGE_SAMPLE = 5
 
 
 def merge_nodes(graph: Graph, *, by: str) -> Graph:
@@ -183,6 +200,97 @@ def annotate_relationships(
     # relationships, so make the annotated graph the expansion baseline.
     result._root = result
     return result
+
+
+def convert_dates(
+    graph: Graph,
+    *,
+    parser: Callable[[str], TemporalValue | None] | None = None,
+    report: bool = True,
+) -> Graph:
+    """Return a new graph with parsed date columns materialised per entity.
+
+    Whole-graph transform, mirroring :func:`annotate_entities`: every entity
+    with a date field that parses gains ``start_date``, ``end_date``, ``year``,
+    ``date_precision``, ``date_circa`` and ``date_uncertain``; the names are
+    registered in ``derived_fields``; and the result becomes its own expansion
+    root so later ``select().expand()`` keeps the columns.
+
+    ``start_date``/``end_date`` are stored as **ISO strings** (writer- and
+    DataFrame-friendly); the :class:`EntityView` accessors return ``date``
+    objects for in-memory use — a deliberate split that avoids churning the
+    writers. Entities with no date field are passed through untouched.
+
+    ``parser`` swaps the per-string parser (default :func:`parse_temporal`) for
+    aggressive coercion. When ``report`` is true, prints a coverage / temporal-
+    gaps summary to stdout.
+    """
+    parse = parser or parse_temporal
+    new_entities: dict[str, Entity] = {}
+    in_scope = 0
+    parsed = 0
+    unparseable: list[tuple[str, str, Any]] = []
+
+    for eid, entity in graph._entities.items():
+        present = temporal_field_values(entity.properties)
+        if not present:
+            new_entities[eid] = entity
+            continue
+        in_scope += 1
+        result = entity_temporal(entity.properties, parser=parse)
+        if result.year is None:
+            key, value = present[0]
+            unparseable.append((eid, key, value))
+            new_entities[eid] = entity
+            continue
+        parsed += 1
+        columns: dict[str, Any] = {
+            "start_date": result.start_date.isoformat() if result.start_date else None,
+            "end_date": result.end_date.isoformat() if result.end_date else None,
+            "year": result.year,
+            "date_precision": result.precision,
+            "date_circa": result.circa,
+            "date_uncertain": result.uncertain,
+        }
+        new_entities[eid] = Entity(
+            id=entity.id,
+            types=entity.types,
+            properties={**entity.properties, **columns},
+            source=entity.source,
+        )
+
+    derived = graph._build_derived_graph(
+        node_ids=set(graph._entities),
+        entities=new_entities,
+        relationships=list(graph._relationships),
+    )
+    derived._derived_fields = {
+        **derived._derived_fields,
+        **{name: "convert_dates" for name in _DATE_COLUMNS},
+    }
+    # Whole-graph transform → the converted graph is the new baseline (see
+    # annotate_entities for why expand() needs this).
+    derived._root = derived
+
+    if report:
+        _print_coverage(in_scope, parsed, unparseable)
+    return derived
+
+
+def _print_coverage(in_scope: int, parsed: int, unparseable: list[tuple[str, str, Any]]) -> None:
+    """Print the convert_dates coverage / temporal-gaps report to stdout."""
+    if in_scope == 0:
+        print("convert_dates: no entities have date fields.")
+        return
+    pct = round(parsed / in_scope * 100)
+    print(f"convert_dates: parsed {parsed}/{in_scope} entities with date fields ({pct}%).")
+    if unparseable:
+        print(f"  {len(unparseable)} unparseable — e.g.:")
+        for eid, key, value in unparseable[:_COVERAGE_SAMPLE]:
+            print(f"    {eid}   {key}={value!r}")
+        remaining = len(unparseable) - _COVERAGE_SAMPLE
+        if remaining > 0:
+            print(f"    ... and {remaining} more")
 
 
 def _callable_descriptors(fields: dict[str, Callable[..., Any]]) -> dict[str, str | None]:
