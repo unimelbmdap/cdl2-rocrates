@@ -23,6 +23,7 @@ def test_all_includes_new_and_existing_public_names() -> None:
         "Entity",
         "EntityView",
         "Graph",
+        "Records",
         "Related",
         "Relationship",
         "RelationshipView",

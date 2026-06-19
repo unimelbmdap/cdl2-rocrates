@@ -22,6 +22,7 @@ def merge_properties(
     keys: Iterable[str],
     *,
     reserved: frozenset[str] = frozenset(),
+    deep_copy: bool = True,
 ) -> None:
     """Merge the named *keys* of *properties* into *record* in place.
 
@@ -29,8 +30,14 @@ def merge_properties(
     the ordering policy (alphabetical, collisions-last, explicit
     allowlist, …). A name that collides with an existing *record* key or
     a *reserved* name is prefixed with ``prop_`` repeatedly until unique.
-    Keys absent from *properties* are skipped. Values are deep-copied so
+    Keys absent from *properties* are skipped.
+
+    When *deep_copy* is ``True`` (the default) values are deep-copied so
     callers can mutate the returned record without touching the source.
+    Pass ``deep_copy=False`` for read-only consumers (e.g. counting) that
+    never mutate the values — it skips the copy and is much cheaper. The
+    parameter is named ``deep_copy`` rather than ``copy`` because this
+    module imports the ``copy`` module.
     """
     taken: set[str] = set(record) | reserved
     for key in keys:
@@ -39,5 +46,6 @@ def merge_properties(
         out_key = key
         while out_key in taken:
             out_key = f"prop_{out_key}"
-        record[out_key] = copy.deepcopy(properties[key])
+        value = properties[key]
+        record[out_key] = copy.deepcopy(value) if deep_copy else value
         taken.add(out_key)

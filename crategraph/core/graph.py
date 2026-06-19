@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Mapping, Sequence
 
     from crategraph.core.models import CoverageResult, FileInfo, ViewInfo
+    from crategraph.core.records import Records
     from crategraph.core.views import EntityView, RelationshipView
 
 
@@ -294,7 +295,7 @@ class Graph:
             nxg.add_edge(rel.source, rel.target, relationship=attached)
         return nxg
 
-    def entity_records(self) -> list[dict[str, Any]]:
+    def entity_records(self) -> Records:
         """Return one ``dict`` per entity with native Python values.
 
         Keys: ``id``, ``label``, ``type``, ``types`` first, then
@@ -321,7 +322,7 @@ class Graph:
 
         return records.entity_records(self)
 
-    def relationship_records(self) -> list[dict[str, Any]]:
+    def relationship_records(self) -> Records:
         """Return one ``dict`` per relationship with native Python values.
 
         Keys: ``source``, ``target``, ``type``, ``rel_id`` first, then
@@ -347,6 +348,36 @@ class Graph:
         from crategraph.core import records
 
         return records.relationship_records(self)
+
+    def entity_counts(self, field: str) -> Records:
+        """Count entities by *field*, returning ``Records`` of ``{field, count}``.
+
+        *field* names a column as it appears in :meth:`entity_records`
+        (``id``/``label``/``type``/``types`` or a property; a property
+        colliding with a promoted name is ``prop_<key>``), so the counts
+        always agree with the records. List-valued columns explode —
+        ``entity_counts("types")`` counts each type membership, so totals
+        may exceed ``len(self)``. ``None``/absent values are skipped and
+        rows are sorted count-descending.
+
+        Counts the current view, so ``crate.select(...).entity_counts(...)``
+        tallies only the subgraph. Derived columns work too —
+        ``annotate_entities(...).entity_counts("...")``.
+        """
+        from crategraph.core import records
+
+        return records.entity_counts(self, field)
+
+    def relationship_counts(self, field: str) -> Records:
+        """Count relationships by *field*, returning ``Records`` of ``{field, count}``.
+
+        *field* names a column as it appears in
+        :meth:`relationship_records` (``source``/``target``/``type``/
+        ``rel_id`` or a property). Same semantics as :meth:`entity_counts`.
+        """
+        from crategraph.core import records
+
+        return records.relationship_counts(self, field)
 
     def write(
         self,

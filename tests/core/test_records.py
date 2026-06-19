@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
+from crategraph.core.records import Records
 
 
 def _entity(eid: str, **kwargs) -> Entity:
@@ -267,3 +268,76 @@ class TestEmptyGraph:
         result = g.relationship_records()
         assert result == []
         assert isinstance(result, list)
+
+
+class TestRecordsType:
+    """Records stays a drop-in list[dict]; adds only a humble notebook table."""
+
+    def test_record_methods_return_records_instances(self):
+        g = _make_graph(_entity("A", types=["Person"], properties={"name": "Alice"}))
+        assert isinstance(g.entity_records(), Records)
+        assert isinstance(g.relationship_records(), Records)
+
+    def test_records_is_a_list_and_equals_plain_list(self):
+        g = _make_graph(_entity("A", types=["Person"], properties={"name": "Alice"}))
+        result = g.entity_records()
+        assert isinstance(result, list)
+        assert result == [dict(result[0])]
+        assert result[0]["label"] == "Alice"
+
+    def test_slice_returns_plain_list_not_records(self):
+        # Deliberately not re-wrapped — only the full result needs _repr_html_.
+        entities = [_entity(f"E{i}", types=["Person"]) for i in range(5)]
+        sliced = _make_graph(*entities).entity_records()[:3]
+        assert isinstance(sliced, list)
+        assert not isinstance(sliced, Records)
+
+    def test_records_is_publicly_exported(self):
+        import crategraph
+
+        assert crategraph.Records is Records
+
+    def test_repr_html_title_and_table(self):
+        g = _make_graph(_entity("A", types=["Person"], properties={"name": "Alice"}))
+        markup = g.entity_records()._repr_html_()
+        assert "<table" in markup and "</table>" in markup
+        assert "Records: 1 rows x" in markup  # ASCII 'x' separator
+        assert "Alice" in markup
+        assert 'style="' in markup  # inline styles, not a CSS class
+
+    def test_repr_html_escapes_header_and_values(self):
+        g = _make_graph(_entity("A", types=["Person"], properties={"name": "<script>x</script>"}))
+        markup = g.entity_records()._repr_html_()
+        assert "<script>x</script>" not in markup
+        assert "&lt;script&gt;x&lt;/script&gt;" in markup
+
+    def test_repr_html_joins_list_values(self):
+        g = _make_graph(_entity("A", types=["Person", "Author"], properties={"name": "Alice"}))
+        assert "Person, Author" in g.entity_records()._repr_html_()
+
+    def test_repr_html_truncates_long_cells(self):
+        long = "x" * 200
+        g = _make_graph(_entity("A", types=["Person"], properties={"name": long}))
+        markup = g.entity_records()._repr_html_()
+        assert "..." in markup
+        assert long not in markup  # full untruncated value not present
+
+    def test_repr_html_caps_rows_and_reports_total(self):
+        entities = [_entity(f"E{i}", types=["Person"]) for i in range(25)]
+        result = _make_graph(*entities).entity_records()
+        assert len(result) == 25  # full data retained
+        markup = result._repr_html_()
+        assert markup.count("<tr>") == 1 + Records.max_display_rows  # header + capped body
+        assert "Showing 20 of 25 rows" in markup
+
+    def test_repr_html_caps_columns_with_marker(self):
+        # 4 promoted + 11 properties = 15 columns > max_display_cols (12).
+        props = {f"p{i:02d}": i for i in range(11)}
+        props["name"] = "Alice"
+        g = _make_graph(_entity("A", types=["Person"], properties=props))
+        markup = g.entity_records()._repr_html_()
+        assert "more columns" in markup
+
+    def test_repr_html_empty(self):
+        markup = _make_graph().entity_records()._repr_html_()
+        assert "Records: 0 rows" in markup

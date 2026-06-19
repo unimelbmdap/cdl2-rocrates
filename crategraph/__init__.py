@@ -7,6 +7,7 @@ from pathlib import Path
 from crategraph.core.corpus import Corpus
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
+from crategraph.core.records import Records
 from crategraph.core.views import CardinalityError, EntityView, Related, RelationshipView
 from crategraph.readers.rocrate import ROCrateReader
 
@@ -186,6 +187,7 @@ __all__ = [
     "Entity",
     "EntityView",
     "Graph",
+    "Records",
     "Related",
     "Relationship",
     "RelationshipView",
