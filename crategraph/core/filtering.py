@@ -7,32 +7,15 @@ query. Each returns a new Graph — the original is never mutated.
 
 from __future__ import annotations
 
-import math
-import re
 from typing import TYPE_CHECKING, Any
 
 from rapidfuzz import fuzz
 
+from crategraph.core import _temporal
+
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
     from crategraph.core.models import Entity
-
-# ---------------------------------------------------------------------------
-# Module-level constants (moved from Graph class)
-# ---------------------------------------------------------------------------
-
-_TEMPORAL_RANGE_PAIRS = (
-    ("startDateISOString", "endDateISOString"),
-    ("startDate", "endDate"),
-)
-_TEMPORAL_POINT_KEYS = (
-    "datePublished",
-    "dateCreated",
-    "dateModified",
-    "date",
-    "year",
-)
-_YEAR_RE = re.compile(r"(?<!\d)(\d{4})(?!\d)")
 
 # ---------------------------------------------------------------------------
 # Public filtering functions
@@ -90,13 +73,13 @@ def select(
             if (src := graph._entities[eid].source) is not None and source in src
         }
 
-    # Filter by direct temporal properties.
+    # Filter by direct temporal properties (shared engine — see core/_temporal).
     if time_range is not None:
         low, high = time_range
         candidates = {
             eid
             for eid in candidates
-            if _entity_matches_time_range(graph._entities[eid], low=low, high=high)
+            if _temporal.matches_time_range(graph._entities[eid].properties, low=low, high=high)
         }
 
     # Filter by connectivity.
@@ -469,72 +452,3 @@ def query(graph: Graph, cypher: str) -> Graph:
     from crategraph.core.query import run_cypher
 
     return run_cypher(graph, cypher)
-
-
-# ---------------------------------------------------------------------------
-# Private helpers
-# ---------------------------------------------------------------------------
-
-
-def _entity_matches_time_range(entity: Entity, *, low: int, high: int) -> bool:
-    props = entity.properties
-
-    for start_key, end_key in _TEMPORAL_RANGE_PAIRS:
-        start_year = _extract_year(props.get(start_key))
-        end_year = _extract_year(props.get(end_key))
-        if start_year is None and end_year is None:
-            continue
-        if start_year is None:
-            start_year = end_year
-        if end_year is None:
-            end_year = start_year
-        if (
-            start_year is not None
-            and end_year is not None
-            and start_year <= high
-            and end_year >= low
-        ):
-            return True
-
-    seen_keys = {key for pair in _TEMPORAL_RANGE_PAIRS for key in pair}
-    candidate_keys = list(_TEMPORAL_POINT_KEYS)
-    candidate_keys.extend(
-        key for key in props if key not in seen_keys and _looks_temporal_key(key)
-    )
-
-    for key in candidate_keys:
-        year = _extract_year(props.get(key))
-        if year is not None and low <= year <= high:
-            return True
-
-    return False
-
-
-def _looks_temporal_key(key: str) -> bool:
-    lowered = key.lower()
-    return "date" in lowered or lowered == "year" or lowered.endswith("_year")
-
-
-def _extract_year(value: Any) -> int | None:
-    if value is None or isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    if isinstance(value, float):
-        if math.isfinite(value) and value == int(value):
-            return int(value)
-        return None
-    if isinstance(value, str):
-        stripped = value.strip()
-        if not stripped:
-            return None
-        if stripped.isdigit():
-            return int(stripped)
-        match = _YEAR_RE.search(stripped)
-        return int(match.group(1)) if match else None
-    if isinstance(value, list):
-        for item in value:
-            year = _extract_year(item)
-            if year is not None:
-                return year
-    return None

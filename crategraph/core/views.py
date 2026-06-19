@@ -20,7 +20,11 @@ from collections.abc import Callable, Mapping
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
+from crategraph.core._temporal import entity_temporal
+
 if TYPE_CHECKING:
+    from datetime import date
+
     from crategraph.core.graph import Graph
     from crategraph.core.models import Entity, Relationship
 
@@ -80,6 +84,47 @@ class EntityView:
     def graph(self) -> Graph | None:
         """The owning graph (``None`` for a test-constructed view)."""
         return self._graph
+
+    # --- Temporal accessors (delegate to the shared coercion engine) ---
+    #
+    # These read ``self._entity.properties`` only — no graph traversal — so they
+    # work on a graphless test-constructed view too. They turn the notebook's
+    # ``int(str(e.get("startDateISOString"))[:4])`` slicing into ``e.year``.
+
+    @property
+    def start_date(self) -> date | None:
+        """Start of the entity's date span as a ``date`` (year-only -> Jan 1).
+
+        Reads the first range pair that parses (``*ISOString`` preferred, human
+        ``startDate``/``endDate`` as fallback), else a point/date-ish field.
+        Partial precisions are bracketed honestly — see :attr:`date_precision`.
+        """
+        return entity_temporal(self._entity.properties).start_date
+
+    @property
+    def end_date(self) -> date | None:
+        """End of the entity's date span as a ``date`` (year-only -> Dec 31)."""
+        return entity_temporal(self._entity.properties).end_date
+
+    @property
+    def year(self) -> int | None:
+        """Start year of the entity's date span — the workhorse for annotation."""
+        return entity_temporal(self._entity.properties).year
+
+    @property
+    def date_precision(self) -> str | None:
+        """Coarsest honest precision: ``"decade"``/``"year"``/``"month"``/``"day"``."""
+        return entity_temporal(self._entity.properties).precision
+
+    @property
+    def date_circa(self) -> bool:
+        """Whether any contributing field/qualifier marks the date as approximate."""
+        return entity_temporal(self._entity.properties).circa
+
+    @property
+    def date_uncertain(self) -> bool:
+        """Whether any contributing field/qualifier marks the date as uncertain."""
+        return entity_temporal(self._entity.properties).uncertain
 
     def related(self, rel: str, direction: str = "out") -> Related:
         """Entities one hop from this one via *rel*.

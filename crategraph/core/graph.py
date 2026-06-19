@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Mapping, Sequence
 
     from crategraph.core.models import CoverageResult, FileInfo, ViewInfo
+    from crategraph.core.records import Records
     from crategraph.core.views import EntityView, RelationshipView
 
 
@@ -294,7 +295,7 @@ class Graph:
             nxg.add_edge(rel.source, rel.target, relationship=attached)
         return nxg
 
-    def entity_records(self) -> list[dict[str, Any]]:
+    def entity_records(self) -> Records:
         """Return one ``dict`` per entity with native Python values.
 
         Keys: ``id``, ``label``, ``type``, ``types`` first, then
@@ -321,7 +322,7 @@ class Graph:
 
         return records.entity_records(self)
 
-    def relationship_records(self) -> list[dict[str, Any]]:
+    def relationship_records(self) -> Records:
         """Return one ``dict`` per relationship with native Python values.
 
         Keys: ``source``, ``target``, ``type``, ``rel_id`` first, then
@@ -874,6 +875,34 @@ class Graph:
     def merge_nodes(self, *, by: str) -> Graph:
         """Aggregate nodes by a property, returning a collapsed graph."""
         return transforms.merge_nodes(self, by=by)
+
+    def convert_dates(
+        self,
+        *,
+        parser: Callable[[str], Any] | None = None,
+        report: bool = True,
+    ) -> Graph:
+        """Parse messy date strings into ``start_date``/``end_date``/``year`` columns.
+
+        Returns a new graph where every entity with a parseable date field gains
+        ``start_date``, ``end_date`` (ISO strings), ``year`` (int),
+        ``date_precision``, ``date_circa`` and ``date_uncertain``. The new
+        columns are recorded in :attr:`derived_fields`.
+
+        Note the deliberate type split: the materialised ``start_date``/
+        ``end_date`` columns are ISO strings (writer- and DataFrame-friendly),
+        whereas the :class:`~crategraph.core.views.EntityView` accessors
+        (``e.start_date``/``e.end_date``) return ``datetime.date`` objects for
+        in-memory use.
+
+        Args:
+            parser: Optional per-string parser (default the built-in
+                conservative engine); swap in a more aggressive coercer.
+            report: When ``True`` (default), print a coverage / temporal-gaps
+                summary — how many entities with date fields parsed, with a
+                sample of the unparseable ones.
+        """
+        return transforms.convert_dates(self, parser=parser, report=report)
 
     def annotate_entities(self, **fields: Callable[[EntityView], Any]) -> Graph:
         """Derive a property per entity from callables; returns a new Graph.

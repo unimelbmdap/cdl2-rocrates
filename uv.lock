@@ -419,6 +419,7 @@ dependencies = [
     { name = "networkx" },
     { name = "numpy" },
     { name = "pydantic" },
+    { name = "python-dateutil" },
     { name = "rapidfuzz" },
 ]
 
@@ -470,6 +471,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26" },
     { name = "pandas", marker = "extra == 'ohrm'", specifier = ">=2.0" },
     { name = "pydantic", specifier = ">=2.0" },
+    { name = "python-dateutil", specifier = ">=2.8" },
     { name = "pyvis", marker = "extra == 'pyvis'", specifier = ">=0.3" },
     { name = "rapidfuzz", specifier = ">=3.0" },
     { name = "rdflib", marker = "extra == 'rdf'", specifier = ">=7.0" },
