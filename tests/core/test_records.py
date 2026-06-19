@@ -341,3 +341,59 @@ class TestRecordsType:
     def test_repr_html_empty(self):
         markup = _make_graph().entity_records()._repr_html_()
         assert "Records: 0 rows" in markup
+
+
+class TestColumnSelection:
+    """entity_records(columns=...) projects at the source, with a stable schema."""
+
+    def test_projects_to_named_columns_in_order(self):
+        a = _entity("A", types=["Person"], properties={"name": "Alice", "born": 1900})
+        result = _make_graph(a).entity_records(["label", "type"])
+        assert list(result[0].keys()) == ["label", "type"]
+        assert result[0] == {"label": "Alice", "type": "Person"}
+
+    def test_columns_is_positional(self):
+        a = _entity("A", types=["Person"], properties={"name": "Alice"})
+        # No keyword needed.
+        assert _make_graph(a).entity_records(["id", "label"])[0] == {"id": "A", "label": "Alice"}
+
+    def test_returns_records_instance(self):
+        a = _entity("A", types=["Person"], properties={"name": "Alice"})
+        assert isinstance(_make_graph(a).entity_records(["id"]), Records)
+
+    def test_stable_schema_missing_value_is_none(self):
+        a = _entity("A", properties={"gender": "F"})
+        b = _entity("B", properties={})
+        result = _make_graph(a, b).entity_records(["id", "gender"])
+        assert result[0] == {"id": "A", "gender": "F"}
+        assert result[1] == {"id": "B", "gender": None}  # present but None, not absent
+
+    def test_unknown_column_is_all_none(self):
+        a = _entity("A", properties={"name": "Alice"})
+        assert _make_graph(a).entity_records(["id", "nope"])[0] == {"id": "A", "nope": None}
+
+    def test_promoted_vs_prop_collision(self):
+        # A property literally named "type" surfaces as prop_type, as in the full record.
+        a = _entity("A", types=["Person"], properties={"type": "primary"})
+        result = _make_graph(a).entity_records(["type", "prop_type"])
+        assert result[0] == {"type": "Person", "prop_type": "primary"}
+
+    def test_projected_values_are_deep_copied(self):
+        a = _entity("A", properties={"keywords": ["x"]})
+        result = _make_graph(a).entity_records(["keywords"])
+        result[0]["keywords"].append("y")
+        assert a.properties["keywords"] == ["x"]  # source untouched
+
+    def test_relationship_records_columns(self):
+        a, b = _entity("A"), _entity("B")
+        g = _make_graph(a, b, relationships=[_rel("A", "B", "knows", properties={"since": 1990})])
+        assert g.relationship_records(["source", "target", "since"])[0] == {
+            "source": "A",
+            "target": "B",
+            "since": 1990,
+        }
+
+    def test_columns_none_is_full_record(self):
+        a = _entity("A", types=["Person"], properties={"name": "Alice"})
+        full = _make_graph(a).entity_records()
+        assert "label" in full[0] and "types" in full[0]  # unchanged default

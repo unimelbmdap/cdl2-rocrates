@@ -31,6 +31,7 @@ This module has no third-party dependencies.
 
 from __future__ import annotations
 
+import copy
 import html
 from collections import Counter
 from typing import TYPE_CHECKING, Any
@@ -38,7 +39,7 @@ from typing import TYPE_CHECKING, Any
 from crategraph.core._properties import merge_properties
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
 
     from crategraph.core.graph import Graph
     from crategraph.core.models import Entity, Relationship
@@ -237,7 +238,16 @@ def _relationship_record(rel: Relationship, *, deep_copy: bool = True) -> dict[s
     return record
 
 
-def entity_records(graph: Graph) -> Records:
+def _project(record: dict[str, Any], columns: list[str]) -> dict[str, Any]:
+    """Keep just *columns* (in order), deep-copying the kept values.
+
+    Every requested column is present in the output — missing ones are
+    ``None`` — so a column selection yields a stable schema across records.
+    """
+    return {column: copy.deepcopy(record.get(column)) for column in columns}
+
+
+def entity_records(graph: Graph, columns: Sequence[str] | None = None) -> Records:
     """Return one ``dict`` per entity with native Python values.
 
     Keys: ``id``, ``label``, ``type``, ``types`` first, then
@@ -248,16 +258,27 @@ def entity_records(graph: Graph) -> Records:
     string for an untyped entity). ``types`` is a ``list[str]``. Property
     values are deep-copied.
 
+    Pass *columns* to project to just those keys, in that order — naming
+    them as they appear here (``id``/``label``/``type``/``types`` or a
+    property; a property colliding with a promoted name is ``prop_<key>``).
+    Every requested column is present in every record (``None`` where the
+    entity lacks it), so the result keeps a stable schema.
+
     Returns a :class:`Records` (a ``list`` subclass — drop-in compatible,
     plus a notebook table preview). Wrap with your DataFrame library::
 
         import pandas as pd
         df = pd.DataFrame(graph.entity_records())
     """
-    return Records(_entity_record(entity) for entity in graph.entities)
+    if columns is None:
+        return Records(_entity_record(entity) for entity in graph.entities)
+    cols = list(columns)
+    return Records(
+        _project(_entity_record(entity, deep_copy=False), cols) for entity in graph.entities
+    )
 
 
-def relationship_records(graph: Graph) -> Records:
+def relationship_records(graph: Graph, columns: Sequence[str] | None = None) -> Records:
     """Return one ``dict`` per relationship with native Python values.
 
     Keys: ``source``, ``target``, ``type``, ``rel_id`` first, then
@@ -267,8 +288,16 @@ def relationship_records(graph: Graph) -> Records:
     relationships, preserving the distinction between inline and reified
     rather than collapsing both to an empty string the way CSV does.
     Property values are deep-copied. Returns a :class:`Records`.
+
+    Pass *columns* to project to just those keys (same rules as
+    :func:`entity_records`).
     """
-    return Records(_relationship_record(rel) for rel in graph.relationships)
+    if columns is None:
+        return Records(_relationship_record(rel) for rel in graph.relationships)
+    cols = list(columns)
+    return Records(
+        _project(_relationship_record(rel, deep_copy=False), cols) for rel in graph.relationships
+    )
 
 
 # ---------------------------------------------------------------------------

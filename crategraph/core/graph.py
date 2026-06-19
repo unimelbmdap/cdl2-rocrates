@@ -295,7 +295,7 @@ class Graph:
             nxg.add_edge(rel.source, rel.target, relationship=attached)
         return nxg
 
-    def entity_records(self) -> Records:
+    def entity_records(self, columns: Sequence[str] | None = None) -> Records:
         """Return one ``dict`` per entity with native Python values.
 
         Keys: ``id``, ``label``, ``type``, ``types`` first, then
@@ -306,6 +306,14 @@ class Graph:
         (or empty string if untyped). ``types`` is a list of strings.
         Property values are deep-copied so callers can mutate returned
         records without touching graph state.
+
+        Pass *columns* (positional) to project to just those keys, in that
+        order — naming them as they appear above. Every requested column is
+        present in every record (``None`` where an entity lacks it), so the
+        result keeps a stable schema. Selecting at the source avoids a
+        post-hoc DataFrame projection just to view a few fields::
+
+            graph.entity_records(["id", "label", "type"])
 
         Wrap with your DataFrame library of choice:
 
@@ -320,9 +328,9 @@ class Graph:
         """
         from crategraph.core import records
 
-        return records.entity_records(self)
+        return records.entity_records(self, columns)
 
-    def relationship_records(self) -> Records:
+    def relationship_records(self, columns: Sequence[str] | None = None) -> Records:
         """Return one ``dict`` per relationship with native Python values.
 
         Keys: ``source``, ``target``, ``type``, ``rel_id`` first, then
@@ -333,6 +341,9 @@ class Graph:
         is preserved here, unlike the CSV writer which collapses both
         to an empty string. Property values are deep-copied so callers
         can mutate returned records without touching graph state.
+
+        Pass *columns* (positional) to project to just those keys (same
+        rules as :meth:`entity_records`).
 
         Wrap with your DataFrame library of choice:
 
@@ -347,7 +358,7 @@ class Graph:
         """
         from crategraph.core import records
 
-        return records.relationship_records(self)
+        return records.relationship_records(self, columns)
 
     def entity_counts(self, field: str) -> Records:
         """Count entities by *field*, returning ``Records`` of ``{field, count}``.
