@@ -20,11 +20,12 @@ from collections.abc import Callable, Mapping
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
-from crategraph.core._temporal import entity_temporal
+from crategraph.core._temporal import entity_temporal, parse_fields
 
 if TYPE_CHECKING:
     from datetime import date
 
+    from crategraph.core._temporal import TemporalValue
     from crategraph.core.graph import Graph
     from crategraph.core.models import Entity, Relationship
 
@@ -95,9 +96,12 @@ class EntityView:
     def start_date(self) -> date | None:
         """Start of the entity's date span as a ``date`` (year-only -> Jan 1).
 
-        Reads the first range pair that parses (``*ISOString`` preferred, human
-        ``startDate``/``endDate`` as fallback), else a point/date-ish field.
-        Partial precisions are bracketed honestly — see :attr:`date_precision`.
+        The *default content policy*: the first range pair that parses
+        (``*ISOString`` preferred, human ``startDate``/``endDate`` as fallback),
+        else a curated content point field — provenance dates like
+        ``recordAppendDate`` are deliberately not consulted. For a specific
+        field use :meth:`parse_date`. Partial precisions are bracketed honestly
+        — see :attr:`date_precision`.
         """
         return entity_temporal(self._entity.properties).start_date
 
@@ -125,6 +129,33 @@ class EntityView:
     def date_uncertain(self) -> bool:
         """Whether any contributing field/qualifier marks the date as uncertain."""
         return entity_temporal(self._entity.properties).uncertain
+
+    def parse_date(self, *fields: str) -> TemporalValue | None:
+        """Parse the named date *fields* in order; return the first that parses.
+
+        The explicit, field-specific counterpart to the :attr:`year` /
+        :attr:`start_date` *default policy*: it reads **only** the fields you
+        name (no cascade, no provenance guessing), in order, and returns the
+        first :class:`~crategraph.core._temporal.TemporalValue` that parses
+        (``None`` if all are missing/unparseable). Use it when you need a
+        specific field, ranges, ``precision``, or ``circa``/``uncertain``::
+
+            e.parse_date("startDateISOString")            # one field
+            e.parse_date("startDateISOString", "startDate")  # ordered fallback
+
+        Returns crategraph temporal metadata, not a ``datetime.date`` — see
+        :class:`~crategraph.core._temporal.TemporalValue`.
+        """
+        return parse_fields(self._entity.properties, fields)
+
+    def parse_year(self, *fields: str) -> int | None:
+        """Year of the first of *fields* that parses, else ``None``.
+
+        None-safe convenience over :meth:`parse_date` — the common annotation
+        call: ``birth_year=lambda e: e.parse_year("startDateISOString")``.
+        """
+        result = parse_fields(self._entity.properties, fields)
+        return result.year if result is not None else None
 
     def related(self, rel: str, direction: str = "out") -> Related:
         """Entities one hop from this one via *rel*.

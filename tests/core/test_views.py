@@ -309,3 +309,38 @@ class TestEntityViewTemporal:
         assert e.year is None
         assert e.start_date is None
         assert e.date_circa is False
+
+
+class TestEntityViewParse:
+    """e.parse_year / e.parse_date — explicit field parsing, graphless-safe."""
+
+    def test_parse_year_named_field(self) -> None:
+        e = EntityView(Entity(id="x", properties={"birthDate": "1888"}))
+        assert e.parse_year("birthDate") == 1888
+
+    def test_parse_year_ordered_fallback(self) -> None:
+        e = EntityView(Entity(id="x", properties={"startDate": "12 March 2017"}))
+        # First field missing -> falls through to the second.
+        assert e.parse_year("startDateISOString", "startDate") == 2017
+
+    def test_parse_year_ignores_unnamed_fields(self) -> None:
+        # Only the named field is read — no cascade, no provenance.
+        e = EntityView(Entity(id="x", properties={"recordAppendDate": "2018-01-01"}))
+        assert e.parse_year("startDateISOString") is None
+        assert e.year is None  # default policy also ignores provenance
+
+    def test_parse_date_returns_temporal_value(self) -> None:
+        e = EntityView(Entity(id="x", properties={"startDate": "Dec 1914"}))
+        tv = e.parse_date("startDate")
+        assert tv is not None
+        assert (tv.year, tv.precision) == (1914, "month")
+
+    def test_parse_all_missing_is_none(self) -> None:
+        e = EntityView(Entity(id="x", properties={"name": "Alice"}))
+        assert e.parse_year("birthDate") is None
+        assert e.parse_date("birthDate") is None
+
+    def test_no_fields_returns_none(self) -> None:
+        e = EntityView(Entity(id="x", properties={"birthDate": "1888"}))
+        assert e.parse_year() is None
+        assert e.parse_date() is None

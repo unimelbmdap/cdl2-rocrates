@@ -133,3 +133,36 @@ class TestCoverageReport:
         g = _graph(Entity(id="#a", properties={"name": "Alice"}))
         g.convert_dates()
         assert "no entities have date fields" in capsys.readouterr().out
+
+
+class TestExplicitFields:
+    def test_start_field_drives_year(self):
+        g = _graph(
+            Entity(id="#a", properties={"birthDate": "1888", "recordAppendDate": "2018-01-01"})
+        )
+        out = g.convert_dates(start="birthDate", report=False).get("#a").properties
+        assert out["year"] == 1888
+
+    def test_explicit_field_bypasses_provenance_fallback(self):
+        # No birthDate -> no date; must NOT fall back to recordAppendDate.
+        g = _graph(Entity(id="#a", properties={"recordAppendDate": "2018-01-01"}))
+        out = g.convert_dates(start="birthDate", report=False).get("#a").properties
+        assert "year" not in out
+
+    def test_start_end_range(self):
+        g = _graph(Entity(id="#a", properties={"birthDate": "1888", "deathDate": "1965"}))
+        out = (
+            g.convert_dates(start="birthDate", end="deathDate", report=False).get("#a").properties
+        )
+        assert out["year"] == 1888
+        assert out["start_date"] == "1888-01-01"
+        assert out["end_date"] == "1965-12-31"
+
+    def test_ordered_fallback_list(self):
+        g = _graph(Entity(id="#a", properties={"startDate": "12 March 2017"}))
+        out = (
+            g.convert_dates(start=["startDateISOString", "startDate"], report=False)
+            .get("#a")
+            .properties
+        )
+        assert out["year"] == 2017

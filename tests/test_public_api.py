@@ -27,4 +27,7 @@ def test_all_includes_new_and_existing_public_names() -> None:
         "Related",
         "Relationship",
         "RelationshipView",
+        "TemporalValue",
+        "parse_date",
+        "parse_year",
     }

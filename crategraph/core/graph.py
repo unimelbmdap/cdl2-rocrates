@@ -909,6 +909,8 @@ class Graph:
     def convert_dates(
         self,
         *,
+        start: str | Sequence[str] | None = None,
+        end: str | Sequence[str] | None = None,
         parser: Callable[[str], Any] | None = None,
         report: bool = True,
     ) -> Graph:
@@ -926,13 +928,17 @@ class Graph:
         in-memory use.
 
         Args:
+            start: Optional field name (or ordered list) to read the start/point
+                date from. When given, only this field is consulted — the default
+                content cascade is fully bypassed (no provenance fallback).
+            end: Optional field name (or ordered list) for the end date.
             parser: Optional per-string parser (default the built-in
                 conservative engine); swap in a more aggressive coercer.
             report: When ``True`` (default), print a coverage / temporal-gaps
                 summary — how many entities with date fields parsed, with a
                 sample of the unparseable ones.
         """
-        return transforms.convert_dates(self, parser=parser, report=report)
+        return transforms.convert_dates(self, start=start, end=end, parser=parser, report=report)
 
     def annotate_entities(self, **fields: Callable[[EntityView], Any]) -> Graph:
         """Derive a property per entity from callables; returns a new Graph.

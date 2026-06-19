@@ -40,7 +40,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from dateutil import parser as _dateutil_parser
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping
+    from collections.abc import Callable, Mapping, Sequence
 
 Precision = Literal["decade", "year", "month", "day"]
 
@@ -51,12 +51,22 @@ _TEMPORAL_RANGE_PAIRS: tuple[tuple[str, str], ...] = (
     ("startDateISOString", "endDateISOString"),
     ("startDate", "endDate"),
 )
+# Content point keys for the default policy (``e.year`` / ``convert_dates()`` with
+# no args / ``select(time_range=)``). A curated allowlist, NOT a "any property
+# whose name contains 'date'" heuristic — that tail used to scoop up provenance
+# fields like ``recordAppendDate``, silently answering "when was the record
+# catalogued" instead of "when did the thing happen". Provenance fields
+# (``recordAppendDate``, ``dateAccessed``, ``recordLastModifiedDate``) and the
+# context-ambiguous ``dateCreated`` / ``dateModified`` are deliberately excluded;
+# reach them explicitly with ``parse_date`` or ``convert_dates(start=...)``.
 _TEMPORAL_POINT_KEYS: tuple[str, ...] = (
     "datePublished",
-    "dateCreated",
-    "dateModified",
     "date",
     "year",
+    "birthDate",
+    "deathDate",
+    "foundingDate",
+    "dissolutionDate",
 )
 
 # Sibling qualifier fields. Both correct and misspelt (``endDateModifer``,
@@ -281,24 +291,6 @@ def _point_value(d: date, precision: Precision, *, circa: bool, uncertain: bool)
 # ---------------------------------------------------------------------------
 
 
-def _looks_temporal_key(key: str) -> bool:
-    """Heuristic for arbitrary date-ish property keys (preserved from filtering)."""
-    lowered = key.lower()
-    if _is_qualifier_key(key):
-        return False
-    return "date" in lowered or lowered == "year" or lowered.endswith("_year")
-
-
-def _is_qualifier_key(key: str) -> bool:
-    """Whether *key* is a qualifier/modifier, not a date value field.
-
-    ``*Modifier``/``*Modifer`` (circa/uncertain flags) and ``dateQualifier``
-    (free text) carry no parseable date themselves — they would otherwise be
-    swept up by the ``"date" in key`` heuristic.
-    """
-    return key.lower().endswith(("modifier", "modifer", "qualifier"))
-
-
 def _coerce_temporal(
     value: Any, parser: Callable[[str], TemporalValue | None]
 ) -> TemporalValue | None:
@@ -327,6 +319,55 @@ def _coerce_temporal(
     return None
 
 
+def parse_fields(
+    properties: Mapping[str, Any],
+    fields: str | Sequence[str],
+    *,
+    parser: Callable[[str], TemporalValue | None] = parse_temporal,
+) -> TemporalValue | None:
+    """Parse the named *fields* in order, returning the first that parses.
+
+    Pure field-level parse — **no default cascade, no provenance guessing,
+    no sibling ``*Modifier`` folding**: only the fields the caller names, with
+    circa/uncertainty coming from each value itself. Backs
+    ``EntityView.parse_date`` and the explicit ``convert_dates(start=, end=)``
+    override. ``None`` if every named field is missing/unparseable.
+    """
+    names = (fields,) if isinstance(fields, str) else fields
+    for name in names:
+        result = _coerce_temporal(properties.get(name), parser)
+        if result is not None:
+            return result
+    return None
+
+
+def parse_date(value: Any) -> TemporalValue | None:
+    """Parse a single *value* into a :class:`TemporalValue` (or ``None``).
+
+    Note: returns crategraph temporal metadata — a :class:`TemporalValue` with
+    ``start``/``end``/``year``/``precision``/``circa`` — **not** a
+    :class:`datetime.date`, and not necessarily day-precision (``.start`` is the
+    ``date``; ``.precision`` says how exact it is). Accepts ``str`` and, for
+    convenience, ``int``/``float``/``list`` values; returns ``None`` for ``None``
+    or unparseable input.
+
+    This is the *value* parser. To parse a *field* off an entity, prefer
+    ``EntityView.parse_date("fieldName")``.
+    """
+    return _coerce_temporal(value, parse_temporal)
+
+
+def parse_year(value: Any) -> int | None:
+    """Parse a single *value* and return its (start) year, or ``None``.
+
+    None-safe convenience over :func:`parse_date`. As with ``parse_date``, this
+    takes a *value*; to read a *field* off an entity use
+    ``EntityView.parse_year("fieldName")``.
+    """
+    result = _coerce_temporal(value, parse_temporal)
+    return result.year if result is not None else None
+
+
 def _modifier_flags(
     properties: Mapping[str, Any], keys: tuple[str, ...]
 ) -> tuple[bool, bool, bool]:
@@ -353,19 +394,44 @@ def _apply_decade(value: TemporalValue) -> TemporalValue:
     return _decade_value((value.year // 10) * 10, circa=value.circa, uncertain=value.uncertain)
 
 
+def _assemble(start_tv: TemporalValue | None, end_tv: TemporalValue | None) -> EntityTemporal:
+    """Build an ``EntityTemporal`` from a start/end pair (no modifier folding)."""
+    return EntityTemporal(
+        start_date=start_tv.start if start_tv else (end_tv.start if end_tv else None),
+        end_date=end_tv.end if end_tv else (start_tv.end if start_tv else None),
+        year=start_tv.year if start_tv else (end_tv.year if end_tv else None),
+        precision=start_tv.precision if start_tv else (end_tv.precision if end_tv else None),
+        circa=bool(start_tv and start_tv.circa) or bool(end_tv and end_tv.circa),
+        uncertain=bool(start_tv and start_tv.uncertain) or bool(end_tv and end_tv.uncertain),
+    )
+
+
 def entity_temporal(
     properties: Mapping[str, Any],
     *,
+    start: str | Sequence[str] | None = None,
+    end: str | Sequence[str] | None = None,
     parser: Callable[[str], TemporalValue | None] = parse_temporal,
 ) -> EntityTemporal:
     """Combine an entity's date fields into one temporal reading.
 
-    Tries each range pair in turn (``*ISOString`` first) and uses the **first
-    pair that parses to a result** — so blank/unparseable ISO fields fall back
-    to the human ``startDate``/``endDate`` pair. Failing that, falls back to the
-    first point/date-ish field that parses. Sibling ``*Modifier`` qualifiers and
-    any inline markers are OR-ed into one entity-level ``circa``/``uncertain``.
+    **Default policy** (``start``/``end`` unset): tries each range pair in turn
+    (``*ISOString`` first) and uses the first pair that parses, else the first
+    curated *content* point key (:data:`_TEMPORAL_POINT_KEYS` — provenance fields
+    like ``recordAppendDate`` are deliberately not consulted). Sibling
+    ``*Modifier`` qualifiers and inline markers are OR-ed into one entity-level
+    ``circa``/``uncertain``.
+
+    **Explicit override**: pass ``start``/``end`` (a field name or ordered list)
+    to read *only* those fields — the entire cascade is bypassed (no point-key
+    fallback, no provenance, no ``*Modifier`` folding). An entity missing the
+    named field gets ``None``, never a fallback date.
     """
+    if start is not None or end is not None:
+        start_tv = parse_fields(properties, start, parser=parser) if start is not None else None
+        end_tv = parse_fields(properties, end, parser=parser) if end is not None else None
+        return _assemble(start_tv, end_tv)
+
     start_mod_c, start_mod_u, start_mod_s = _modifier_flags(properties, _START_MODIFIER_KEYS)
     end_mod_c, end_mod_u, end_mod_s = _modifier_flags(properties, _END_MODIFIER_KEYS)
 
@@ -396,11 +462,9 @@ def entity_temporal(
         )
         return EntityTemporal(start_date, end_date, year, precision, circa, uncertain)
 
-    # No range pair matched — try point/date-ish fields in precedence order.
-    seen = {key for pair in _TEMPORAL_RANGE_PAIRS for key in pair}
-    point_keys = list(_TEMPORAL_POINT_KEYS)
-    point_keys.extend(k for k in properties if k not in seen and _looks_temporal_key(k))
-    for key in point_keys:
+    # No range pair matched — try the curated content point keys (no heuristic
+    # scan of arbitrary ``*date*`` properties; that would readmit provenance).
+    for key in _TEMPORAL_POINT_KEYS:
         tv = _coerce_temporal(properties.get(key), parser)
         if tv is None:
             continue
@@ -427,12 +491,16 @@ def has_temporal_field(
     return entity_temporal(properties, parser=parser).year is not None
 
 
-def temporal_field_values(properties: Mapping[str, Any]) -> list[tuple[str, Any]]:
+def temporal_field_values(
+    properties: Mapping[str, Any],
+    fields: Sequence[str] | None = None,
+) -> list[tuple[str, Any]]:
     """Present date *value* fields (key, value), in precedence order.
 
-    Excludes qualifier/modifier fields and blank values. Used by
-    ``convert_dates`` to decide whether an entity is "in scope" for coverage and
-    to surface the offending field when its value won't parse.
+    Considers the curated content fields (range pairs + content point keys),
+    skipping blank values — the same set the default policy reads, so
+    ``convert_dates`` coverage matches what ``e.year`` sees. Pass *fields* (the
+    explicit ``start``/``end`` names) to scope it to exactly those instead.
     """
     found: list[tuple[str, Any]] = []
     seen: set[str] = set()
@@ -446,14 +514,16 @@ def temporal_field_values(properties: Mapping[str, Any]) -> list[tuple[str, Any]
             return
         found.append((key, value))
 
+    if fields is not None:
+        for key in fields:
+            _consider(key)
+        return found
+
     for start_key, end_key in _TEMPORAL_RANGE_PAIRS:
         _consider(start_key)
         _consider(end_key)
     for key in _TEMPORAL_POINT_KEYS:
         _consider(key)
-    for key in properties:
-        if _looks_temporal_key(key):
-            _consider(key)
     return found
 
 
@@ -485,10 +555,7 @@ def matches_time_range(
         if start_year <= high and end_year >= low:
             return True
 
-    seen = {key for pair in _TEMPORAL_RANGE_PAIRS for key in pair}
-    point_keys = list(_TEMPORAL_POINT_KEYS)
-    point_keys.extend(k for k in properties if k not in seen and _looks_temporal_key(k))
-    for key in point_keys:
+    for key in _TEMPORAL_POINT_KEYS:
         tv = _coerce_temporal(properties.get(key), parser)
         if tv is not None and tv.year is not None and low <= tv.year <= high:
             return True

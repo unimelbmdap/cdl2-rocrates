@@ -22,6 +22,8 @@ from crategraph.core._temporal import (
 from crategraph.core.models import Entity, Relationship
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from crategraph.core.graph import Graph
     from crategraph.core.views import EntityView, RelationshipView
 
@@ -202,9 +204,23 @@ def annotate_relationships(
     return result
 
 
+def _date_field_names(
+    start: str | Sequence[str] | None, end: str | Sequence[str] | None
+) -> list[str]:
+    """Flatten explicit ``start``/``end`` field args to a name list."""
+    names: list[str] = []
+    for field in (start, end):
+        if field is None:
+            continue
+        names.extend([field] if isinstance(field, str) else list(field))
+    return names
+
+
 def convert_dates(
     graph: Graph,
     *,
+    start: str | Sequence[str] | None = None,
+    end: str | Sequence[str] | None = None,
     parser: Callable[[str], TemporalValue | None] | None = None,
     report: bool = True,
 ) -> Graph:
@@ -221,23 +237,33 @@ def convert_dates(
     objects for in-memory use — a deliberate split that avoids churning the
     writers. Entities with no date field are passed through untouched.
 
-    ``parser`` swaps the per-string parser (default :func:`parse_temporal`) for
-    aggressive coercion. When ``report`` is true, prints a coverage / temporal-
-    gaps summary to stdout.
+    By default the columns come from the entity's *content* date policy (start/end
+    pairs, then curated content fields — provenance dates like ``recordAppendDate``
+    are not consulted). Pass ``start`` / ``end`` (a field name or ordered list) to
+    read **only** those fields — the cascade is fully bypassed, so an entity
+    missing the named field gets no date rather than a provenance fallback::
+
+        crate.convert_dates(start="startDateISOString")          # establishment year
+        crate.convert_dates(start="birthDate", end="deathDate")  # lifespans
+
+    ``parser`` swaps the per-string parser (default :func:`parse_temporal`). When
+    ``report`` is true, prints a coverage / temporal-gaps summary to stdout.
     """
     parse = parser or parse_temporal
+    explicit = start is not None or end is not None
+    scope_fields = _date_field_names(start, end) if explicit else None
     new_entities: dict[str, Entity] = {}
     in_scope = 0
     parsed = 0
     unparseable: list[tuple[str, str, Any]] = []
 
     for eid, entity in graph._entities.items():
-        present = temporal_field_values(entity.properties)
+        present = temporal_field_values(entity.properties, scope_fields)
         if not present:
             new_entities[eid] = entity
             continue
         in_scope += 1
-        result = entity_temporal(entity.properties, parser=parse)
+        result = entity_temporal(entity.properties, start=start, end=end, parser=parse)
         if result.year is None:
             key, value = present[0]
             unparseable.append((eid, key, value))

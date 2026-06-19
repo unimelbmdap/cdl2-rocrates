@@ -10,7 +10,10 @@ from crategraph.core._temporal import (
     entity_temporal,
     has_temporal_field,
     matches_time_range,
+    parse_date,
+    parse_fields,
     parse_temporal,
+    parse_year,
 )
 
 
@@ -133,10 +136,30 @@ class TestEntityTemporal:
         assert et.start_date == date(2017, 3, 12)
         assert et.year == 2017
 
-    def test_point_key_fallback(self):
-        et = entity_temporal({"recordAppendDate": "1994-07-15T00:00:00.000Z"})
+    def test_content_point_key_fallback(self):
+        # A curated content point key is consulted when no range pair is present.
+        et = entity_temporal({"datePublished": "1994-07-15T00:00:00.000Z"})
         assert et.year == 1994
         assert et.start_date == date(1994, 7, 15)
+
+    def test_provenance_field_is_not_auto_selected(self):
+        # recordAppendDate (and other provenance dates) must NOT become the
+        # entity's date under the default policy — that was the silent-wrong bug.
+        assert entity_temporal({"recordAppendDate": "1994-07-15T00:00:00.000Z"}).year is None
+        assert entity_temporal({"dateModified": "2002-03-12"}).year is None
+        assert entity_temporal({"dateCreated": "2002-03-12"}).year is None
+
+    def test_explicit_fields_bypass_cascade(self):
+        props = {
+            "birthDate": "1888",
+            "startDateISOString": "1850-01-01",
+            "recordAppendDate": "2018-01-01",
+        }
+        assert entity_temporal(props, start="birthDate").year == 1888
+        # A named-but-missing field yields None, never a provenance fallback.
+        assert entity_temporal(props, start="deathDate").year is None
+        # Ordered fallback: first field that parses wins.
+        assert entity_temporal(props, start=["nope", "startDateISOString"]).year == 1850
 
     def test_int_year_property(self):
         et = entity_temporal({"year": 1900})
@@ -217,5 +240,44 @@ class TestMatchesTimeRange:
     def test_list_value_recurses(self):
         assert matches_time_range({"date": ["n/a", "1899"]}, low=1850, high=1900) is True
 
-    def test_arbitrary_date_key_heuristic(self):
+    def test_content_date_key_matches(self):
         assert matches_time_range({"birthDate": "1888"}, low=1880, high=1890) is True
+
+    def test_provenance_date_key_ignored(self):
+        # select(time_range=) aligns with e.year: catalogue dates don't match.
+        assert matches_time_range({"recordAppendDate": "2018-01-01"}, low=2017, high=2019) is False
+
+
+class TestPublicParsers:
+    """parse_date / parse_year (value parsers) and parse_fields (field parser)."""
+
+    def test_parse_date_returns_temporal_value(self):
+        tv = parse_date("Dec 1914")
+        assert tv is not None
+        assert (tv.year, tv.precision) == (1914, "month")
+
+    def test_parse_date_non_string_and_none(self):
+        assert parse_date(1888).year == 1888  # int value coerced
+        assert parse_date(None) is None
+        assert parse_date("not a date") is None
+
+    def test_parse_year_none_safe(self):
+        assert parse_year("1607") == 1607
+        assert parse_year(None) is None
+        assert parse_year("see notes") is None
+
+    def test_parse_fields_first_parseable_in_order(self):
+        props = {"a": "junk", "b": "1990", "c": "2000"}
+        assert parse_fields(props, ["a", "b", "c"]).year == 1990
+
+    def test_parse_fields_single_field_str(self):
+        assert parse_fields({"x": "1850"}, "x").year == 1850
+
+    def test_parse_fields_all_missing_returns_none(self):
+        assert parse_fields({"x": "1850"}, ["y", "z"]) is None
+
+    def test_parse_fields_no_modifier_folding(self):
+        # parse_fields is a pure field parse — sibling *Modifier flags don't apply.
+        tv = parse_fields({"birthDate": "1888", "startDateModifier": "c"}, "birthDate")
+        assert tv.year == 1888
+        assert tv.circa is False  # the modifier is NOT folded in

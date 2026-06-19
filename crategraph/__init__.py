@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from crategraph.core._temporal import TemporalValue, parse_date, parse_year
 from crategraph.core.corpus import Corpus
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
@@ -191,4 +192,7 @@ __all__ = [
     "Related",
     "Relationship",
     "RelationshipView",
+    "TemporalValue",
+    "parse_date",
+    "parse_year",
 ]
