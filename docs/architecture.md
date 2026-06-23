@@ -113,7 +113,7 @@ Readers parse external data sources and populate a `Graph` with entities and rel
 
 **ABC:** `Renderer` — `render(graph, **kwargs) -> Any`
 
-Renderers take a `Graph` and produce a visual output. Common parameters include `colour_by`, `size_by`, `filepath`, and `height`/`width`.
+Renderers take a `Graph` and produce a visual output. Common parameters include `colour_by`, `size_by`, `filepath`, `overwrite`, and `height`/`width`. When `filepath` is given, renderers follow the same overwrite contract as writers: an existing file is left untouched and `FileExistsError` is raised unless `overwrite=True`.
 
 **Current implementations:**
 

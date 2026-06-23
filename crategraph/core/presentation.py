@@ -82,6 +82,7 @@ def visualise(
     height: str = "100vh",
     width: str = "100%",
     filepath: str | None = None,
+    overwrite: bool = False,
     collapse_edges: bool = False,
     **kwargs: Any,
 ) -> Any:
@@ -106,6 +107,8 @@ def visualise(
         width: CSS width of the canvas.
         filepath: Save output to this path instead of returning
             the display object.
+        overwrite: If ``False`` (default), raise ``FileExistsError`` when
+            *filepath* already exists. Set ``True`` to replace it.
         collapse_edges: If ``True``, collapse parallel edges between
             the same pair of nodes before rendering.
 
@@ -146,11 +149,12 @@ def visualise(
         height=height,
         width=width,
         filepath=filepath,
+        overwrite=overwrite,
         **kwargs,
     )
 
 
-def glimpse(graph: Graph, *, filepath: str | None = None) -> Any:
+def glimpse(graph: Graph, *, filepath: str | None = None, overwrite: bool = False) -> Any:
     """Inline snapshot of the type-level graph structure.
 
     Always merges entities by primary type — shows one node per type
@@ -161,6 +165,8 @@ def glimpse(graph: Graph, *, filepath: str | None = None) -> Any:
         graph: The graph to glimpse.
         filepath: Save the output to this path instead of displaying
             inline.
+        overwrite: If ``False`` (default), raise ``FileExistsError`` when
+            *filepath* already exists. Set ``True`` to replace it.
 
     Returns a display object for notebook rendering, or the filepath
     string if *filepath* was provided.
@@ -175,6 +181,7 @@ def glimpse(graph: Graph, *, filepath: str | None = None) -> Any:
         width=600,
         height=450,
         filepath=filepath,
+        overwrite=overwrite,
     )
 
 

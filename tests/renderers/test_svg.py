@@ -5,6 +5,8 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
 from crategraph.renderers.svg import SvgRenderer
@@ -129,6 +131,20 @@ class TestSvgRendererFilepath:
             assert result == path
             content = Path(path).read_text()
             assert "<svg" in content
+
+    def test_raises_when_file_exists_and_overwrite_false(self, tmp_path):
+        out = tmp_path / "out.svg"
+        out.write_text("existing")
+        with pytest.raises(FileExistsError):
+            SvgRenderer().render(_build_graph(), filepath=str(out))
+        assert out.read_text() == "existing"
+
+    def test_overwrite_true_replaces_file(self, tmp_path):
+        out = tmp_path / "out.svg"
+        out.write_text("existing")
+        result = SvgRenderer().render(_build_graph(), filepath=str(out), overwrite=True)
+        assert result == str(out)
+        assert "<svg" in out.read_text()
 
     def test_no_filepath_returns_ipython_svg(self):
         r = SvgRenderer()

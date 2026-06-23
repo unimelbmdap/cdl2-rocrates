@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 from crategraph.core.interfaces import Renderer
 from crategraph.renderers._colours import resolve_colour_map
 from crategraph.renderers._edge_width import resolve_edge_widths
+from crategraph.renderers._validation import ensure_writable
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
@@ -37,6 +38,7 @@ class SvgRenderer(Renderer):
         width: int | str = DEFAULT_WIDTH,
         height: int | str = DEFAULT_HEIGHT,
         filepath: str | None = None,
+        overwrite: bool = False,
         **kwargs: Any,
     ) -> Any:
         """Render *graph* and return an ``IPython.display.SVG`` or filepath.
@@ -54,6 +56,8 @@ class SvgRenderer(Renderer):
             width: Display width in CSS pixels (default 600).
             height: Display height in CSS pixels (default 450).
             filepath: If given, save the SVG to this path and return it.
+            overwrite: If ``False`` (default), raise ``FileExistsError`` when
+                *filepath* already exists. Set ``True`` to replace it.
 
         Returns:
             An ``IPython.display.SVG`` object (for notebook display) or the
@@ -72,7 +76,7 @@ class SvgRenderer(Renderer):
 
         if not graph._entities:
             svg = _empty_svg(width, height, vb_w, vb_h)
-            return _output(svg, filepath)
+            return _output(svg, filepath, overwrite)
 
         # Detect sizing mode: merged graphs have a ``count`` property.
         first_entity = next(iter(graph._entities.values()))
@@ -109,7 +113,7 @@ class SvgRenderer(Renderer):
             scale=scale,
             edge_width=edge_width,
         )
-        return _output(svg, filepath)
+        return _output(svg, filepath, overwrite)
 
 
 # ---------------------------------------------------------------------------
@@ -117,9 +121,10 @@ class SvgRenderer(Renderer):
 # ---------------------------------------------------------------------------
 
 
-def _output(svg: str, filepath: str | None) -> Any:
+def _output(svg: str, filepath: str | None, overwrite: bool = False) -> Any:
     """Return an ``IPython.display.SVG`` or write to *filepath*."""
     if filepath:
+        ensure_writable(filepath, overwrite)
         Path(filepath).write_text(svg, encoding="utf-8")
         return filepath
     from IPython.display import SVG

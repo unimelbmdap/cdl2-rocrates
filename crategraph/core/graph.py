@@ -460,10 +460,15 @@ class Graph:
         height: str = "100vh",
         width: str = "100%",
         filepath: str | None = None,
+        overwrite: bool = False,
         collapse_edges: bool = False,
         **kwargs: Any,
     ) -> Any:
-        """Render the graph as a network visualisation."""
+        """Render the graph as a network visualisation.
+
+        When *filepath* is given, ``overwrite=False`` (default) raises
+        ``FileExistsError`` if the target exists; pass ``True`` to replace it.
+        """
         return presentation.visualise(
             self,
             renderer=renderer,
@@ -473,13 +478,18 @@ class Graph:
             height=height,
             width=width,
             filepath=filepath,
+            overwrite=overwrite,
             collapse_edges=collapse_edges,
             **kwargs,
         )
 
-    def glimpse(self, *, filepath: str | None = None) -> Any:
-        """Inline snapshot of the type-level graph structure."""
-        return presentation.glimpse(self, filepath=filepath)
+    def glimpse(self, *, filepath: str | None = None, overwrite: bool = False) -> Any:
+        """Inline snapshot of the type-level graph structure.
+
+        When *filepath* is given, ``overwrite=False`` (default) raises
+        ``FileExistsError`` if the target exists; pass ``True`` to replace it.
+        """
+        return presentation.glimpse(self, filepath=filepath, overwrite=overwrite)
 
     def inspect(self, entity: Entity | str) -> FileInfo:
         """Inspect the data file associated with an entity."""

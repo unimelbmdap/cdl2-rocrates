@@ -5,6 +5,8 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from crategraph.core.analysis import merge_by_primary_type
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
@@ -99,6 +101,22 @@ class TestGraphGlimpse:
             assert "<svg" in content
             assert "Person" in content
 
+    def test_raises_when_file_exists_and_overwrite_false(self, tmp_path):
+        g = _build_graph()
+        out = tmp_path / "glimpse.svg"
+        out.write_text("existing")
+        with pytest.raises(FileExistsError):
+            g.glimpse(filepath=str(out))
+        assert out.read_text() == "existing"
+
+    def test_overwrite_true_replaces_file(self, tmp_path):
+        g = _build_graph()
+        out = tmp_path / "glimpse.svg"
+        out.write_text("existing")
+        result = g.glimpse(filepath=str(out), overwrite=True)
+        assert result == str(out)
+        assert "<svg" in out.read_text()
+
     def test_empty_graph_glimpse(self):
         g = Graph()
         result = g.glimpse()
@@ -119,3 +137,19 @@ class TestGraphGlimpse:
         svg_str = result.data if hasattr(result, "data") else str(result)
         assert "<svg" in svg_str
         assert "<circle" in svg_str
+
+    def test_visualise_raises_when_file_exists_and_overwrite_false(self, tmp_path):
+        g = _build_graph()
+        out = tmp_path / "viz.svg"
+        out.write_text("existing")
+        with pytest.raises(FileExistsError):
+            g.visualise(renderer="svg", filepath=str(out))
+        assert out.read_text() == "existing"
+
+    def test_visualise_overwrite_true_replaces_file(self, tmp_path):
+        g = _build_graph()
+        out = tmp_path / "viz.svg"
+        out.write_text("existing")
+        result = g.visualise(renderer="svg", filepath=str(out), overwrite=True)
+        assert result == str(out)
+        assert "<svg" in out.read_text()

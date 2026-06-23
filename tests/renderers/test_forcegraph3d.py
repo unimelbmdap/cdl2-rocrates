@@ -6,6 +6,8 @@ import json
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
 from crategraph.renderers.forcegraph3d import ForceGraph3DRenderer
@@ -413,3 +415,19 @@ class TestGraphVisualise3D:
             filepath = str(Path(tmpdir) / "merged.html")
             result = merged.visualise(renderer="3d", filepath=filepath)
             assert result == filepath
+
+
+class TestOverwriteGuard:
+    def test_raises_when_file_exists_and_overwrite_false(self, tmp_path):
+        out = tmp_path / "out.html"
+        out.write_text("existing")
+        with pytest.raises(FileExistsError):
+            ForceGraph3DRenderer().render(_build_graph(), filepath=str(out))
+        assert out.read_text() == "existing"
+
+    def test_overwrite_true_replaces_file(self, tmp_path):
+        out = tmp_path / "out.html"
+        out.write_text("existing")
+        result = ForceGraph3DRenderer().render(_build_graph(), filepath=str(out), overwrite=True)
+        assert result == str(out)
+        assert out.read_text() != "existing"

@@ -120,6 +120,13 @@ This creates an HTML visualisation where nodes are coloured by type and sized by
 ```python
 crate.visualise(filepath="my-network.html")
 ```
+
+To avoid clobbering existing work, saving refuses to overwrite a file that already exists, raising `FileExistsError`. Pass `overwrite=True` to replace it (the same convention as [`crate.write()`](writers.md)):
+
+```python
+crate.visualise(filepath="my-network.html", overwrite=True)
+```
+
 You can open this HTML in a new browser:
 
 ```python

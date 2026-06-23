@@ -257,3 +257,19 @@ class TestEdgeWidth:
             1 + 2 * math.log1p(5),
             1 + 2 * math.log1p(20),
         ]
+
+
+class TestOverwriteGuard:
+    def test_raises_when_file_exists_and_overwrite_false(self, tmp_path):
+        out = tmp_path / "out.html"
+        out.write_text("existing")
+        with pytest.raises(FileExistsError):
+            PyvisRenderer().render(_build_graph(), filepath=str(out))
+        assert out.read_text() == "existing"
+
+    def test_overwrite_true_replaces_file(self, tmp_path):
+        out = tmp_path / "out.html"
+        out.write_text("existing")
+        result = PyvisRenderer().render(_build_graph(), filepath=str(out), overwrite=True)
+        assert result == str(out)
+        assert out.read_text() != "existing"

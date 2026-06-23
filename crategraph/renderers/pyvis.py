@@ -13,6 +13,7 @@ from markupsafe import escape
 from crategraph.core.interfaces import Renderer
 from crategraph.renderers._colours import resolve_colour_map
 from crategraph.renderers._edge_width import resolve_edge_widths
+from crategraph.renderers._validation import ensure_writable
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
@@ -65,6 +66,7 @@ class PyvisRenderer(Renderer):
         height: str = "100vh",
         width: str = "100%",
         filepath: str | None = None,
+        overwrite: bool = False,
         notebook: bool = True,
         **kwargs: Any,
     ) -> Any:
@@ -83,6 +85,8 @@ class PyvisRenderer(Renderer):
             height: CSS height of the canvas.
             width: CSS width of the canvas.
             filepath: If given, save the HTML to this path and return it.
+            overwrite: If ``False`` (default), raise ``FileExistsError`` when
+                *filepath* already exists. Set ``True`` to replace it.
             notebook: If True (default), configure for inline Jupyter display.
 
         Returns the ``pyvis.network.Network`` object (or the filepath string
@@ -212,6 +216,7 @@ class PyvisRenderer(Renderer):
         }}""")
 
         if filepath:
+            ensure_writable(filepath, overwrite)
             net.save_graph(filepath)
             return filepath
 

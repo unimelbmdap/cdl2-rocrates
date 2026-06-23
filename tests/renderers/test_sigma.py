@@ -9,6 +9,8 @@ import re
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
 from crategraph.renderers.sigma import SigmaRenderer
@@ -844,3 +846,20 @@ class TestSerialisedEdgeType:
         data = SigmaRenderer().graph_to_json(g, colour_by="type", size_by="connections")
         types = [edge["type"] for edge in data["edges"]]
         assert sorted(types) == ["employs", "knows"]
+
+
+class TestOverwriteGuard:
+    def test_raises_when_file_exists_and_overwrite_false(self, tmp_path):
+        out = tmp_path / "out.html"
+        out.write_text("existing")
+        with pytest.raises(FileExistsError):
+            SigmaRenderer().render(_build_graph(), filepath=str(out))
+        # The existing file must be left untouched.
+        assert out.read_text() == "existing"
+
+    def test_overwrite_true_replaces_file(self, tmp_path):
+        out = tmp_path / "out.html"
+        out.write_text("existing")
+        result = SigmaRenderer().render(_build_graph(), filepath=str(out), overwrite=True)
+        assert result == str(out)
+        assert out.read_text() != "existing"

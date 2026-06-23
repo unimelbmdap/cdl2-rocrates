@@ -11,7 +11,7 @@ from markupsafe import Markup
 from crategraph.core.interfaces import Renderer
 from crategraph.renderers._colours import PALETTE, resolve_colour_map
 from crategraph.renderers._edge_width import resolve_edge_widths
-from crategraph.renderers._validation import validate_css_dimension
+from crategraph.renderers._validation import ensure_writable, validate_css_dimension
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
@@ -196,6 +196,7 @@ class SigmaRenderer(Renderer):
         height: str = "100vh",
         width: str = "100%",
         filepath: str | None = None,
+        overwrite: bool = False,
         animated: bool = False,
         simple: bool = False,
         include_properties: bool = False,
@@ -214,6 +215,8 @@ class SigmaRenderer(Renderer):
             height: CSS height of the canvas.
             width: CSS width of the canvas.
             filepath: If given, save the HTML to this path and return it.
+            overwrite: If ``False`` (default), raise ``FileExistsError`` when
+                *filepath* already exists. Set ``True`` to replace it.
             animated: If ``True``, run ForceAtlas2 in animated (web-worker)
                 mode; otherwise run a synchronous layout pass.
             simple: If ``True``, use a minimal template with no UI panels
@@ -284,6 +287,7 @@ class SigmaRenderer(Renderer):
         }
 
         if filepath:
+            ensure_writable(filepath, overwrite)
             with open(filepath, "w", encoding="utf-8") as fh:
                 fh.write(html)
             return filepath
