@@ -10,4 +10,5 @@ If you haven't already, start with the [Getting Started](../getting-started.md) 
 - [Comparing multiple collections](comparing-multiple-collections.md) — Load several crates together and explore connections across them
 - [Searching and filtering](searching-and-filtering.md) — Use search, select, where, and pattern matching to find entities of interest
 - [From graph to DataFrame](from-graph-to-dataframe.md) — Annotate entities with derived fields, filter on them, then flatten to pandas and write a CSV
+- [Exploring temporal dimensions of RO-Crates](exploring-temporal-dimensions.md) — Parse messy dates, recover years from titles, and draw a timeline of a crate's events
 - [Basic NLP with text records](basic-nlp-with-text-records.ipynb) — Use graph filtering and metadata grouping before handing text to NLP tools
