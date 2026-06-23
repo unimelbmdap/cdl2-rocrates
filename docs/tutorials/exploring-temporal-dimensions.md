@@ -130,30 +130,35 @@ df.dropna(subset=["year"]).sort_values("year").head(6)
 
 ### A note on precision
 
-crategraph prefers `startDateISOString` because it is machine-readable, but that field can
-be too confident. The Senate event records `startDate: "1867"` (a year only), yet its
-`startDateISOString` is `"1867-01-01 00:00:00"`, so by default crategraph reports **day**
-precision. When you would rather trust one particular field, `parse_date` reads only the
-field you name:
+An event often carries two start fields: the human `startDate` and its machine counterpart
+`startDateISOString`. For the Senate event the human field is just `"1867"`, while the
+machine field is `"1867-01-01 00:00:00"`, where the `01-01` has been filled in rather than
+recorded. By default crategraph reads the machine field, so that filled-in day makes the
+date look precise to the day. `parse_date` lets you read a field of your choosing instead,
+here the human `startDate`, which states only the year. The table below puts the two source
+fields next to the precision each one yields:
 
 ```python
 precise = events.annotate_entities(
     default_precision=lambda e: e.date_precision,
-    human_precision=lambda e: (
+    startDate_precision=lambda e: (
         e.parse_date("startDate").precision if e.parse_date("startDate") else None
     ),
 )
-pd.DataFrame(precise.entity_records(columns=["label", "default_precision", "human_precision"])) \
-    .query("label == '1867 - Establishment of the Senate'")
+senate = precise.where(name="1867 - Establishment of the Senate")
+pd.DataFrame(senate.entity_records(
+    columns=["startDate", "startDateISOString", "default_precision", "startDate_precision"]
+))
 ```
 
 ```
-                               label default_precision human_precision
-  1867 - Establishment of the Senate               day            year
+startDate  startDateISOString default_precision startDate_precision
+     1867 1867-01-01 00:00:00               day                year
 ```
 
-Reading the human `startDate` directly returns **year** precision. crategraph does not
-fabricate a January 1st that the source never stated.
+`default_precision` is what crategraph reports automatically (day, taken from the machine
+field); `startDate_precision` is what reading the human `startDate` gives (year). Reading the
+field you trust avoids treating a filled-in `01-01` as a date the source recorded to the day.
 
 ## 4. Save the dates as columns with `convert_dates()`
 
