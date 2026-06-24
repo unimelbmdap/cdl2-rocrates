@@ -225,19 +225,29 @@ The same pattern works on any crate, so we can compare collections. We wrap the
 annotate-then-select from the last section into one function (given a crate path, it returns
 the places that have coordinates as plain dicts) and run it over three LDACA corpora.
 `entity_records` already hands back dicts, so combining is just adding an `origin` key and
-appending; reducing every geometry to a centroid means one crate's postcode polygons and
-another's address points become comparable markers:
+appending. Each crate labels its places differently (a street address in one, a postcode or
+region name in another), so `place_label` takes whichever is present. Reducing every geometry
+to a centroid means one crate's postcode polygons and another's address points become
+comparable markers:
 
 ```python
 from collections import Counter
 
+def place_label(e):
+    """A readable label for a place: its street address, or its name."""
+    name = e.name
+    if isinstance(name, list):
+        name = name[0] if name else None
+    return e.get("address") or name
+
 def place_records(path):
     """Load a crate and return its places that carry coordinates, as plain dicts."""
     located = Crate(path).annotate_entities(
+        place=place_label,
         longitude=lambda e: place_point(e).x if place_point(e) else None,
         latitude=lambda e: place_point(e).y if place_point(e) else None,
     ).select(entity_types=["Place"])
-    return [r for r in located.entity_records(columns=["address", "longitude", "latitude"])
+    return [r for r in located.entity_records(columns=["place", "longitude", "latitude"])
             if r["latitude"] is not None]
 
 sources = {
@@ -279,7 +289,7 @@ fig = px.scatter_map(
     color_discrete_map=origin_colours,
     # draw the populous Slang Survey first, so the rarer crates sit on top
     category_orders={"origin": ["Slang Survey", "Farms to Freeways", "COOEE"]},
-    hover_name="address", zoom=3.2, height=480, map_style="open-street-map",
+    hover_name="place", zoom=3.2, height=480, map_style="open-street-map",
 )
 fig.update_traces(marker=dict(size=9, opacity=0.7))
 fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), legend_title_text="Origin crate")
