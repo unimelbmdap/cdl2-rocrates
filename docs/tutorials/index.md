@@ -9,11 +9,12 @@ If you haven't already, start with the [Getting Started](../getting-started.md) 
 - [From graph to DataFrame](from-graph-to-dataframe.md) — Annotate entities with derived fields, filter on them, then flatten to pandas and write a CSV
 - [Exploring temporal dimensions of RO-Crates](exploring-temporal-dimensions.md) — Parse messy dates, recover years from titles, and draw a timeline of a crate's events
 - [Mapping the places in a collection](mapping-collection-places.md) — Follow geometry links, read coordinates from WKT, and draw an interactive map of one or several crates
+- [Visualising a collection](visualising-a-collection.md) — Glimpse a crate's types, render the whole network, and explore subsets interactively and in 3D
 - [Basic NLP with text records](basic-nlp-with-text-records.ipynb) — Use graph filtering and metadata grouping before handing text to NLP tools
 
 ## Data sources
 
-These tutorials use openly available language datasets, most discoverable through the
+These tutorials use openly available datasets, most discoverable through the
 [LDaCA data portal](https://data.ldaca.edu.au/search). Licences below are as declared in each
 dataset's RO-Crate metadata; please attribute the original collections if you reuse the data.
 
@@ -22,3 +23,4 @@ dataset's RO-Crate metadata; please attribute the original collections if you re
 - **Australian Corpus of English** (NLP tutorial). Licence: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Source: [doi:10.25949/24629712](https://doi.org/10.25949/24629712).
 - **Australian Slang Survey Data** (mapping tutorial). Licence: [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/) (non-commercial, no derivatives). Source: [Monash Bridges](https://bridges.monash.edu/articles/dataset/Australian_Slang_Survey_Data/30102115).
 - **University of Melbourne Perpetual Calendar (UMPC)** (temporal and mapping tutorials). Licence: [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). Source: [UMPC website](https://umpc.esrc.unimelb.edu.au/index.html).
+- **Encyclopedia of Australian Science and Innovation (EOAS)** (visualisation tutorial). Licence: [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). Source: [eoas.info](https://www.eoas.info/).

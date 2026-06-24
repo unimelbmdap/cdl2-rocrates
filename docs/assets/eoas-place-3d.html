@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encyclopedia of Australian Science and Innovation | 3D Network Visualisation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                         'Helvetica Neue', Arial, sans-serif;
+        }
+
+        #graph-3d {
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* Controls (top-left) */
+        #controls-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 2000;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .control-button {
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            transition: all 0.3s;
+        }
+
+        .control-button:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        }
+
+        .control-button.dark {
+            background: rgba(40, 40, 40, 0.95);
+            color: #f0f0f0;
+        }
+
+        #rotate-control {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        #rotate-control.dark {
+            background: rgba(40, 40, 40, 0.95);
+            color: #f0f0f0;
+        }
+
+        #rotate-control input[type="checkbox"] {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+
+        #rotate-control label {
+            cursor: pointer;
+            margin: 0;
+            user-select: none;
+        }
+
+        /* Node details panel (top-right) */
+        #details-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 16px;
+            max-width: 350px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 2000;
+            display: none;
+        }
+
+        #details-panel h6 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .detail-row {
+            padding: 4px 0;
+            font-size: 13px;
+            color: #333;
+            padding-left: 8px;
+            margin-bottom: 2px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .neighbour-item {
+            padding: 4px 0;
+            font-size: 13px;
+            color: #333;
+            border-left: 3px solid #5B9BD5;
+            padding-left: 8px;
+            margin-bottom: 2px;
+        }
+    </style>
+<style>html,body{margin:0;padding:0;overflow:hidden;}</style></head>
+<body>
+    <div id="graph-3d"></div>
+    <div id="details-panel"></div>
+    <div id="controls-container">
+        <button id="dark-mode-toggle" class="control-button dark"
+                onclick="toggleDarkMode()">Dark Mode</button>
+        <div id="rotate-control">
+            <input type="checkbox" id="rotate-checkbox"
+                   onchange="toggleRotation()" />
+            <label for="rotate-checkbox">Rotate</label>
+        </div>
+    </div>
+
+    <!-- Dependencies (pinned versions with SRI) -->
+    <script src="https://unpkg.com/three@0.159.0/build/three.min.js"
+            integrity="sha384-Lwojr+0fOVR25P8bdL6E0T2dv0q0ZT4Yy2Ia1dGOz6b5jLSzWZkdqlw0cKTQYKzT"
+            crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/three-spritetext@1.8.2/dist/three-spritetext.min.js"
+            integrity="sha384-8hX0id4j/d/+9ukCS+LZDb9WpPp63OqiuZ5bpPPnixibnP01z1avvWuQD3xdEIQX"
+            crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/3d-force-graph@1.73.2/dist/3d-force-graph.min.js"
+            integrity="sha384-rjt1mbVf2NxmUoq9A0428HqIA64xsbF1v9mPBKyAL3ZeIqQ3OEmamYgjwyUOFWm6"
+            crossorigin="anonymous"></script>
+
+    <script>
+    // Graph data (embedded by Python renderer)
+    const graphData = {"nodes": [{"id": "#A000742", "name": "CSIRO Division of Molecular Science", "val": 7.656854249492381, "color": "#4e79a7", "degree": 2, "properties": {"identifier": "A000742", "name": "CSIRO Division of Molecular Science", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Commonwealth Scientific and Industrial Research Organisation", "legalNumber": "CA 4531", "startDate": "1 July 1997", "startDateISOString": "1997-07-01 00:00:00", "endDate": "2005", "endDateISOString": "2005-12-31 00:00:00", "legalStatus": "Agency of the Commonwealth of Australia", "function": "Industrial or scientific research, Pharmaceuticals or Medical Aids", "summaryNote": "The Division of Molecular Science was created in July 1997, to replace the Division of Chemistry and Polymers. Industries such as medical, pharmaceutical and chemical benefit from research and development activities undertaken by the Division. In 2005 Division of Molecular Science merged with the Division of Health Sciences and Nutrition to form CSIRO Molecular and Health Technologies.", "recordAppendDate": "2000-08-04 09:18:47", "epub": "True", "online": "True", "x_efunction": "Industrial or scientific research, Pharmaceuticals or Medical Aids", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A000742-ASAF001', '#A000742-ASAF051', '#P006839-A000742', '#P005953-A000742', '#A001941-A000742', '#A001964-A000742', '#P004737-A000742', '#P005137-A000742', '#P004722-A000742', '#A000753-A000742', '#A002294-A000742', '#A000642-A000742', '#A001954-A000742', '#A001957-A000742', '#A001967-A000742', '#A000196-A000742', '#P004980-A000742', '#P005141-A000742']", "targetOf": "['#A000742-A000196', '#A000742-A000642', '#A000742-A000753', '#A000742-A001941', '#A000742-A001954', '#A000742-A001957', '#A000742-A001964', '#A000742-A001967', '#A000742-A002294', '#A000742-P004722', '#A000742-P004737', '#A000742-P004980', '#A000742-P005137', '#A000742-P005141', '#A000742-P005953', '#A000742-P006839']"}}, {"id": "#A002211", "name": "Monash Medical Centre", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A002211", "name": "Monash Medical Centre", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "startDate": "1987", "startDateISOString": "1987-01-01 00:00:00", "function": "Hospitals or Clinics", "summaryNote": "The Monash Medical Centre was founded in 1987, resulting from the amalgamation of the Queen Victoria Medical Centre, Prince Henry's Hospital and the Moorabbin Hospital. The Centre is located at two campuses, the Clayton Campus in Clayton and the Moorabbin Campus in East Bentleigh. From their Web site, January 2003: \"The Medical Centre cares for people of all ages and most illnesses - whether its a child with leukaemia, a middle aged man with heart disease or a pregnant woman with an at risk pregnancy.\"", "recordAppendDate": "2003-01-20 15:33:20", "url": "http://www.southernhealth.org.au/mmc.htm", "epub": "True", "online": "True", "x_efunction": "Hospitals or Clinics", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A002211-ASAF077', '#P006250-A002211', '#P005267-A002211', '#A002229-A002211', '#P006249-A002211']", "targetOf": "['#A002211-A002229', '#A002211-P005267', '#A002211-P006249', '#A002211-P006250']"}}, {"id": "#A000625", "name": "CSIRO Division of Mineral Engineering", "val": 8.928203230275509, "color": "#4e79a7", "degree": 3, "properties": {"identifier": "A000625", "name": "CSIRO Division of Mineral Engineering", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Commonwealth Scientific and Industrial Research Organisation", "legalNumber": "CA 4530", "startDate": "1 January 1978", "startDateISOString": "1978-01-01 00:00:00", "endDate": "31 December 1987", "endDateISOString": "1987-12-31 00:00:00", "legalStatus": "Agency of the Commonwealth of Australia", "function": "Industrial or scientific research, Resources", "summaryNote": "Previously the Division of Chemical Engineering, the CSIRO's Division of Mineral Engineering worked towards improving and controlling processes specific to the industry. The Division changed its name again in 1988, becoming the Division of Minerals and Process Engineering.", "processingNotes": "1982", "recordAppendDate": "2000-06-22 11:15:21", "online": "True", "x_efunction": "Industrial or scientific research, Resources", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A000625-ASAF001', '#A000625-ASAF018', '#P004487-A000625', '#A000626-A000625', '#A000572-A000625', '#A000623-A000625', '#P000736-A000625', '#A000196-A000625', '#P000532-A000625']", "targetOf": "['#A000625-A000196', '#A000625-A000572', '#A000625-A000623', '#A000625-A000626', '#A000625-P000532', '#A000625-P000736', '#A000625-P004487']"}}, {"id": "#A001677", "name": "Accident Research Centre", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A001677", "name": "Accident Research Centre", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "startDate": "29 June 1987", "startDateISOString": "1987-06-29 00:00:00", "function": "Industrial or scientific research", "summaryNote": "Established in June 1987, the Monash University Accident Research Centre undertakes research in the area of road safety. The Accident Research Centre is a leading Australian injury prevention and control research institute. Its charter includes safety in all modes of transport, in the workplace, in the community and in the home.", "processingNotes": "Former URL: http://www.general.monash.edu.au/muarc/", "recordAppendDate": "2002-01-08 13:35:18", "url": "http://www.monash.edu.au/muarc/", "online": "True", "x_efunction": "Industrial or scientific research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "#A001677-ASAF001"}}, {"id": "#A000583", "name": "CSIRO Division of Materials Science and Technology", "val": 8.928203230275509, "color": "#4e79a7", "degree": 3, "properties": {"identifier": "A000583", "name": "CSIRO Division of Materials Science and Technology", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Commonwealth Scientific and Industrial Research Organisation", "legalNumber": "CA 8067", "startDate": "1 January 1987", "startDateISOString": "1987-01-01 00:00:00", "endDate": "1997", "endDateISOString": "1997-12-31 00:00:00", "legalStatus": "Agency of the Commonwealth of Australia", "function": "Industrial or scientific research", "summaryNote": "The CSIRO's Division of Materials Science and Technology was formed on January 1, 1987, after an amalgamation of the former Divisions of Chemical Physics and Materials Science. The Division conducted research into areas such as alloys and ceramics.", "processingNotes": "prev - division of chemical physics, division of materials science", "recordAppendDate": "2000-06-15 11:25:33", "epub": "True", "online": "True", "x_efunction": "Industrial or scientific research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A000583-ASAF001', '#P002630-A000583', '#A000592-A000583', '#A000656-A000583', '#A000655-A000583', '#P004611-A000583', '#P004651-A000583', '#P000485-A000583', '#A000766-A000583', '#A000196-A000583', '#P005029-A000583']", "targetOf": "['#A000583-A000196', '#A000583-A000592', '#A000583-A000655', '#A000583-A000656', '#A000583-A000766', '#A000583-P000485', '#A000583-P002630', '#A000583-P004611', '#A000583-P004651', '#A000583-P005029']"}}, {"id": "#A001732", "name": "Department of Chemistry", "val": 7.656854249492381, "color": "#4e79a7", "degree": 2, "properties": {"identifier": "A001732", "name": "Department of Chemistry", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "startDateModifier": "?", "endDate": "2001", "endDateModifier": "c", "endDateISOString": "2001-12-31 00:00:00", "function": "Education, Chemical Industries", "summaryNote": "The Department of Chemistry was part of Monash University's Faculty of Science. Early in the twenty-first century the Department became the School of Chemistry, one of six schools within the Faculty of Science.", "recordAppendDate": "2002-02-13 10:03:05", "epub": "True", "online": "True", "x_efunction": "Education, Chemical industry", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001732-ASAF054', '#A001732-ASAF086', '#A000101-A001732', '#A001736-A001732']", "targetOf": "['#A001732-A000101', '#A001732-A001736']"}}, {"id": "#A001676", "name": "Centre for Biomedical Engineering", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A001676", "name": "Centre for Biomedical Engineering", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "function": "Education, Industrial or scientific research", "summaryNote": "The Centre for Biomedical Engineering is part of Monash University and is located on the University's Clayton Campus.", "recordAppendDate": "2002-01-08 12:14:03", "url": "http://www.ecse.monash.edu.au/centres/mucbe/", "online": "True", "x_efunction": "Education, Industrial or scientific research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001676-ASAF054', '#A001676-ASAF001']"}}, {"id": "#A001733", "name": "Department of Physiology", "val": 8.928203230275509, "color": "#4e79a7", "degree": 3, "properties": {"identifier": "A001733", "name": "Department of Physiology", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "startDate": "1962", "startDateISOString": "1962-01-01 00:00:00", "function": "Education, Medical Research", "summaryNote": "Monash University's Department of Physiology was founded in 1962, the same year that the University was opened to science and medical students. The Department was part of the Faculty of Medicine until 2001, when the Faculty underwent a name change, becoming the Faculty of Medicine, Nursing and Health Science.", "recordAppendDate": "2002-02-13 10:03:21", "epub": "True", "online": "True", "x_efunction": "Education, Medical Research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001733-ASAF054', '#A001733-ASAF030', '#A001730-A001733', '#A001725-A001733']", "targetOf": "['#A001733-A001725', '#A001733-A001730']"}}, {"id": "#A000655", "name": "CSIRO Division of Materials Science", "val": 7.656854249492381, "color": "#4e79a7", "degree": 2, "properties": {"identifier": "A000655", "name": "CSIRO Division of Materials Science", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Commonwealth Scientific and Industrial Research Organisation", "startDate": "1978", "startDateISOString": "1978-01-01 00:00:00", "endDate": "31 December 1986", "endDateISOString": "1986-12-31 00:00:00", "function": "Industrial or scientific research", "summaryNote": "The Division of Materials Science, formerly the Division of Tribophysics, was named in 1978. In 1980 part of the Division became the Division of Manufacturing Technology. The remaining Division carried on until the end of 1986, when it joined the Division of Chemical Physics, forming the Division of Materials Science and Technology.", "processingNotes": "Previous - Division of Tribophysics (a000595)\r\nsubsequent - division of materials science and  technology (a000583)", "recordAppendDate": "2000-06-28 15:30:18", "epub": "True", "online": "True", "x_efunction": "Industrial or scientific research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A000655-ASAF001', '#A000583-A000655', '#A000595-A000655', '#A000765-A000655', '#A000196-A000655']", "targetOf": "['#A000655-A000196', '#A000655-A000583', '#A000655-A000595', '#A000655-A000765']"}}, {"id": "#A000766", "name": "CSIRO Division of Manufacturing Science and Technology", "val": 7.656854249492381, "color": "#4e79a7", "degree": 2, "properties": {"identifier": "A000766", "name": "CSIRO Division of Manufacturing Science and Technology", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Commonwealth Scientific and Industrial Research Organisation", "startDate": "1997", "startDateISOString": "1997-01-01 00:00:00", "endDate": "July 2002", "endDateISOString": "2002-07-31 00:00:00", "function": "Industrial or scientific research, Manufacturing industry", "summaryNote": "In 1997, the Divisions of Manufacturing Technology and Materials Science and Technology amalgamated, forming the Division of Manufacturing Science and Technology. In July 2002 the Division of Manufacturing Science and Technology merged with the Division of Building, Construction and Engineering to form Manufacturing and Infrastructure Technology.", "processingNotes": "23/03/2010 AS - Removed URL http://www.cmst.csiro.au", "recordAppendDate": "2000-09-20 14:50:05", "online": "True", "x_efunction": "Industrial or scientific research, Manufacturing industry", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A000766-ASAF001', '#A000766-ASAF062', '#P005898-A000766', '#A001966-A000766', '#A001906-A000766', '#A001962-A000766', '#A000583-A000766', '#A000765-A000766', '#A001969-A000766', '#A000196-A000766']", "targetOf": "['#A000766-A000196', '#A000766-A000583', '#A000766-A000765', '#A000766-A001906', '#A000766-A001962', '#A000766-A001966', '#A000766-A001969', '#A000766-P005898']"}}, {"id": "#A001725", "name": "Faculty of Medicine, Nursing and Health Sciences", "val": 8.928203230275509, "color": "#4e79a7", "degree": 3, "properties": {"identifier": "A001725", "name": "Faculty of Medicine, Nursing and Health Sciences", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "startDate": "2001", "startDateModifier": "c", "startDateISOString": "2001-01-01 00:00:00", "function": "Education, Medical Research, Health Industry", "summaryNote": "Monash University's Faculty of Medicine, Nursing and Health Sciences is located at several of the University's campuses. In 2002 there are around 3500 studying in the Faculty.", "recordAppendDate": "2002-02-12 14:48:44", "url": "http://www.med.monash.edu.au", "online": "True", "x_efunction": "Education, Medical Research, Health Industry", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001725-ASAF054', '#A001725-ASAF030', '#A001725-ASAF011', '#A001730-A001725', '#A000049-A001725', '#A001733-A001725', '#P006572-A001725']", "targetOf": "['#A001725-A000049', '#A001725-A001730', '#A001725-A001733', '#A001725-P006572']"}}, {"id": "#A001731", "name": "Centre for Human Development", "val": 7.656854249492381, "color": "#4e79a7", "degree": 2, "properties": {"identifier": "A001731", "name": "Centre for Human Development", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "function": "Education, Medical Research", "summaryNote": "The Centre for Human Development was part of Monash University's Faculty of Medicine.", "recordAppendDate": "2002-02-12 16:44:36", "online": "True", "x_efunction": "Education, Medical Research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001731-ASAF054', '#A001731-ASAF030', '#A001730-A001731']", "targetOf": "#A001731-A001730"}}, {"id": "#A001380", "name": "Robert Bosch (Australia) Pty Ltd", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A001380", "name": "Robert Bosch (Australia) Pty Ltd", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "legalNumber": "ABN 48 004 315 628", "startDate": "1954", "startDateISOString": "1954-01-01 00:00:00", "function": "Manufacturing industry", "summaryNote": "Robert Bosch (Australia) Pty Ltd was established in Australia in 1954 by its German parent company. Products manufactured by Bosch (as it is now known) include power tools and automotive electrical and fuel injection products.", "reference": "<i>Business Who's Who of Australia<\/i> 1975", "recordAppendDate": "2001-08-31 13:45:06", "url": "http://www.bosch.com.au/content/language1/html/index.asp", "online": "True", "x_efunction": "Manufacturing industry", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001380-ASAF062', '#A001966-A001380']", "targetOf": "#A001380-A001966"}}, {"id": "#HASB01675", "name": "The Goulds in the Hunter Region of NSW, 1839-1840", "val": 6.0, "color": "#e15759", "degree": 1, "properties": {"identifier": "HASB01675", "name": "The Goulds in the Hunter Region of NSW, 1839-1840", "author": "Albrecht, Glenn; Albrecht, Jillian", "publicationYear": "1992", "publisher": "Centre for Bibliographical and Textual Studies, Monash University", "numberOfPages": "34", "referenceSource": "Carlson 1992", "classification": "Chronological Classification 1788-1900 Natural Sciences Biological Sciences", "recordLastModified": "2006-11-29 10:41:41", "place": "#Clayton"}}, {"id": "#A001726", "name": "Department of Computer Systems Engineering", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A001726", "name": "Department of Computer Systems Engineering", "alsoKnownAs": "#A001726_alsoKnownAs", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "function": "Education, Computer Technology or Multimedia", "summaryNote": "The Department of Computer Systems Engineering is part of Monash University's Faculty of Engineering. The Department offers both undergraduate and postgraduate courses in a variety of areas. The Department merged some years ago and is now known as the Department of Electrical and Computer Systems Engineering.", "processingNotes": "Former URL: http://www.ecse.monash.edu.au/index.html", "recordAppendDate": "2002-02-12 15:19:07", "url": "http://www.ecse.monash.edu.au/index.html", "online": "True", "x_efunction": "Education, Computer Technology or Multimedia", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001726-ASAF054', '#A001726-ASAF078', '#A000056-A001726']", "targetOf": "#A001726-A000056"}}, {"id": "#Clayton", "name": "Clayton", "val": 28.5329983228432, "color": "#f28e2b", "degree": 44, "properties": {"name": "Clayton"}}, {"id": "#A000572", "name": "CSIRO Division of Chemical Engineering", "val": 8.928203230275509, "color": "#4e79a7", "degree": 3, "properties": {"identifier": "A000572", "name": "CSIRO Division of Chemical Engineering", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Commonwealth Scientific and Industrial Research Organisation", "startDate": "2 July 1962", "startDateISOString": "1962-07-02 00:00:00", "endDate": "1978", "endDateISOString": "1978-12-31 00:00:00", "function": "Industrial or scientific research", "summaryNote": "Located in Melbourne's suburb of Clayton, the Division of Chemical Engineering had operated since the early 1940s as the Chemical Engineering Section, part of the Division of Industrial Chemistry. It became a separate Division twenty years later and operated for about sixteen years before becoming the Division of Mineral Engineering.", "processingNotes": "c1941 Chem Eng Section, part of Division of Industrial Chemistry (c1939-c1958)\r\n1982 Division of Mineral Engineering operating at same address\r\n1988 Division of Mineral and Process Engineering", "recordAppendDate": "2000-06-15 10:37:25", "epub": "True", "online": "True", "x_efunction": "Industrial or scientific research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A000572-ASAF001', '#A000646-A000572', '#A000885-A000572', '#A000625-A000572', '#P000532-A000572', '#A000701-A000572', '#A000196-A000572', '#P004974-A000572']", "targetOf": "['#A000572-A000196', '#A000572-A000625', '#A000572-A000646', '#A000572-A000701', '#A000572-A000885', '#A000572-P000532', '#A000572-P004974']"}}, {"id": "#A001964", "name": "CRC for Functional Communications Surfaces", "val": 7.656854249492381, "color": "#4e79a7", "degree": 2, "properties": {"identifier": "A001964", "name": "CRC for Functional Communications Surfaces", "alsoKnownAs": "#A001964_alsoKnownAs", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "startDate": "1 July 2001", "startDateISOString": "2001-07-01 00:00:00", "endDate": "2008", "endDateISOString": "2008-12-31 00:00:00", "function": "Communications, Industrial or scientific research", "summaryNote": "Established in July 2001 with a seven year grant, the Cooperative Research Centre (CRC) for Functional Communications Surfaces or CRC Smartprint conducts research in areas such as extension rheology, surface chemistry and energy, polymer rheology, colloid science, three-dimensional imaging of microstructures, and print quality analyses.", "processingNotes": "3 January 2012: Broken link http://www.crc-fcs.com/crcsmartprint/display.asp?entityid=1576 removed and replaced with http://www.monash.edu.au/strip/tenants/corporate/crc-smartprint.html", "recordAppendDate": "2002-05-09 11:26:39", "url": "http://www.monash.edu.au/strip/tenants/corporate/crc-smartprint.html", "online": "True", "x_efunction": "Communications, Industrial or scientific research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001964-ASAF036', '#A001964-ASAF001', '#A000049-A001964', '#A001889-A001964', '#A000742-A001964', '#A001686-A001964', '#A001898-A001964']", "targetOf": "['#A001964-A000049', '#A001964-A000742', '#A001964-A001686', '#A001964-A001889', '#A001964-A001898']"}}, {"id": "#P006531", "name": "CSIRO Publishing", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "P006531", "name": "CSIRO Publishing", "alsoKnownAs": "[]", "relatedEvents": "[]", "startDate": "1995", "startDateISOString": "1995-01-01 00:00:00", "summaryNote": "\"CSIRO Publishing operates as an editorially independent science publisher within the Commonwealth Scientific and Industrial Research Organisation (CSIRO). Established as a stand-alone business unit in 1995, our internationally recognised publishing program covers a wide range of scientific disciplines, including agriculture, plant and animal sciences, chemistry, health and the environment.\r\nOur product range includes journals, books and magazines both in digital and print formats and we have a global reputation for quality and excellence. Our journals are all peer-reviewed, and many have been publishing articles for over 40 years.\" (from https://www.publish.csiro.au/aboutus 26/2/19)", "recordAppendDate": "2019-08-13 13:52:37", "url": "https://www.publish.csiro.au/aboutus", "preparedBy": "#Helen Cohn", "birthPlace": "#Clayton", "birthState": "#Victoria", "targetOf": "['#P006531-A002081', '#P006531-P006687']", "sourceOf": "['#P006687-P006531', '#A002081-P006531']"}}, {"id": "#HASB01219", "name": "Miserable as an Orphan Bandicoot on a Burnt Ridge: Australian Natural History and the Australian Language", "val": 6.0, "color": "#e15759", "degree": 1, "properties": {"identifier": "HASB01219", "name": "Miserable as an Orphan Bandicoot on a Burnt Ridge: Australian Natural History and the Australian Language", "author": "Balmford, Rosemary", "publicationYear": "1993", "secondaryAuthor": "A.R. McEvey", "secondaryTitle": "Naturae; no. 3", "publisher": "Centre for Bibliographical and Textual Studies, Monash University", "numberOfPages": "24", "referenceSource": "Carlson 1993", "classification": "History of Australian Science - General", "recordLastModified": "2002-10-28 15:07:45", "place": "#Clayton"}}, {"id": "#HASB06248", "name": "Engineering a Legacy: Memories of the Journey of CSIRO Chemical Engineering", "val": 6.0, "color": "#e15759", "degree": 1, "properties": {"identifier": "HASB06248", "name": "Engineering a Legacy: Memories of the Journey of CSIRO Chemical Engineering", "author": "Beale, Bob", "publicationYear": "2005", "publisher": "CSIRO Minerals", "numberOfPages": "124", "isbn_issn": "0643091637", "referenceSource": "Horacek 2005", "classification": "Chronological Classification 1901- Applied Sciences Engineering and Technology", "contentLanguage": "English", "recordAppendDate": "2006-02-14 11:15:44", "recordLastModified": "2014-05-20 09:44:30", "catalogueId": "27735348", "outputStatus": "EUCA", "preparedBy": "#John Horacek", "place": "#Clayton"}}, {"id": "#HASB01689", "name": "Major Mitchell's 1836 'Australia Felix' Expedition: a Re-evaluation", "val": 6.0, "color": "#e15759", "degree": 1, "properties": {"identifier": "HASB01689", "name": "Major Mitchell's 1836 'Australia Felix' Expedition: a Re-evaluation", "author": "Eccleston, Gregory C.", "publicationYear": "1992", "publisher": "Department of Geography and Environmental Science, Monash University", "numberOfPages": "176", "referenceSource": "Carlson 1992", "classification": "Chronological Classification 1788-1900 Natural Sciences Earth Sciences", "recordLastModified": "2002-10-28 14:57:55", "place": "#Clayton"}}, {"id": "#A001737", "name": "Centre for Green Chemistry", "val": 7.656854249492381, "color": "#4e79a7", "degree": 2, "properties": {"identifier": "A001737", "name": "Centre for Green Chemistry", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "startDate": "2000", "startDateISOString": "2000-01-01 00:00:00", "function": "Education, Chemical Industries", "summaryNote": "The Centre for Green Chemistry is part of Monash University's School of Chemistry, in the Faculty of Science. It is a Special Research Centre, funded by the Australian Research Council.", "processingNotes": "Former URL: http://web.chem.monash.edu.au/GreenChem/", "recordAppendDate": "2002-02-13 10:05:12", "url": "http://www.chem.monash.edu.au/green-chem/", "online": "True", "x_efunction": "Education, Chemical industry", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001737-ASAF054', '#A001737-ASAF086', '#A001736-A001737', '#P001431-A001737', '#P006449-A001737']", "targetOf": "['#A001737-A001736', '#A001737-P001431', '#A001737-P006449']"}}, {"id": "#A001915", "name": "Research Data Network CRC", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A001915", "name": "Research Data Network CRC", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "startDate": "1 April 1994", "startDateISOString": "1994-04-01 00:00:00", "endDate": "1998", "endDateISOString": "1998-12-31 00:00:00", "function": "Computer Technology or Multimedia, Communications, Information technology", "summaryNote": "The Research Data Network CRC was established in April 1994. The research carried out by the CRC included areas such as networking architectures, broadband networking and multimedia information services. The CRC ceased operations in 1998", "processingNotes": "no longer exists\r\n2018-07-31 ED updated incorrect date in summary note to 1998 from 1988 in light of email from member of the public.", "recordAppendDate": "2002-05-08 11:41:37", "epub": "True", "online": "True", "x_efunction": "Computer Technology or Multimedia, Communications, Information technology", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001915-ASAF078', '#A001915-ASAF036', '#A001915-ASAF104', '#A001889-A001915', '#A000049-A001915', '#A000258-A001915', '#A000778-A001915', '#A000240-A001915', '#A001898-A001915']", "targetOf": "['#A001915-A000049', '#A001915-A000240', '#A001915-A000258', '#A001915-A000778', '#A001915-A001889', '#A001915-A001898']"}}, {"id": "#A001734", "name": "Department of Psychology", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A001734", "name": "Department of Psychology", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "startDateModifier": "?", "function": "Education, Medical Research", "summaryNote": "Monash University's Department of Psychology was part of the Faculty of Science up until 2001, when it became part of the School of Psychology, Psychiatry & Psychological Medicine in the Faculty of Medicine, Nursing and Health Sciences.", "recordAppendDate": "2002-02-13 10:03:55", "online": "True", "x_efunction": "Education, Medical Research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001734-ASAF054', '#A001734-ASAF030', '#A000101-A001734']", "targetOf": "#A001734-A000101"}}, {"id": "#HASB02397", "name": "Twenty Five Years of Chemistry at Monash, 1961-1985", "val": 6.0, "color": "#e15759", "degree": 1, "properties": {"identifier": "HASB02397", "name": "Twenty Five Years of Chemistry at Monash, 1961-1985", "publicationYear": "1986", "publisher": "Department of Chemistry, Monash University", "numberOfPages": "48", "referenceSource": "Carlson 1985", "classification": "Chronological Classification 1901- Natural Sciences Physical Sciences", "recordLastModified": "2002-10-24 15:08:52", "place": "#Clayton"}}, {"id": "#HASB06071", "name": "Chemistry at Monash University, 1986-2003: Compiled and Edited by David J. Collins, Assisted by Ernest K. Nunn and Nicola H. Williams", "val": 6.0, "color": "#e15759", "degree": 1, "properties": {"identifier": "HASB06071", "name": "Chemistry at Monash University, 1986-2003: Compiled and Edited by David J. Collins, Assisted by Ernest K. Nunn and Nicola H. Williams", "author": "Collins, David J.", "publicationYear": "2005", "publisher": "School of Chemistry, Monash University", "numberOfPages": "150", "referenceSource": "Horacek 2005", "classification": "Chronological Classification 1901- Natural Sciences Physical Sciences", "contentLanguage": "English", "recordAppendDate": "2005-11-29 15:26:25", "recordLastModified": "2006-10-31 09:32:02", "preparedBy": "#John Horacek", "place": "#Clayton"}}, {"id": "#A001723", "name": "School of Geography and Environmental Science", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A001723", "name": "School of Geography and Environmental Science", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "function": "Education, Earth Sciences, Conservation or Environment", "summaryNote": "The School of Geography and Environmental Science is located on Monash University's Clayton campus. The School is part of the Faculty of Arts.", "recordAppendDate": "2002-02-12 13:59:05", "url": "http://www.arts.monash.edu.au/ges/", "online": "True", "x_efunction": "Education, Earth science, Environmental conservation", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001723-ASAF054', '#A001723-ASAF042', '#A001723-ASAF002', '#A000059-A001723']", "targetOf": "#A001723-A000059"}}, {"id": "#A000915", "name": "CRC for Southern Hemisphere Meteorology", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A000915", "name": "CRC for Southern Hemisphere Meteorology", "alsoKnownAs": "#A000915_alsoKnownAs", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "startDate": "July 1993", "startDateISOString": "1993-07-01 00:00:00", "endDate": "30 June 2000", "endDateISOString": "2000-06-30 00:00:00", "function": "Meteorology, Industrial or scientific research", "summaryNote": "The Cooperative Research Centre for Southern Hemisphere Meteorology was established in July 1993 as a joint venture between Monash University, the Bureau of Meteorology, the CSIRO's Division of Atmospheric Research and Division of Telecommunications and Industrial Physics as well as Silicon Graphics (Australia) Pty Ltd. The Centre undertook research, along with graduate training in meteorological sciences, and was located at Monash University's Clayton campus.", "processingNotes": "Former URL: http://www.shm.monash.edu.au\r\n\r\n23/03/2010 AS - removed URL http://www.environmentdirectory.com.au/research/crcshm.html", "recordAppendDate": "2001-02-19 10:37:02", "epub": "True", "online": "True", "x_efunction": "Meteorology, Industrial or scientific research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A000915-ASAF003', '#A000915-ASAF001', '#A000909-A000915', '#A000049-A000915', '#A000591-A000915', '#A000746-A000915', '#A001898-A000915', '#P000818-A000915', '#P004985-A000915']", "targetOf": "['#A000915-A000049', '#A000915-A000591', '#A000915-A000746', '#A000915-A000909', '#A000915-A001898', '#A000915-P000818', '#A000915-P004985']"}}, {"id": "#A001701", "name": "Centre for Telecommunications and Information Engineering (CTIE)", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A001701", "name": "Centre for Telecommunications and Information Engineering (CTIE)", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "startDate": "1993", "startDateISOString": "1993-01-01 00:00:00", "function": "Education, Telecommunications, Information technology", "summaryNote": "The Centre for Telecommunications and Information Engineering (CTIE) at Monash University was established in 1993. From their Web site, January 2002: \"The group carries out leading edge research, works collaboratively with and consults for key industry sectors, cultural institutions, organisations in health, the environment, and government, and provides professional training courses.\"", "recordAppendDate": "2002-01-31 11:03:56", "url": "http://www.ctie.monash.edu.au", "online": "True", "x_efunction": "Education, Telecommunications, Information technology", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001701-ASAF054', '#A001701-ASAF015', '#A001701-ASAF104']"}}, {"id": "#A001727", "name": "Department of Mechanical Engineering", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A001727", "name": "Department of Mechanical Engineering", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "function": "Education, Engineering Industry", "summaryNote": "Monash University's Department of Mechanical Engineering is part of the Faculty of Engineering. The Department teaches at three of Monash University's Victorian campuses - Clayton, Caulfield and Gippsland - as well as the international campus in Malaysia.", "processingNotes": "Former URL: http://www.monash.edu.au/mecheng/", "recordAppendDate": "2002-02-12 15:20:27", "url": "http://www.eng.monash.edu.au/mecheng/", "online": "True", "x_efunction": "Education, Engineering Industry", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001727-ASAF054', '#A001727-ASAF099', '#A000056-A001727']", "targetOf": "#A001727-A000056"}}, {"id": "#A001730", "name": "Faculty of Medicine", "val": 10.0, "color": "#4e79a7", "degree": 4, "properties": {"identifier": "A001730", "name": "Faculty of Medicine", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "startDate": "1962", "startDateISOString": "1962-01-01 00:00:00", "endDate": "2001", "endDateModifier": "c", "endDateISOString": "2001-12-31 00:00:00", "function": "Education, Medical Research", "summaryNote": "The Faculty of Medicine at Monash University was replaced by the Faculty of Medicine, Nursing and Health Sciences in 2001.", "recordAppendDate": "2002-02-12 16:42:04", "online": "True", "x_efunction": "Education, Medical Research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001730-ASAF054', '#A001730-ASAF030', '#A001722-A001730', '#A001725-A001730', '#A001733-A001730', '#A000049-A001730', '#A001731-A001730', '#P000015-A001730']", "targetOf": "['#A001730-A000049', '#A001730-A001722', '#A001730-A001725', '#A001730-A001731', '#A001730-A001733', '#A001730-P000015']"}}, {"id": "#A001736", "name": "School of Chemistry", "val": 8.928203230275509, "color": "#4e79a7", "degree": 3, "properties": {"identifier": "A001736", "name": "School of Chemistry", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "startDate": "2001", "startDateModifier": "c", "startDateISOString": "2001-01-01 00:00:00", "function": "Education, Industrial or scientific research", "summaryNote": "The School of Chemistry is one of six schools in Monash University's Faculty of Science. The School appears to have replaced the Department of Chemistry in 2001. The School of Chemistry is one of the leading teaching and research schools in Australia. It is affiliated with a number of important research centres, is host to the ARC Centre for Green Chemistry and the Water Studies Centre, and is committed to ongoing involvement with Australian industry.", "processingNotes": "By looking at Monash University handbooks from past years, it appears that the School of Chemistry replaces the Department of Chemistry in 2001.\r\nFormer URL:http://web.chem.monash.edu.au/Department/HomePage/", "recordAppendDate": "2002-02-13 10:04:48", "url": "http://www.chem.monash.edu.au/", "epub": "True", "online": "True", "x_efunction": "Education, Industrial or scientific research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001736-ASAF054', '#A001736-ASAF001', '#A001737-A001736', '#A000101-A001736', '#A001732-A001736']", "targetOf": "['#A001736-A000101', '#A001736-A001732', '#A001736-A001737']"}}, {"id": "#A000627", "name": "CSIRO Minerals Division", "val": 7.656854249492381, "color": "#4e79a7", "degree": 2, "properties": {"identifier": "A000627", "name": "CSIRO Minerals Division", "alsoKnownAs": "#A000627_alsoKnownAs", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Commonwealth Scientific and Industrial Research Organisation", "startDate": "1995", "startDateModifier": "c", "startDateISOString": "1995-01-01 00:00:00", "function": "Industrial or scientific research, Metallurgy, Mineralogy or mining", "summaryNote": "The Division of Minerals and Process Engineering became the Minerals Division in 1995, when the CSIRO underwent a major structural changes.", "recordAppendDate": "2000-06-22 11:29:44", "url": "http://www.minerals.csiro.au/", "online": "True", "x_efunction": "Industrial or scientific research, Metallurgy, Mineralogy or mining", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A000627-ASAF001', '#A000627-ASAF118', '#A000627-ASAF119', '#P005899-A000627', '#A000626-A000627', '#P005135-A000627', '#P005144-A000627', '#A001919-A000627', '#A001921-A000627', '#A001917-A000627', '#A000698-A000627', '#A000196-A000627', '#P004967-A000627']", "targetOf": "['#A000627-A000196', '#A000627-A000626', '#A000627-A000698', '#A000627-A001917', '#A000627-A001919', '#A000627-A001921', '#A000627-P004967', '#A000627-P005135', '#A000627-P005144', '#A000627-P005899']"}}, {"id": "#A000571", "name": "CSIRO Division of Chemical and Wood Technology", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A000571", "name": "CSIRO Division of Chemical and Wood Technology", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Commonwealth Scientific and Industrial Research Organisation", "legalNumber": "CA 4558", "startDate": "1 July 1983", "startDateISOString": "1983-07-01 00:00:00", "endDate": "1988", "endDateISOString": "1988-12-31 00:00:00", "legalStatus": "Agency of the Commonwealth of Australia", "function": "Chemical Industries, Forest or Timber Industries, Industrial or Scientific Research", "summaryNote": "The Commonwealth Scientific and Research Organisation's (CSIRO) Division of Chemical and Wood Technology was established in 1983. The Division undertook research in areas such as wood science, wood preservation, fibre separation and pulping.", "processingNotes": "No idea what came next", "recordAppendDate": "2000-06-15 10:36:55", "online": "True", "x_efunction": "Chemical industry, Forest and timber industries, Industrial or scientific research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A000571-ASAF086', '#A000571-ASAF096', '#A000571-ASAF001', '#A000752-A000571', '#A000196-A000571', '#P004980-A000571']", "targetOf": "['#A000571-A000196', '#A000571-A000752', '#A000571-P004980']"}}, {"id": "#A000626", "name": "CSIRO Division of Mineral and Process Engineering", "val": 8.928203230275509, "color": "#4e79a7", "degree": 3, "properties": {"identifier": "A000626", "name": "CSIRO Division of Mineral and Process Engineering", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Commonwealth Scientific and Industrial Research Organisation", "startDate": "1987", "startDateISOString": "1987-01-01 00:00:00", "endDate": "1995", "endDateISOString": "1995-12-31 00:00:00", "function": "Industrial or scientific research, Resources", "summaryNote": "In 1987 the CSRIO Divisions of Mineral Engineering and Mineral Chemistry came together, forming the Division of Mineral and Process Engineering. The Division later became the Minerals Division.", "recordAppendDate": "2000-06-22 11:15:55", "online": "True", "x_efunction": "Industrial or scientific research, Resources", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A000626-ASAF001', '#A000626-ASAF018', '#A000625-A000626', '#A000619-A000626', '#A000627-A000626', '#P005150-A000626', '#A000639-A000626', '#A000196-A000626']", "targetOf": "['#A000626-A000196', '#A000626-A000619', '#A000626-A000625', '#A000626-A000627', '#A000626-A000639', '#A000626-P005150']"}}, {"id": "#A001714", "name": "Monash Institute of Reproduction and Development", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A001714", "name": "Monash Institute of Reproduction and Development", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "startDate": "1991", "startDateISOString": "1991-01-01 00:00:00", "endDate": "1 February 2005", "endDateISOString": "2005-02-01 00:00:00", "function": "Education, Medical Research", "summaryNote": "Located in the Monash Medical Centre and part of the Monash University Faculty of Medicine, the Monash Institute of Reproduction and Development was established in 1991. The Institute conducts both medical and biological research into the areas of reproduction and growth.\r\n\r\nOn February 1, 2005, in recognition of the evolution of its research beyond reproduction and development, MIRD became Monash Institute of Medical Research (MIMR).", "processingNotes": "23/03/2010 AS - Removed URL http://www.monashinstitute.org", "recordAppendDate": "2002-02-12 10:24:43", "online": "True", "x_efunction": "Education, Medical Research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001714-ASAF054', '#A001714-ASAF030', '#A002296-A001714', '#A000049-A001714']", "targetOf": "['#A001714-A000049', '#A001714-A002296']"}}, {"id": "#A001837", "name": "Department of Digital Systems", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A001837", "name": "Department of Digital Systems", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "startDate": "1996", "startDateISOString": "1996-01-01 00:00:00", "endDate": "1998", "endDateISOString": "1998-12-31 00:00:00", "function": "Education, Computer Technology or Multimedia", "summaryNote": "In 1996 the Department of Digital Systems was created following a renaming of the Department of Robotics and Digital Technology. In 1998 a merger took place between several of Monash University's technical departments, forming the School of Computer Science and Software Engineering.", "recordAppendDate": "2002-03-06 09:47:38", "online": "True", "x_efunction": "Education, Computer Technology or Multimedia", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001837-ASAF054', '#A001837-ASAF078', '#A000062-A001837', '#A000050-A001837']", "targetOf": "['#A001837-A000050', '#A001837-A000062']"}}, {"id": "#A000364", "name": "Austral Standard Cables Pty Ltd", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A000364", "name": "Austral Standard Cables Pty Ltd", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "startDate": "1948", "startDateISOString": "1948-01-01 00:00:00", "endDate": "1988", "endDateISOString": "1988-12-31 00:00:00", "function": "Manufacturing industry, Telecommunications", "summaryNote": "Austral Standard Cables Pty Ltd was established in 1948 and manufactured telecommunication cable and wire. On 21 October 1988 the company was taken over by Metal Manufacturers and renamed as MM Cables Telecommunications. It had branches in Moorebank Avenue (closed circa 1991) and Heathcote Road in Liverpool, New South Wales and one in Clayton, Victoria.", "reference": "<i>Business Who's Who of Australia<\/i> 1979", "recordAppendDate": "2000-04-27 09:47:51", "online": "True", "x_efunction": "Manufacturing industry, Telecommunications", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A000364-ASAF062', '#A000364-ASAF015', '#A002276-A000364']", "targetOf": "#A000364-A002276"}}, {"id": "#A001740", "name": "School of Business Systems", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A001740", "name": "School of Business Systems", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Monash University", "startDateModifier": "?", "endDateModifier": "?", "function": "Education, Social or Economic Research", "summaryNote": "Monash University's School of Business Systems is one of six schools in the Faculty of Information technology. In 2002 there are approximately 650 full-time students enrolled in courses taught by the School. The Faculty of Information technology appears to have been restructured with all former schools being closed. Therefore the School of Business Systems appears to no longer be a separate entity, instead it is a study / research area within the faculty.", "reference": "http://www.bs.monash.edu.au (accessed 2002);\r\nhttp://www.infotech.monash.edu.au/ (accessed February 2006).", "processingNotes": "20 December 2011: URL http://www.bs.monash.edu.au removed because link was broken", "recordAppendDate": "2002-02-13 11:03:14", "online": "True", "x_efunction": "Education, Social or Economic Research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001740-ASAF054', '#A001740-ASAF059', '#A001729-A001740']", "targetOf": "#A001740-A001729"}}, {"id": "#HASB02917", "name": "Australian Plants, the Garden and Botany in the Nineteenth Century Periodical", "val": 6.0, "color": "#e15759", "degree": 1, "properties": {"identifier": "HASB02917", "name": "Australian Plants, the Garden and Botany in the Nineteenth Century Periodical", "author": "Cohn, Helen M.", "publicationYear": "1995", "publisher": "Centre for Bibliographical and Textual Studies", "numberOfPages": "27", "referenceSource": "Carlson 1995", "classification": "Chronological Classification 1788-1900 Natural Sciences Biological Sciences", "place": "#Clayton"}}, {"id": "#A000646", "name": "CSIRO Chemical Engineering Section", "val": 7.656854249492381, "color": "#4e79a7", "degree": 2, "properties": {"identifier": "A000646", "name": "CSIRO Chemical Engineering Section", "alsoKnownAs": "[]", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "subName": "Commonwealth Scientific and Industrial Research Organisation", "startDate": "1941", "startDateModifier": "c", "startDateISOString": "1941-01-01 00:00:00", "endDate": "1962", "endDateModifier": "c", "endDateISOString": "1962-12-31 00:00:00", "function": "Industrial or scientific research, Engineering Industry", "summaryNote": "The Chemical Engineering Section was originally part of the Division of Industrial Chemistry. In the early 1960s the Section was granted Divisional status, becoming the Division of Chemical Engineering.", "recordAppendDate": "2000-06-28 13:08:06", "epub": "True", "online": "True", "x_efunction": "Industrial or scientific research, Engineering Industry", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A000646-ASAF001', '#A000646-ASAF099', '#A000572-A000646', '#A000578-A000646', '#A000196-A000646']", "targetOf": "['#A000646-A000196', '#A000646-A000572', '#A000646-A000578']"}}, {"id": "#A001931", "name": "CRC for Hardwood Fibre and Paper Science", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A001931", "name": "CRC for Hardwood Fibre and Paper Science", "alsoKnownAs": "#A001931_alsoKnownAs", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "startDate": "1 April 1992", "startDateISOString": "1992-04-01 00:00:00", "endDate": "1998", "endDateISOString": "1998-12-31 00:00:00", "function": "Paper or Pulp Industry, Industrial or scientific research", "summaryNote": "The Cooperative Research Centre (CRC) for Hardwood Fibre and Paper Science was formed in April 1992. Research areas covered by the CRC included pulp and paper technology, physics and chemistry, chemical engineering, process and resource modelling, forest economics and tree physiology. In 1998 the CRC ceased to exist.", "processingNotes": "no longer exists", "recordAppendDate": "2002-05-08 12:08:03", "epub": "True", "online": "True", "x_efunction": "Paper or Pulp Industry, Industrial or scientific research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001931-ASAF120', '#A001931-ASAF001', '#A000055-A001931', '#A000003-A001931', '#A001686-A001931', '#A000049-A001931', '#A001898-A001931']", "targetOf": "['#A001931-A000003', '#A001931-A000049', '#A001931-A000055', '#A001931-A001686', '#A001931-A001898']"}}, {"id": "#HASB00470", "name": "Mr. Prince: John Gould's Invaluable Secretary", "val": 6.0, "color": "#e15759", "degree": 1, "properties": {"identifier": "HASB00470", "name": "Mr. Prince: John Gould's Invaluable Secretary", "author": "Lambourne, Maureen and Jackson, Christine E.", "publicationYear": "1993", "publisher": "Centre for Bibliographical and Textual Studies, Monash University", "numberOfPages": "27", "referenceSource": "Carlson 1994", "classification": "Chronological Classification 1788-1900 Natural Sciences Biological Sciences", "recordLastModified": "2002-10-28 15:38:11", "place": "#Clayton"}}, {"id": "#A001944", "name": "CRC for Catchment Hydrology", "val": 6.0, "color": "#4e79a7", "degree": 1, "properties": {"identifier": "A001944", "name": "CRC for Catchment Hydrology", "alsoKnownAs": "#A001944_alsoKnownAs", "relatedEvents": "[]", "countryCode": "AUS", "organisationCode": "AUSTEHC", "startDate": "1 July 1992", "startDateISOString": "1992-07-01 00:00:00", "endDate": "2005", "endDateISOString": "2005-12-31 00:00:00", "function": "Conservation or Environment, Industrial or Scientific Research", "summaryNote": "The Cooperative Research Centre (CRC) for Catchment Hydrology was formed in July 1992. Areas of research that the CRC specialises in include catchment hydrology, soil physics, vegetation dynamics, flood estimation, river hydraulics and irrigation and drainage. From their Web site, June 2002: \"The CRC for Catchment Hydrology aims to deliver the capability to manage catchments in a totally new way. Our central goal is to produce a decision support system able to predict the movement of water, particulates, and solutes from land to rivers, linking the impact of climate variability, vegetation, soil, and water management together in an integrated package. In 1999 it received a further seven years of funding.", "processingNotes": "10/08/2010 - Succeeded in 2005 by eWater CRC", "recordAppendDate": "2002-05-08 12:54:34", "url": "http://www.catchment.crc.org.au/", "epub": "True", "online": "True", "x_efunction": "Environmental conservation, Industrial or scientific research", "preparedBy": "#Ailie Smith", "birthPlace": "#Clayton", "birthState": "#Victoria", "sourceOf": "['#A001944-ASAF002', '#A001944-ASAF001', '#A002280-A001944', '#A001898-A001944', '#P003431-A001944']", "targetOf": "['#A001944-A001898', '#A001944-A002280', '#A001944-P003431']"}}], "links": [{"source": "#A000364", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A000571", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A000572", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A000583", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A000625", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A000626", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A000627", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A000646", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A000655", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A000742", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A000766", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A000915", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001380", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001676", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001677", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001701", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001714", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001723", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001725", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001726", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001727", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001730", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001731", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001732", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001733", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001734", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001736", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001737", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001740", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001837", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001915", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001931", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001944", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A001964", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A002211", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#P006531", "target": "#Clayton", "type": "birthPlace", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#HASB00470", "target": "#Clayton", "type": "place", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#HASB01219", "target": "#Clayton", "type": "place", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#HASB01675", "target": "#Clayton", "type": "place", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#HASB01689", "target": "#Clayton", "type": "place", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#HASB02397", "target": "#Clayton", "type": "place", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#HASB02917", "target": "#Clayton", "type": "place", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#HASB06071", "target": "#Clayton", "type": "place", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#HASB06248", "target": "#Clayton", "type": "place", "properties": {}, "bidirectional": false, "width": 0.4}, {"source": "#A000572", "target": "#A000646", "type": "Subsequent", "properties": {"identifier": "A000646-A000572", "name": "CSIRO Division of Chemical Engineering -> Relationship, Subsequent -> CSIRO Chemical Engineering Section", "description": "None", "recordAppendDate": "2000-06-28 13:11:16", "recordLastModified": "2000-06-28 13:11:16", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A000572", "target": "#A000625", "type": "Previous", "properties": {"identifier": "A000625-A000572", "name": "CSIRO Division of Chemical Engineering -> Relationship, Previous -> CSIRO Division of Mineral Engineering", "description": "None", "recordAppendDate": "2000-06-22 11:20:44", "recordLastModified": "2000-06-22 11:21:06", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A000583", "target": "#A000655", "type": "Subsequent", "properties": {"identifier": "A000655-A000583", "name": "CSIRO Division of Materials Science and Technology -> Relationship, Subsequent -> CSIRO Division of Materials Science", "description": "None", "recordAppendDate": "2000-06-28 15:35:26", "recordLastModified": "2000-06-28 15:35:26", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A000583", "target": "#A000766", "type": "Previous", "properties": {"identifier": "A000766-A000583", "name": "CSIRO Division of Materials Science and Technology -> Relationship, Previous -> CSIRO Division of Manufacturing Science and Technology", "description": "None", "recordAppendDate": "2000-09-20 14:53:40", "recordLastModified": "2000-09-20 14:53:40", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A000625", "target": "#A000626", "type": "Previous", "properties": {"identifier": "A000626-A000625", "name": "CSIRO Division of Mineral Engineering -> Relationship, Previous -> CSIRO Division of Mineral and Process Engineering", "description": "None", "recordAppendDate": "2000-06-22 11:18:07", "recordLastModified": "2000-06-22 11:18:54", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A000625", "target": "#A000572", "type": "Subsequent", "properties": {"identifier": "A000572-A000625", "name": "CSIRO Division of Mineral Engineering -> Relationship, Subsequent -> CSIRO Division of Chemical Engineering", "description": "None", "recordAppendDate": "2000-06-22 11:21:08", "recordLastModified": "2000-06-22 11:21:08", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A000626", "target": "#A000625", "type": "Subsequent", "properties": {"identifier": "A000625-A000626", "name": "CSIRO Division of Mineral and Process Engineering -> Relationship, Subsequent -> CSIRO Division of Mineral Engineering", "description": "None", "recordAppendDate": "2000-06-22 11:18:56", "recordLastModified": "2000-06-22 11:18:56", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A000626", "target": "#A000627", "type": "Previous", "properties": {"identifier": "A000627-A000626", "name": "CSIRO Division of Mineral and Process Engineering -> Relationship, Previous -> CSIRO Minerals Division", "description": "None", "recordAppendDate": "2000-06-22 11:30:13", "recordLastModified": "2000-06-22 11:30:58", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A000627", "target": "#A000626", "type": "Subsequent", "properties": {"identifier": "A000626-A000627", "name": "CSIRO Minerals Division -> Relationship, Subsequent -> CSIRO Division of Mineral and Process Engineering", "description": "None", "recordAppendDate": "2000-06-22 11:31:00", "recordLastModified": "2000-06-22 11:31:00", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A000646", "target": "#A000572", "type": "Previous", "properties": {"identifier": "A000572-A000646", "name": "CSIRO Chemical Engineering Section -> Relationship, Previous -> CSIRO Division of Chemical Engineering", "description": "None", "recordAppendDate": "2000-06-28 13:10:54", "recordLastModified": "2000-06-28 13:11:11", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A000655", "target": "#A000583", "type": "Previous", "properties": {"identifier": "A000583-A000655", "name": "CSIRO Division of Materials Science -> Relationship, Previous -> CSIRO Division of Materials Science and Technology", "description": "None", "recordAppendDate": "2000-06-28 15:33:51", "recordLastModified": "2000-06-28 15:35:23", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A000742", "target": "#A001964", "type": "Participant", "properties": {"identifier": "A001964-A000742", "name": "CSIRO Division of Molecular Science -> Relationship, Participant -> CRC for Functional Communications Surfaces", "description": "None", "recordAppendDate": "2014-05-14 17:26:42", "recordLastModified": "2014-05-14 17:26:42", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A000766", "target": "#A000583", "type": "Subsequent", "properties": {"identifier": "A000583-A000766", "name": "CSIRO Division of Manufacturing Science and Technology -> Relationship, Subsequent -> CSIRO Division of Materials Science and Technology", "description": "None", "recordAppendDate": "2000-09-20 14:53:28", "recordLastModified": "2000-09-20 14:53:36", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A001725", "target": "#A001730", "type": "Subsequent", "properties": {"identifier": "A001730-A001725", "name": "Faculty of Medicine, Nursing and Health Sciences -> Relationship, Subsequent -> Faculty of Medicine", "description": "None", "recordAppendDate": "2002-02-12 16:42:54", "recordLastModified": "2002-02-12 16:43:33", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A001725", "target": "#A001733", "type": "Superior", "properties": {"identifier": "A001733-A001725", "name": "Faculty of Medicine, Nursing and Health Sciences -> Relationship, Superior -> Department of Physiology", "description": "None", "startDate": "2001", "startDateModifier": "c", "startDateISOString": "2001-01-01 00:00:00", "recordAppendDate": "2002-02-13 10:43:47", "recordLastModified": "2002-02-13 10:44:24", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A001730", "target": "#A001725", "type": "Previous", "properties": {"identifier": "A001725-A001730", "name": "Faculty of Medicine -> Relationship, Previous -> Faculty of Medicine, Nursing and Health Sciences", "description": "None", "recordAppendDate": "2002-02-12 16:43:37", "recordLastModified": "2002-02-12 16:43:37", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A001730", "target": "#A001733", "type": "Superior", "properties": {"identifier": "A001733-A001730", "name": "Faculty of Medicine -> Relationship, Superior -> Department of Physiology", "description": "None", "recordAppendDate": "2002-02-13 10:43:13", "recordLastModified": "2007-07-31 14:44:57", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A001730", "target": "#A001731", "type": "Superior", "properties": {"identifier": "A001731-A001730", "name": "Faculty of Medicine -> Relationship, Superior -> Centre for Human Development", "description": "None", "recordAppendDate": "2002-02-21 10:34:56", "recordLastModified": "2002-02-21 10:35:02", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A001731", "target": "#A001730", "type": "Subordinate", "properties": {"identifier": "A001730-A001731", "name": "Centre for Human Development -> Relationship, Subordinate -> Faculty of Medicine", "description": "None", "recordAppendDate": "2002-02-21 10:35:04", "recordLastModified": "2002-02-21 10:35:04", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A001732", "target": "#A001736", "type": "Previous", "properties": {"identifier": "A001736-A001732", "name": "Department of Chemistry -> Relationship, Previous -> School of Chemistry", "description": "None", "recordAppendDate": "2002-02-13 10:49:14", "recordLastModified": "2002-02-13 10:49:14", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A001733", "target": "#A001730", "type": "Subordinate", "properties": {"identifier": "A001730-A001733", "name": "Department of Physiology -> Relationship, Subordinate -> Faculty of Medicine", "description": "None", "recordAppendDate": "2002-02-13 10:43:44", "recordLastModified": "2007-07-31 14:44:56", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A001733", "target": "#A001725", "type": "Subordinate", "properties": {"identifier": "A001725-A001733", "name": "Department of Physiology -> Relationship, Subordinate -> Faculty of Medicine, Nursing and Health Sciences", "description": "None", "recordAppendDate": "2002-02-13 10:44:26", "recordLastModified": "2002-02-13 10:44:26", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A001736", "target": "#A001737", "type": "Superior", "properties": {"identifier": "A001737-A001736", "name": "School of Chemistry -> Relationship, Superior -> Centre for Green Chemistry", "description": "None", "recordAppendDate": "2002-02-13 10:24:43", "recordLastModified": "2002-02-13 10:25:01", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A001736", "target": "#A001732", "type": "Subsequent", "properties": {"identifier": "A001732-A001736", "name": "School of Chemistry -> Relationship, Subsequent -> Department of Chemistry", "description": "None", "recordAppendDate": "2002-02-13 10:49:04", "recordLastModified": "2002-02-13 10:49:12", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A001737", "target": "#A001736", "type": "Subordinate", "properties": {"identifier": "A001736-A001737", "name": "Centre for Green Chemistry -> Relationship, Subordinate -> School of Chemistry", "description": "None", "recordAppendDate": "2002-02-13 10:25:06", "recordLastModified": "2002-02-13 10:25:06", "reorder": "0"}, "bidirectional": false, "width": 0.4}, {"source": "#A001964", "target": "#A000742", "type": "Participates_in", "properties": {"identifier": "A000742-A001964", "name": "CRC for Functional Communications Surfaces -> Relationship, Participates_in -> CSIRO Division of Molecular Science", "description": "None", "recordAppendDate": "2002-06-05 10:05:22", "recordLastModified": "2014-05-14 17:26:41", "reorder": "0"}, "bidirectional": false, "width": 0.4}]};
+
+    // State
+    let Graph3D = null;
+    let isDarkMode = false;
+    let isRotating = false;
+    let rotationAnimationId = null;
+    const highlightedNodes = new Set();
+    const highlightedLinks = new Set();
+    var nodeColourMap = {};
+    var colourEdgesBySource = false;
+
+    // HTML escaping to prevent XSS from entity data.
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(String(text)));
+        return div.innerHTML;
+    }
+
+    // Tooltip builder
+    function buildTooltip(title, properties) {
+        let html = '<div style="color: #1a1a1a; background: rgba(255, 255, 255, 0.95); ' +
+                   'padding: 8px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">' +
+                   '<b style="font-size: 14px;">' + escapeHtml(title) + '</b>';
+
+        if (properties && Object.keys(properties).length > 0) {
+            html += '<br/><span style="font-size: 12px;">';
+            for (const [key, value] of Object.entries(properties)) {
+                html += escapeHtml(key) + ': ' + escapeHtml(value) + '<br/>';
+            }
+            html += '</span>';
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    // Initialise graph
+    document.addEventListener('DOMContentLoaded', function() {
+        if (!graphData.nodes || graphData.nodes.length === 0) {
+            document.getElementById('graph-3d').innerHTML =
+                '<div style="padding: 20px;">No network data available</div>';
+            return;
+        }
+
+        // Build a colour lookup map so linkColor works before d3-force resolves references.
+        graphData.nodes.forEach(function(n) { nodeColourMap[n.id] = n.color; });
+
+        Graph3D = ForceGraph3D()
+            (document.getElementById('graph-3d'))
+            .graphData(graphData)
+
+            // Nodes
+            .nodeLabel(function(node) {
+                var props = Object.assign({}, node.properties || {});
+                props['Connections'] = node.degree;
+                return buildTooltip(node.name, props);
+            })
+            .nodeVal(function(node) { return node.val / 2; })
+            .nodeColor(function(node) { return node.color; })
+            .nodeOpacity(0.9)
+            .nodeResolution(16)
+
+            // Links
+            .linkLabel(function(link) {
+                var props = Object.assign({type: link.type}, link.properties || {});
+                return buildTooltip('Edge', props);
+            })
+            .linkWidth(function(link) { return link.width != null ? link.width : 0.4; })
+            .linkColor(function(link) {
+                var fallback = isDarkMode ? '#7DBAED' : '#5B9BD5';
+                if (!colourEdgesBySource) return fallback;
+                var srcId = link.source.id !== undefined ? link.source.id : link.source;
+                return nodeColourMap[srcId] || fallback;
+            })
+            .linkCurvature(0.25)
+            .linkCurveRotation(0)
+            .linkDirectionalArrowLength(0)
+            .linkOpacity(0.2)
+
+            // Scene
+            .backgroundColor('#f5f5f5')
+
+            // Interaction
+            .onNodeHover(function(node) {
+                document.body.style.cursor = node ? 'pointer' : 'default';
+            })
+            .onNodeClick(function(node) {
+                if (node) showNodeDetails(node);
+            })
+            .onBackgroundClick(function() {
+                hideNodeDetails();
+            });
+
+        // Spread nodes out — reduce centre gravity, increase repulsion.
+        Graph3D.d3Force('charge').strength(-120);
+        Graph3D.d3Force('center').strength(0.03);
+        var linkForce = Graph3D.d3Force('link');
+        if (linkForce) {
+            linkForce.distance(60);
+        }
+    });
+
+    // Node click: show details + highlight neighbourhood
+    function showNodeDetails(node) {
+        if (!Graph3D || !graphData) return;
+
+        highlightedNodes.clear();
+        highlightedLinks.clear();
+        highlightedNodes.add(node.id);
+
+        // Find neighbours
+        var neighbours = [];
+        graphData.links.forEach(function(link) {
+            var otherNodeId = null;
+            var direction = '';
+
+            if ((link.source.id !== undefined ? link.source.id : link.source) === node.id) {
+                otherNodeId = link.target.id !== undefined ? link.target.id : link.target;
+                direction = 'to';
+            } else if ((link.target.id !== undefined ? link.target.id : link.target) === node.id) {
+                otherNodeId = link.source.id !== undefined ? link.source.id : link.source;
+                direction = 'from';
+            }
+
+            if (otherNodeId !== null) {
+                highlightedNodes.add(otherNodeId);
+                highlightedLinks.add(link);
+
+                var otherNode = graphData.nodes.find(function(n) { return n.id === otherNodeId; });
+                if (otherNode) {
+                    neighbours.push({
+                        name: otherNode.name,
+                        direction: direction,
+                        linkProperties: link.properties || {}
+                    });
+                }
+            }
+        });
+
+        applyHighlighting();
+        updateDetailsPanel(node, neighbours);
+    }
+
+    function updateDetailsPanel(node, neighbours) {
+        var panel = document.getElementById('details-panel');
+        if (!panel) return;
+
+        var html = '<h6><span>' + escapeHtml(node.name) + '</span>' +
+            '<button onclick="hideNodeDetails()" ' +
+            'style="background: none; border: none; font-size: 18px; ' +
+            'cursor: pointer; color: #999; padding: 0; line-height: 1;">&times;</button></h6>';
+
+        // Show node properties
+        if (node.properties && Object.keys(node.properties).length > 0) {
+            for (var key in node.properties) {
+                html += '<div class="detail-row"><span class="detail-label">' +
+                    escapeHtml(key) + ':</span> ' + escapeHtml(node.properties[key]) + '</div>';
+            }
+        }
+
+        html += '<div class="detail-row"><span class="detail-label">Connections:</span> ' +
+            node.degree + '</div>';
+
+        // Show neighbours
+        if (neighbours.length > 0) {
+            html += '<div style="margin-top: 12px; border-top: 1px solid #e0e0e0; padding-top: 8px;">';
+            html += '<div style="font-size: 12px; font-weight: 600; color: #666; ' +
+                'text-transform: uppercase; margin-bottom: 4px;">Neighbours</div>';
+            neighbours.forEach(function(n) {
+                var arrow = n.direction === 'to' ? '&rarr;' : '&larr;';
+                html += '<div class="neighbour-item">' + arrow + ' ' + escapeHtml(n.name) + '</div>';
+            });
+            html += '</div>';
+        }
+
+        panel.innerHTML = html;
+        panel.style.display = 'block';
+    }
+
+    function hideNodeDetails() {
+        highlightedNodes.clear();
+        highlightedLinks.clear();
+        applyHighlighting();
+
+        var panel = document.getElementById('details-panel');
+        if (panel) panel.style.display = 'none';
+    }
+
+    // Highlighting
+    function applyHighlighting() {
+        if (!Graph3D) return;
+
+        var hasHighlight = highlightedNodes.size > 0;
+
+        Graph3D.nodeColor(function(node) {
+            if (!hasHighlight) return node.color;
+            if (highlightedNodes.has(node.id)) return node.color;
+            return isDarkMode ? '#505050' : '#d0d0d0';
+        });
+
+        Graph3D.linkColor(function(link) {
+            var fallback = isDarkMode ? '#7DBAED' : '#5B9BD5';
+            var srcColour = fallback;
+            if (colourEdgesBySource) {
+                var srcId = link.source.id !== undefined ? link.source.id : link.source;
+                srcColour = nodeColourMap[srcId] || fallback;
+            }
+            if (!hasHighlight) return srcColour;
+            if (highlightedLinks.has(link)) return srcColour;
+            return isDarkMode ? '#606060' : '#e8e8e8';
+        }).linkWidth(function(link) {
+            var base = link.width != null ? link.width : 0.4;
+            if (!hasHighlight) return base;
+            return highlightedLinks.has(link) ? base * 2 : 0.2;
+        });
+
+        if (hasHighlight) {
+            Graph3D.linkOpacity(1).linkMaterial(function(link) {
+                var opacity;
+                if (isDarkMode) {
+                    opacity = highlightedLinks.has(link) ? 0.7 : 0.05;
+                } else {
+                    opacity = highlightedLinks.has(link) ? 0.5 : 0.03;
+                }
+                return new THREE.MeshLambertMaterial({
+                    transparent: true,
+                    opacity: opacity
+                });
+            });
+        } else {
+            Graph3D.linkOpacity(isDarkMode ? 0.3 : 0.2)
+                .linkMaterial(null);
+        }
+    }
+
+    // Dark mode
+    function toggleDarkMode() {
+        if (!Graph3D) return;
+        isDarkMode = !isDarkMode;
+
+        var button = document.getElementById('dark-mode-toggle');
+        var rotateControl = document.getElementById('rotate-control');
+
+        if (isDarkMode) {
+            Graph3D.backgroundColor('#1a1a1a');
+            button.textContent = 'Light Mode';
+            button.classList.remove('dark');
+            rotateControl.classList.add('dark');
+        } else {
+            Graph3D.backgroundColor('#f5f5f5');
+            button.textContent = 'Dark Mode';
+            button.classList.add('dark');
+            rotateControl.classList.remove('dark');
+        }
+
+        Graph3D.refresh();
+        applyHighlighting();
+    }
+
+    // Auto-rotation
+    function toggleRotation() {
+        if (!Graph3D) return;
+        isRotating = document.getElementById('rotate-checkbox').checked;
+        if (isRotating) startRotation();
+        else stopRotation();
+    }
+
+    function startRotation() {
+        var initialPos = Graph3D.cameraPosition();
+        var distance = Math.sqrt(
+            initialPos.x * initialPos.x + initialPos.y * initialPos.y + initialPos.z * initialPos.z
+        );
+        var initialY = initialPos.y;
+        var angle = Math.atan2(initialPos.x, initialPos.z) * 180 / Math.PI;
+
+        function rotate() {
+            if (!isRotating) return;
+            angle += 0.3;
+
+            Graph3D.cameraPosition({
+                x: distance * Math.sin(angle * Math.PI / 180),
+                y: initialY,
+                z: distance * Math.cos(angle * Math.PI / 180)
+            }, null, 0);
+
+            rotationAnimationId = requestAnimationFrame(rotate);
+        }
+
+        rotate();
+    }
+
+    function stopRotation() {
+        if (rotationAnimationId) {
+            cancelAnimationFrame(rotationAnimationId);
+            rotationAnimationId = null;
+        }
+    }
+    </script>
+</body>
+</html>
