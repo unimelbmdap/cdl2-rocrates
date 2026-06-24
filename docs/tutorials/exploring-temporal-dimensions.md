@@ -250,10 +250,11 @@ could be read with `e.parse_year(...)` over a field of your choosing, or you can
 ## 7. A timeline across entity types
 
 So far we have used events, but the same date reading applies to every entity in the crate,
-so we can broaden the view. We select several kinds of record, let `convert_dates()` read
-the year off each, and give every type its own lane. Each entity becomes a point you can
-hover over for its title and year. (The title-based recovery in step 6 was specific to those
-event names; here we rely on the automatic reading.)
+so we can broaden the view. We select several kinds of record and let `convert_dates()` read
+the dates off each. Because it writes `start_date` as an ISO date, Plotly can place each
+entity straight onto a time axis, with one lane per type and no extra date wrangling. Each
+entity becomes a point you can hover over for its title, year and precision. (The title-based
+recovery in step 6 was specific to those event names; here we rely on the automatic reading.)
 
 ```python
 import plotly.express as px
@@ -261,13 +262,12 @@ import plotly.express as px
 types = ["Event", "Activity", "Organisation", "Academic_Unit"]
 dated = crate.select(entity_types=types).convert_dates(report=False)
 
-df = pd.DataFrame(dated.entity_records(columns=["label", "type", "year", "date_precision"]))
-df = df.dropna(subset=["year"])
-df["date"] = pd.to_datetime(df["year"].astype(int), format="%Y")
+df = pd.DataFrame(dated.entity_records(
+    columns=["label", "type", "start_date", "date_precision", "year"]))
 
 fig = px.scatter(
-    df, x="date", y="type", color="type", hover_name="label",
-    hover_data={"year": True, "date_precision": True, "type": False, "date": False},
+    df, x="start_date", y="type", color="type", hover_name="label",
+    hover_data={"year": True, "date_precision": True, "type": False, "start_date": False},
     category_orders={"type": types},
     title="University of Melbourne records through time, by type",
 )
