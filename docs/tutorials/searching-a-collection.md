@@ -55,7 +55,7 @@ crate.search("Sandy McCutchin", properties=["name"])
 ```
 
 ```
-Found 1 match(es) for "Sandy McCutchin":
+Found 1 match for "Sandy McCutchin":
 
    93  arcp://…/person/Presenter#Sandy_McCutcheon  (name: Sandy McCutcheon)
 Graph(1 entities, 0 relationships, source='data/ldaca/Australian Radio Talkback')
@@ -76,7 +76,7 @@ crate.search("McCutcheon")
 ```
 
 ```
-Found 3 match(es) for "McCutcheon":
+Found 3 matches for "McCutcheon":
 
   100  arcp://…/object/Nat1  (ldac:speaker: ['arcp://…/person/Presenter#Sandy_McCutcheon', …)
   100  arcp://…/object/Nat2  (ldac:speaker: ['arcp://…/person/Presenter#Sandy_McCutcheon', …)
@@ -95,7 +95,7 @@ crate.search("Peters", properties=["name"])
 ```
 
 ```
-Found 2 match(es) for "Peters":
+Found 2 matches for "Peters":
 
   100  http://nla.gov.au/nla.party-556106  (name: Pam Peters)
    91  arcp://…/person/Caller#Peter  (name: Peter)
@@ -109,7 +109,7 @@ crate.search("Peters", properties=["name"], threshold=92)
 ```
 
 ```
-Found 1 match(es) for "Peters":
+Found 1 match for "Peters":
 
   100  http://nla.gov.au/nla.party-556106  (name: Pam Peters)
 ```
