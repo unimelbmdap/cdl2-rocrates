@@ -419,9 +419,9 @@ legible we keep the busiest origins (at least eight people each) and the people 
 connections it has so the busy birthplaces stand out:
 
 ```python
-births = crate.select(relationship_types="birthPlace")
+birth_places = crate.select(relationship_types="birthPlace")
 
-hubs = births.select(entity_types=["Place"], min_connections=8).expand(
+hubs = birth_places.select(entity_types=["Place"], min_connections=8).expand(
     depth=1, via="birthPlace", entity_types=["Person"]
 )
 
