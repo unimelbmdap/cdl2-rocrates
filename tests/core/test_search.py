@@ -45,6 +45,22 @@ class TestSearchBasic:
         assert len(result) == 0
 
 
+class TestSearchMessage:
+    def test_singular_match_message(self, capsys):
+        g = _build_graph()
+        g.search("Alice Smith")  # exactly one hit
+        out = capsys.readouterr().out
+        assert "Found 1 match for" in out
+        assert "match(es)" not in out
+
+    def test_plural_match_message(self, capsys):
+        g = _build_graph()
+        g.search("Melbourne")  # two or more hits
+        out = capsys.readouterr().out
+        assert "matches for" in out
+        assert "match(es)" not in out
+
+
 class TestSearchProperties:
     def test_specific_property(self):
         g = _build_graph()

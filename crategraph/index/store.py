@@ -481,10 +481,12 @@ class Store:
         """
         total_chunks = sum(len(u.chunks) for u in text_units)
         if total_chunks != len(embeddings):
+            chunk_noun = "chunk" if total_chunks == 1 else "chunks"
+            row_noun = "row" if len(embeddings) == 1 else "rows"
             msg = (
                 f"chunks/embeddings length mismatch: "
-                f"{total_chunks} chunk(s) declared across text_units, "
-                f"{len(embeddings)} embedding row(s) provided"
+                f"{total_chunks} {chunk_noun} declared across text_units, "
+                f"{len(embeddings)} embedding {row_noun} provided"
             )
             raise ValueError(msg)
 

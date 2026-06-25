@@ -165,9 +165,11 @@ class RdfReader(Reader):
         # Emit warning about dropped dangling relationships.
         if not self._include_dangling_targets and dangling_rel_count > 0:
             graph.metadata["dropped_dangling_count"] = dangling_rel_count
+            rel_noun = "relationship" if dangling_rel_count == 1 else "relationships"
+            uri_noun = "URI" if len(dangling_uris) == 1 else "URIs"
             warnings.warn(
-                f"Dropped {dangling_rel_count} relationship(s) to "
-                f"{len(dangling_uris)} undefined target URI(s).",
+                f"Dropped {dangling_rel_count} {rel_noun} to "
+                f"{len(dangling_uris)} undefined target {uri_noun}.",
                 stacklevel=2,
             )
 
