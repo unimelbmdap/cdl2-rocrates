@@ -65,6 +65,7 @@ nav:
     - Mapping a Collection's Places: tutorials/mapping-collection-places.md
     - Visualising a Collection: tutorials/visualising-a-collection.md
     - Building a Thumbnail Gallery: tutorials/building-a-thumbnail-gallery.md
+    - Searching a Collection: tutorials/searching-a-collection.md
     - Basic NLP with Text Records: tutorials/basic-nlp-with-text-records.ipynb
   - User Stories:
     - Overview: user-stories/index.md
