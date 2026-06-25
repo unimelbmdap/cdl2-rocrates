@@ -47,6 +47,9 @@ dev = [
 [tool.ruff]
 target-version = "py312"
 line-length = 99
+# Draft tutorials are work-in-progress; exclude from linting/formatting so CI
+# agrees with the .pre-commit-config.yaml exclusion of docs/tutorials/draft/.
+extend-exclude = ["docs/tutorials/draft"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "RUF"]
