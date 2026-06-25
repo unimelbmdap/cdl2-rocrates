@@ -39,6 +39,7 @@ markdown_extensions:
 
 exclude_docs: |
   plans/
+  tutorials/draft/
 
 plugins:
   - search
