@@ -124,6 +124,15 @@ Fuzzy search matches the *spelling of metadata*. It never reads the transcripts,
 help you find *where a topic is discussed*. For that, semantic search embeds the transcript
 text and retrieves passages by meaning.
 
+!!! info "Embeddings and embedding models, in brief"
+
+    An **embedding** is a list of numbers that captures the meaning of a piece of text, placing
+    it as a point in a "meaning space" where passages about similar things sit close together,
+    regardless of the exact words they use. An **embedding model** is the trained model that
+    reads text and produces those numbers; semantic search runs it once over every transcript
+    to build the index, then again over your query so it can return the passages that sit
+    nearest. The model used here is small (~50 MB) and runs entirely on your own machine.
+
 First, narrow to the clean transcript files (each recording has a `-plain.txt` derivative
 alongside its raw and CSV versions), the same way the
 [NLP tutorial](basic-nlp-with-text-records.ipynb) does:
