@@ -9,6 +9,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from crategraph.core.graph import Graph
     from crategraph.core.models import Entity, FileInfo, ViewInfo
 
@@ -174,6 +176,51 @@ def glimpse(graph: Graph, *, filepath: str | None = None) -> Any:
         merged,
         width=600,
         height=450,
+        filepath=filepath,
+    )
+
+
+def gallery(
+    graph: Graph,
+    *,
+    caption: str | None = "label",
+    hover: str | Sequence[str] | None = None,
+    columns: int = 4,
+    limit: int | None = 48,
+    filepath: str | None = None,
+) -> Any:
+    """Lay the graph's image-bearing entities out as a thumbnail gallery.
+
+    Finds the entities that carry an image (a ``thumbnail`` property, or an
+    image ``File`` itself), embeds each as a base64 data-URI, and arranges them
+    in a CSS grid. Composes with ``where``/``select`` to gallery a subset.
+
+    Args:
+        graph: The graph to gallery.
+        caption: Property shown as an always-visible caption below each
+            thumbnail. ``"label"`` (the default) uses the entity's human label;
+            ``None`` shows no caption.
+        hover: Property, or sequence of properties, shown as the native hover
+            tooltip (joined with ``" · "``). ``None`` adds no tooltip.
+        columns: Number of grid columns.
+        limit: Cap on the number of thumbnails. Every image is embedded inline,
+            so this bounds the output size; it defaults to ``48`` and warns
+            when more are available. Pass ``None`` to embed them all, or filter
+            the graph first (e.g. ``graph.where(...)``).
+        filepath: Save a self-contained HTML page here instead of displaying
+            inline.
+
+    Returns a display object for notebook rendering, or the filepath string if
+    *filepath* was provided.
+    """
+    from crategraph.renderers.gallery import GalleryRenderer
+
+    return GalleryRenderer().render(
+        graph,
+        caption=caption,
+        hover=hover,
+        columns=columns,
+        limit=limit,
         filepath=filepath,
     )
 

@@ -481,6 +481,30 @@ class Graph:
         """Inline snapshot of the type-level graph structure."""
         return presentation.glimpse(self, filepath=filepath)
 
+    def gallery(
+        self,
+        *,
+        caption: str | None = "label",
+        hover: str | Sequence[str] | None = None,
+        columns: int = 4,
+        limit: int | None = 48,
+        filepath: str | None = None,
+    ) -> Any:
+        """Lay the graph's image-bearing entities out as a thumbnail gallery.
+
+        Every image is embedded inline, so ``limit`` (default ``48``) bounds the
+        output size and warns when more images are available; pass ``limit=None``
+        to embed them all, or filter the graph first (e.g. ``where(...)``).
+        """
+        return presentation.gallery(
+            self,
+            caption=caption,
+            hover=hover,
+            columns=columns,
+            limit=limit,
+            filepath=filepath,
+        )
+
     def inspect(self, entity: Entity | str) -> FileInfo:
         """Inspect the data file associated with an entity."""
         return presentation.inspect(self, entity)
