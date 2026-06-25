@@ -1,7 +1,7 @@
 # Searching a collection
 
 A collection answers different questions with different kinds of search. If you half-remember
-a name, you want a quick, typo-tolerant match over the metadata. If you want to find where a
+a name, you want a quick, approximate match over the metadata. If you want to find where a
 topic comes up, you need to search the actual text by meaning. `crategraph` offers both, and
 this tutorial shows when to reach for each.
 
@@ -47,8 +47,9 @@ callers) and the shows, and the transcript text those records describe.
 
 ## 2. Find things by name: fuzzy search
 
-The quickest search is a fuzzy match over the metadata. It tolerates misspellings, runs
-instantly, and needs no setup. Suppose you half-remember a presenter's name:
+The quickest search is a fuzzy match over the metadata. It matches strings that are similar
+rather than identical, runs instantly, and needs no setup. Suppose you half-remember a
+presenter's name:
 
 ```python
 crate.search("Sandy McCutchin", properties=["name"])
@@ -189,7 +190,7 @@ top["entity_id"], round(top["score"], 3), top["text"][:160]
 | --- | --- | --- |
 | Searches | entity **metadata** (property values) | the **text content** of files |
 | Good for | a name or title you roughly know | a topic or idea, however it's phrased |
-| Tolerates | typos and spelling variants | different wording for the same meaning |
+| Tolerates | misspellings, partial matches, and word order | different wording for the same meaning |
 | Setup | none (offline, instant) | build an index (one-time model download) |
 
 A rule of thumb: reach for **fuzzy** when you know what something is *called*, and **semantic**
