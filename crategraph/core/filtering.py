@@ -317,7 +317,8 @@ def search(
     hits.sort(key=lambda h: (-h[0], h[1]))
 
     if top_n > 0 and hits:
-        print(f'Found {len(hits)} match(es) for "{query_text}":\n')
+        noun = "match" if len(hits) == 1 else "matches"
+        print(f'Found {len(hits)} {noun} for "{query_text}":\n')
         for score, eid, key, snippet in hits[:top_n]:
             print(f"  {score:3.0f}  {eid}  ({key}: {snippet})")
         if len(hits) > top_n:
