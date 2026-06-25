@@ -68,6 +68,9 @@ nav:
     - Building a Thumbnail Gallery: tutorials/building-a-thumbnail-gallery.md
     - Searching a Collection: tutorials/searching-a-collection.md
     - Basic NLP with Text Records: tutorials/basic-nlp-with-text-records.ipynb
+  - Case Studies:
+    - Overview: case-studies/index.md
+    - Lifelines of the Encyclopedia of Melbourne: case-studies/encyclopedia-of-melbourne-lifelines.md
   - User Stories:
     - Overview: user-stories/index.md
     - "Walkthrough: The Wallaby Club": user-stories/walkthrough-wall-club.ipynb
