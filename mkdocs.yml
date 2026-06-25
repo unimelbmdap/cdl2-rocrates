@@ -40,6 +40,7 @@ markdown_extensions:
 exclude_docs: |
   plans/
   tutorials/draft/
+  user-stories/
 
 plugins:
   - search
@@ -71,9 +72,6 @@ nav:
   - Case Studies:
     - Overview: case-studies/index.md
     - Lifelines of the Encyclopedia of Melbourne: case-studies/encyclopedia-of-melbourne-lifelines.md
-  - User Stories:
-    - Overview: user-stories/index.md
-    - "Walkthrough: The Wallaby Club": user-stories/walkthrough-wall-club.ipynb
   - Architecture: architecture.md
   - API Reference:
     - Overview: api/index.md
