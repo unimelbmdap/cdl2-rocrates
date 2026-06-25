@@ -24,6 +24,10 @@ fa2 = ["fa2>=1.1"]
 rdf = ["rdflib>=7.0"]
 inspect = ["markitdown[all]>=0.1"]
 ohrm = ["pandas>=2.0"]
+okf = [
+    "markdown-it-py>=3.0",
+    "PyYAML>=6.0",
+]
 index = [
     "crategraph[inspect]",
     "fastembed>=0.3",

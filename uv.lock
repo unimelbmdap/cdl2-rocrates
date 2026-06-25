@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -440,6 +440,10 @@ inspect = [
 ohrm = [
     { name = "pandas" },
 ]
+okf = [
+    { name = "markdown-it-py" },
+    { name = "pyyaml" },
+]
 pyvis = [
     { name = "pyvis" },
 ]
@@ -465,6 +469,7 @@ requires-dist = [
     { name = "fa2", marker = "extra == 'fa2'", specifier = ">=1.1" },
     { name = "fastembed", marker = "extra == 'index'", specifier = ">=0.3" },
     { name = "grand-cypher", specifier = ">=1.0" },
+    { name = "markdown-it-py", marker = "extra == 'okf'", specifier = ">=3.0" },
     { name = "markitdown", extras = ["all"], marker = "extra == 'inspect'", specifier = ">=0.1" },
     { name = "markupsafe", specifier = ">=2.1" },
     { name = "networkx", specifier = ">=3.2" },
@@ -473,13 +478,14 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.0" },
     { name = "python-dateutil", specifier = ">=2.8" },
     { name = "pyvis", marker = "extra == 'pyvis'", specifier = ">=0.3" },
+    { name = "pyyaml", marker = "extra == 'okf'", specifier = ">=6.0" },
     { name = "rapidfuzz", specifier = ">=3.0" },
     { name = "rdflib", marker = "extra == 'rdf'", specifier = ">=7.0" },
     { name = "sqlite-vec", marker = "extra == 'index'", specifier = ">=0.1" },
     { name = "tokenizers", marker = "extra == 'index'", specifier = ">=0.15" },
     { name = "tqdm", marker = "extra == 'index'", specifier = ">=4.65" },
 ]
-provides-extras = ["pyvis", "fa2", "rdf", "inspect", "ohrm", "index"]
+provides-extras = ["pyvis", "fa2", "rdf", "inspect", "ohrm", "okf", "index"]
 
 [package.metadata.requires-dev]
 dev = [

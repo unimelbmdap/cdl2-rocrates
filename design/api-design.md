@@ -32,7 +32,7 @@ crategraph/
 │   ├── query.py       # Cypher query support (via grand-cypher)
 │   ├── _files.py      # Entity file path resolution helpers
 │   ├── interfaces.py  # ABCs: Reader, Writer, Renderer, Validator, Inspector, Viewer
-├── readers/        # ROCrateReader, OHRMCsvReader, OHRMSqlReader
+├── readers/        # ROCrateReader, OKFReader, OHRMCsvReader, OHRMSqlReader
 │   └── shared/     # TabularGraphReader, CsvGraphReader, SqlGraphReader
 ├── renderers/      # Sigma (2D, default), ForceGraph3D (3D), SVG (static), Pyvis (optional)
 ├── inspectors/     # MarkItDown file inspector
@@ -270,7 +270,7 @@ All extension points use abstract base classes defined in `crategraph.core.inter
 
 | Interface   | Methods                              | Implementations                            |
 |-------------|--------------------------------------|--------------------------------------------|
-| `Reader`    | `can_read(path)`, `read(path)`       | ROCrateReader, OHRMCsvReader, OHRMSqlReader |
+| `Reader`    | `can_read(path)`, `read(path)`       | ROCrateReader, OKFReader, OHRMCsvReader, OHRMSqlReader |
 | `Writer`    | `can_write(path)`, `write(graph, path)` | GraphMLWriter, CsvWriter, TextWriter    |
 | `Renderer`  | `render(graph, **kwargs)`            | Pyvis, ForceGraph3D, SVG, Sigma            |
 | `Validator` | `validate(graph)` → ValidationReport | (planned)                                  |
@@ -284,3 +284,4 @@ All extension points use abstract base classes defined in `crategraph.core.inter
 | `rdf`       | rdflib           | RDF/schema.org validation (planned) |
 | `inspect`   | markitdown[all]  | File content inspection          |
 | `ohrm`      | pandas           | OHRM CSV/SQL readers, Corpus DataFrames |
+| `okf`       | PyYAML, markdown-it-py | Open Knowledge Format reader |

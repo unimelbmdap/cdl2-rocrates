@@ -62,6 +62,7 @@ crategraph/
 ├── readers/               # Data loaders
 │   ├── rocrate.py         # ROCrateReader — parses ro-crate-metadata.json
 │   ├── folder.py          # SimpleFolderReader — plain directory → Graph
+│   ├── okf.py             # OKFReader — Markdown knowledge bundles
 │   ├── rdf.py             # RdfReader — Turtle, RDF/XML, JSON-LD via rdflib
 │   ├── ohrm_csv.py        # OHRMCsvReader — OHRM CSV database exports
 │   ├── ohrm_sql.py        # OHRMSqlReader — OHRM SQLite databases
@@ -102,6 +103,7 @@ Readers parse external data sources and populate a `Graph` with entities and rel
 
 - `ROCrateReader` (`readers/rocrate.py`) — parses `ro-crate-metadata.json` directly as JSON (not via RDFLib). Uses a two-pass approach: first creates entity nodes, then extracts relationship edges. Supports configurable inline relation extraction.
 - `SimpleFolderReader` (`readers/folder.py`) — turns a plain directory into a `Graph` (root `Dataset` + nested `Dataset`/`File` entities with `hasPart` edges). Deliberately structural-only; defers to `ROCrateReader` when `ro-crate-metadata.json` is present so users can add it to a `Corpus` alongside the RO-Crate reader without conflicts.
+- `OKFReader` (`readers/okf.py`) — loads Open Knowledge Format Markdown bundles. Frontmatter types become entity types, document bodies remain searchable in the `text` property, and internal Markdown links become directed `linksTo` relationships. Requires `crategraph[okf]` (PyYAML and markdown-it-py).
 - `RdfReader` (`readers/rdf.py`) — loads any serialisation rdflib recognises (Turtle, RDF/XML, JSON-LD, N-Triples). Preserves full URIs, namespaces, and literal metadata for round-trip fidelity. Requires `crategraph[rdf]` (rdflib).
 - `OHRMCsvReader` (`readers/ohrm_csv.py`) — reads OHRM CSV database exports using the shared tabular reader infrastructure. Requires `crategraph[ohrm]` (pandas).
 - `OHRMSqlReader` (`readers/ohrm_sql.py`) — reads OHRM SQLite databases via the shared SQL loader. Requires `crategraph[ohrm]`.
