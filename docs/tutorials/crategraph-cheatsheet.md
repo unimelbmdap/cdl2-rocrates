@@ -37,16 +37,7 @@ We explore the package on the **University of Melbourne Perpetual Calendar (UMPC
 from the [OHRM Upload Project](https://figshare.unimelb.edu.au/projects/OHRM_Upload_Project/230466).
 Source: [umpc.esrc.unimelb.edu.au](https://umpc.esrc.unimelb.edu.au/index.html).
 
-## Running this tutorial
-
-While `crategraph` is pre-release, launch from the repository root with `uv run`, pulling in
-the project plus the plotting dependencies:
-
-```bash
-uv run --all-extras --with jupyter --with pandas jupyter notebook
-```
-
-??? note "1. Load a graph"
+??? card card1 "1. Load a graph"
 
     Load a crate (RO-Crate) from a local directory containing `ro-crate-metadata.json`:
 
@@ -69,7 +60,7 @@ uv run --all-extras --with jupyter --with pandas jupyter notebook
     Crate(path, inline_relations=False) # only reified Relationship entities become edges
     ```
 
-??? note "2. Get a feel for the crate"
+??? card card2 "2. Get a feel for the crate"
 
     A summary of the graph, including the full list of entity types and relationship counts:
 
@@ -133,7 +124,7 @@ uv run --all-extras --with jupyter --with pandas jupyter notebook
 
     ![Type-level glimpse of the UMPC crate](../assets/umpc-cheatsheet-glimpse.svg)
 
-??? note "3. Entities (nodes)"
+??? card card3 "3. Entities (nodes)"
 
     The items in a crate: people, files, places. Each has `.properties` (a data dictionary)
     and a `.types` attribute.
@@ -354,7 +345,7 @@ uv run --all-extras --with jupyter --with pandas jupyter notebook
      (Entity('Regulations_and Statutes', 'Chapter R7, Endowments Other Than Those of Prizes, Exhibitions and Scholarships', id='#E001373'), 321)]
     ```
 
-??? note "4. Relationships (edges)"
+??? card card4 "4. Relationships (edges)"
 
     Directed links between entities. Each has a `.type`, `.source` and `.target`.
 
@@ -470,7 +461,7 @@ uv run --all-extras --with jupyter --with pandas jupyter notebook
     (12601, 7307)
     ```
 
-??? note "5. File content"
+??? card card5 "5. File content"
 
     The data files attached to file-entities:
 
@@ -518,7 +509,7 @@ uv run --all-extras --with jupyter --with pandas jupyter notebook
     See [Searching a Collection](searching-a-collection.md) for the full semantic-search
     walk-through.
 
-??? note "6. Graph manipulations"
+??? card card6 "6. Graph manipulations"
 
     Each manipulation returns a new graph.
 
@@ -700,7 +691,7 @@ uv run --all-extras --with jupyter --with pandas jupyter notebook
     Graph(263 entities, ...)
     ```
 
-??? note "7. Visualising and exporting"
+??? card card7 "7. Visualising and exporting"
 
     The default renderer for `visualise()` is `"2d"` (sigma.js, WebGL). Other options are `"3d"`
     (3d-force-graph), `"svg"` (static SVG) and `"pyvis"` (vis.js, needs an extra install).

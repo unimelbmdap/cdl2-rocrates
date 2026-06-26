@@ -1,0 +1,41 @@
+/* Cheat-sheet cards: collapsible admonitions with no icon and a deliberate
+   teal -> violet colour sequence for the headers. */
+
+/* Drop the admonition icon and reclaim its left padding. */
+.md-typeset .card > summary::before,
+.md-typeset .card > .admonition-title::before {
+  display: none;
+}
+.md-typeset .card > summary,
+.md-typeset .card > .admonition-title {
+  padding-left: 0.6rem;
+}
+
+/* Per-card colour: left border + header tint. */
+.md-typeset details.card1 { border-color: #00897b; }
+.md-typeset .card1 > summary,
+.md-typeset .card1 > .admonition-title { background-color: rgba(0, 137, 123, 0.15); }
+
+.md-typeset details.card2 { border-color: #00acc1; }
+.md-typeset .card2 > summary,
+.md-typeset .card2 > .admonition-title { background-color: rgba(0, 172, 193, 0.15); }
+
+.md-typeset details.card3 { border-color: #039be5; }
+.md-typeset .card3 > summary,
+.md-typeset .card3 > .admonition-title { background-color: rgba(3, 155, 229, 0.15); }
+
+.md-typeset details.card4 { border-color: #1e88e5; }
+.md-typeset .card4 > summary,
+.md-typeset .card4 > .admonition-title { background-color: rgba(30, 136, 229, 0.15); }
+
+.md-typeset details.card5 { border-color: #3949ab; }
+.md-typeset .card5 > summary,
+.md-typeset .card5 > .admonition-title { background-color: rgba(57, 73, 171, 0.15); }
+
+.md-typeset details.card6 { border-color: #5e35b1; }
+.md-typeset .card6 > summary,
+.md-typeset .card6 > .admonition-title { background-color: rgba(94, 53, 177, 0.15); }
+
+.md-typeset details.card7 { border-color: #8e24aa; }
+.md-typeset .card7 > summary,
+.md-typeset .card7 > .admonition-title { background-color: rgba(142, 36, 170, 0.15); }
