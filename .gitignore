@@ -187,6 +187,9 @@ pyrightconfig.json
 /docs/superpowers
 /benchmarks/
 
+# Local scratch scripts (repro/fetch helpers, not core)
+/scratchpad/
+
 # Worktrees
 .worktrees/
 
