@@ -36,8 +36,8 @@ A crate loaded with `crategraph` is a **`Graph`** with two layers: **entities**,
 
 ```mermaid
 graph LR
-    A["<b>Entity</b> (node)<br/>id · types · name · properties"]
-    B["<b>Entity</b> (node)<br/>id · types · name · properties"]
+    A("<b>Entity</b> (node)<br/>id · types · name · properties")
+    B("<b>Entity</b> (node)<br/>id · types · name · properties")
     A -->|"<b>Relationship</b> (edge)<br/>type · source · target · properties"| B
 ```
 
