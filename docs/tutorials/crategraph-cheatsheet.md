@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 # Cheat sheet
 
 A quick tour of `crategraph`'s basics: loading a crate, exploring its entities and
