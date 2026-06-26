@@ -13,6 +13,7 @@ If you haven't already, start with the [Getting Started](../getting-started.md) 
 - [Building a thumbnail gallery](building-a-thumbnail-gallery.md) — Find a crate's images, select a subset, and assemble an interactive thumbnail gallery with `gallery()`
 - [Searching a collection](searching-a-collection.md) — Fuzzy-match a collection's metadata, then build a semantic index and search the text by meaning
 - [Basic NLP with text records](basic-nlp-with-text-records.ipynb) — Use graph filtering and metadata grouping before handing text to NLP tools
+- [Cheat sheet](crategraph-cheatsheet.md) — Not a walkthrough but a condensed, card-by-card reference to the main crategraph operations, from loading a crate to visualising it
 
 ## Data sources
 
@@ -25,5 +26,5 @@ dataset's RO-Crate metadata; please attribute the original collections if you re
 - **Australian Corpus of English** (NLP tutorial). Licence: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Source: [doi:10.25949/24629712](https://doi.org/10.25949/24629712).
 - **Australian Radio Talkback** (search tutorial). Licence: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Source: [LDaCA, doi:10.25949/24769434](https://doi.org/10.25949/24769434).
 - **Australian Slang Survey Data** (mapping tutorial). Licence: [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/) (non-commercial, no derivatives). Source: [Monash Bridges](https://bridges.monash.edu/articles/dataset/Australian_Slang_Survey_Data/30102115).
-- **University of Melbourne Perpetual Calendar (UMPC)** (temporal and mapping tutorials). Licence: [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). Source: [UMPC website](https://umpc.esrc.unimelb.edu.au/index.html).
+- **University of Melbourne Perpetual Calendar (UMPC)** (temporal and mapping tutorials, and the cheat sheet). Licence: [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). Source: [UMPC website](https://umpc.esrc.unimelb.edu.au/index.html).
 - **Encyclopedia of Australian Science and Innovation (EOAS)** (visualisation tutorial). Licence: [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). Source: [eoas.info](https://www.eoas.info/).
