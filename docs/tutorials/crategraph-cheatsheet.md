@@ -148,10 +148,12 @@ Get your bearings: what does this graph contain?
 crate.entities          # list[Entity] of all nodes
 ```
 
-Explore an individual entity from the list:
+Grab a single entity to look at. Indexing the list works (`crate.entities[0]`), but to pull
+out a specific one, filter by an exact property such as its name:
 
 ```python
-crate.entities[777]
+e = crate.where(name="UTR7.166 The Olga Lawless Ziegler Memorial Fund").entities[0]
+e
 ```
 
 ```
@@ -187,7 +189,6 @@ len(crate)
 ### Inspecting an individual entity
 
 ```python
-e = crate.entities[777]
 print(e)
 ```
 
@@ -209,17 +210,17 @@ e.properties
  ...}
 ```
 
-Get a specific entity by id:
+Get a specific entity by id (here reusing the id from the entity above):
 
 ```python
-crate.get("#E001213")
+crate.get(e.id)
 ```
 
 Get an entity together with its live reference to the graph. `EntityView` is what
 `annotate_entities()` passes to your functions:
 
 ```python
-e2 = crate.entity_view("#E001213")
+e2 = crate.entity_view(e.id)
 ```
 
 If anything is unclear, call `help()` on an object:
@@ -501,37 +502,38 @@ crate.exclude(relationship_types="Related")
 Graph(3274 entities, 2858 relationships, source='experiments/crates/UMPC')
 ```
 
-`drop()` removes the entities whose given property contains a value, here entities prepared
-by `#Elizabeth Daniels`:
+`drop()` removes the entities whose given property contains a value. Here we drop everything
+prepared by the most prolific preparer, found from the data itself:
 
 ```python
-crate.drop("#Elizabeth Daniels", property="preparedBy")
+preparer = crate.entity_counts("preparedBy")[0]["preparedBy"]   # '#Alannah Croom'
+crate.drop(preparer, property="preparedBy")
 ```
 
 ```
-Graph(4201 entities, 12532 relationships, source='experiments/crates/UMPC')
+Graph(4122 entities, 11466 relationships, source='experiments/crates/UMPC')
 ```
 
-`drop()` returns 4201 entities, while the opposite `where()` returns 69. Together they make
+`drop()` returns 4122 entities, while the opposite `where()` returns 148. Together they make
 up the original 4270:
 
 ```python
-crate_ed = crate.where(preparedBy="#Elizabeth Daniels")
-crate_ed
+prepared = crate.where(preparedBy=preparer)
+prepared
 ```
 
 ```
-Graph(69 entities, 0 relationships, source='experiments/crates/UMPC')
+Graph(148 entities, 300 relationships, source='experiments/crates/UMPC')
 ```
 
 Take the entities of one graph out of another with `subtract()`:
 
 ```python
-crate.subtract(crate_ed)
+crate.subtract(prepared)
 ```
 
 ```
-Graph(4201 entities, 12532 relationships, source='experiments/crates/UMPC')
+Graph(4122 entities, 11466 relationships, source='experiments/crates/UMPC')
 ```
 
 Free-text search for an entity. The default minimum rapidfuzz match score is 80; both the
