@@ -41,6 +41,7 @@ exclude_docs: |
   plans/
   tutorials/draft/
   user-stories/
+  superpowers/
 
 plugins:
   - search
