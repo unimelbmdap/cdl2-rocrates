@@ -5,31 +5,31 @@ relationships, filtering and transforming the graph, and visualising the result.
 
 > Inspired by Franz Diebold's [Polars cheat sheet](https://franzdiebold.github.io/polars-cheat-sheet/Polars_cheat_sheet.pdf).
 
-## The data model
+???+ card card0 "The data model"
 
-A crate loaded with `crategraph` is a **`Graph`** with two layers: **entities**, the nodes
-(people, files, places, events), and **relationships**, the directed edges that link them.
+    A crate loaded with `crategraph` is a **`Graph`** with two layers: **entities**, the nodes
+    (people, files, places, events), and **relationships**, the directed edges that link them.
 
-```mermaid
-graph LR
-    A("<b>Entity</b> (node)<br/>id · types · name · properties")
-    B("<b>Entity</b> (node)<br/>id · types · name · properties")
-    A -->|"<b>Relationship</b> (edge)<br/>type · source · target · properties"| B
-```
+    ```mermaid
+    graph LR
+        A("<b>Entity</b> (node)<br/>id · types · name · properties")
+        B("<b>Entity</b> (node)<br/>id · types · name · properties")
+        A -->|"<b>Relationship</b> (edge)<br/>type · source · target · properties"| B
+    ```
 
-Each layer has its own accessor and its own filter:
+    Each layer has its own accessor and its own filter:
 
-| Layer | What it holds | List them | Filter by |
-|---|---|---|---|
-| **Entities** (nodes) | `id`, `types`, `name`, `properties` | `crate.entities` | `where()` — a property *value* |
-| **Relationships** (edges) | `type`, `source`, `target`, `properties` | `crate.relationships` | `select()` — a *type* or structure |
+    | Layer | What it holds | List them | Filter by |
+    |---|---|---|---|
+    | **Entities** (nodes) | `id`, `types`, `name`, `properties` | `crate.entities` | `where()` — a property *value* |
+    | **Relationships** (edges) | `type`, `source`, `target`, `properties` | `crate.relationships` | `select()` — a *type* or structure |
 
-The layer you query must match the method. For example,
-`crate.where(relationship_types="Primary")` returns **0** results: `where` looks for a node
-*property* literally named `relationship_types`, which does not exist; matching a
-relationship type is `select`'s job (`crate.select(relationship_types="Primary")`).
+    The layer you query must match the method. For example,
+    `crate.where(relationship_types="Primary")` returns **0** results: `where` looks for a node
+    *property* literally named `relationship_types`, which does not exist; matching a
+    relationship type is `select`'s job (`crate.select(relationship_types="Primary")`).
 
-Every filter and transform returns a **new `Graph`**, so they chain.
+    Every filter and transform returns a **new `Graph`**, so they chain.
 
 ## The example crate
 

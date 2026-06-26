@@ -1,17 +1,25 @@
 /* Cheat-sheet cards: collapsible admonitions with no icon and a deliberate
    teal -> violet colour sequence for the headers. */
 
-/* Drop the admonition icon and reclaim its left padding. */
+/* Drop the admonition icon and make the headers larger / more card-like. */
 .md-typeset .card > summary::before,
 .md-typeset .card > .admonition-title::before {
   display: none;
 }
 .md-typeset .card > summary,
 .md-typeset .card > .admonition-title {
-  padding-left: 0.6rem;
+  padding: 0.8rem 2.2rem 0.8rem 0.9rem;
+  font-size: 0.9rem;
+}
+.md-typeset details.card {
+  margin: 0.8rem 0;
 }
 
 /* Per-card colour: left border + header tint. */
+.md-typeset details.card0 { border-color: #43a047; }
+.md-typeset .card0 > summary,
+.md-typeset .card0 > .admonition-title { background-color: rgba(67, 160, 71, 0.15); }
+
 .md-typeset details.card1 { border-color: #00897b; }
 .md-typeset .card1 > summary,
 .md-typeset .card1 > .admonition-title { background-color: rgba(0, 137, 123, 0.15); }
