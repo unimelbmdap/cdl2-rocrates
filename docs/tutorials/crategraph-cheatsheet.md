@@ -8,7 +8,7 @@ hide:
 A quick tour of `crategraph`'s basics: loading a crate, exploring its entities and
 relationships, filtering and transforming the graph, and visualising the result.
 
-> Inspired by Franz Diebold's [Polars cheat sheet](https://franzdiebold.github.io/polars-cheat-sheet/Polars_cheat_sheet.pdf).
+<!-- > Inspired by Franz Diebold's [Polars cheat sheet](https://franzdiebold.github.io/polars-cheat-sheet/Polars_cheat_sheet.pdf). -->
 
 ???+ card card1 ":material-graph: The data model"
 
