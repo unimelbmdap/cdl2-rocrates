@@ -1,4 +1,4 @@
-# crategraph cheat sheet
+# Cheat sheet
 
 A quick tour of `crategraph`'s basics: loading a crate, exploring its entities and
 relationships, filtering and transforming the graph, and visualising the result.
@@ -16,6 +16,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     - [Inspecting an individual entity](#inspecting-an-individual-entity)
     - [List all property keys](#list-all-property-keys)
     - [Count distinct property values](#count-distinct-property-values)
+    - [Entities as records](#entities-as-records)
     - [Filter entities by property](#filter-entities-by-property)
     - [Enrich entities with derived properties](#enrich-entities-with-derived-properties)
 - [4. Relationships (edges)](#4-relationships-edges)
@@ -23,6 +24,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     - [Filter by relationship type (`select`)](#filter-by-relationship-type-select)
     - [Enrich relationships with derived properties](#enrich-relationships-with-derived-properties)
 - [5. File content](#5-file-content)
+    - [Search file text by meaning (semantic)](#search-file-text-by-meaning-semantic)
 - [6. Graph manipulations](#6-graph-manipulations)
     - [Filter and subset](#filter-and-subset)
     - [Transform: dates, merging, communities](#transform-dates-merging-communities)
@@ -284,6 +286,24 @@ crate.entity_counts("type")
  ...]
 ```
 
+### Entities as records
+
+`entity_records()` returns one dict per entity (`id`, `label`, `type`, then its properties),
+ready to hand to pandas or polars for a DataFrame, or to write out. Pass `columns` to keep
+only the fields you need:
+
+```python
+crate.entity_records(columns=["id", "label", "type"])
+```
+
+```
+[{'id': 'ro-crate-metadata.json', 'label': 'ro-crate-metadata.json', 'type': 'CreativeWork'},
+ {'id': '#D00000001', 'label': 'The Scholarly, Teaching, Research and Engagement History of The University of Melbourne', 'type': 'RepositoryObject'},
+ ...]
+```
+
+See [From Graph to DataFrame](from-graph-to-dataframe.md) for the full tabular workflow.
+
 ### Filter entities by property
 
 Find all the lawyers in the graph:
@@ -400,6 +420,18 @@ crate.relationship_counts("type")
  {'type': 'entity', 'count': 358}, ...]
 ```
 
+`relationship_records()` is the edge counterpart of `entity_records()`: one dict per edge,
+ready for a DataFrame or export.
+
+```python
+crate.relationship_records(columns=["source", "target", "type"])
+```
+
+```
+[{'source': '#D00000001', 'target': 'objects/documents/Appendix 1_2017-03-20 Proposal for VC.pdf', 'type': 'hasFile'},
+ ...]
+```
+
 ### Filter by relationship type (`select`)
 
 Find entities connected by a `Primary` relationship:
@@ -475,6 +507,42 @@ len(crate.files)
 ```
 10
 ```
+
+The UMPC files are document records without extracted text, so the text features below are
+shown as syntax; see the linked tutorials for crates that carry file text.
+
+`text_records()` pulls the text out of file entities (one record per file), with each file's
+entity metadata attached, ready for NLP. It returns an iterator, so step through it with
+`next(...)` or collect it with `list(...)`:
+
+```python
+record = next(crate.text_records(include_properties=["name"]))
+record["entity_id"], record["text"][:200]
+```
+
+See [Basic NLP with Text Records](basic-nlp-with-text-records.ipynb) for a worked example.
+
+### Search file text by meaning (semantic)
+
+Fuzzy `search()` (in [section 6](#6-graph-manipulations)) matches the metadata; *semantic*
+search reads the file text. Build a semantic index once (this needs the `[index]` extra and
+downloads a small embedding model), then query it. The index persists at `store_path` and is
+reused by later searches:
+
+```python
+crate.build_semantic_index(store_path="crate-index.db")
+crate.search("scholarships for women", mode="semantic", store_path="crate-index.db")
+```
+
+`chunk_records()` returns the ranked passages behind a semantic search, with scores, for a
+results-list view:
+
+```python
+next(crate.chunk_records("scholarships for women", store_path="crate-index.db", k=1))
+```
+
+See [Searching a Collection](searching-a-collection.md) for the full semantic-search
+walk-through.
 
 ## 6. Graph manipulations
 
@@ -678,10 +746,24 @@ crate.visualise(renderer="3d", filepath="umpc-3d.html")
 crate.visualise(colour_by="community", size_by="year", filepath="umpc-styled.html")
 ```
 
+For crates with images, `gallery()` lays the image-bearing entities out as a thumbnail grid
+(UMPC holds documents rather than images, so see
+[Building a Thumbnail Gallery](building-a-thumbnail-gallery.md) for a worked example):
+
+```python
+crate.gallery(columns=4, filepath="gallery.html")
+```
+
 Export GraphML to open the crate in Gephi or Cytoscape:
 
 ```python
 crate.write("crate_export.graphml", format="graphml")
+```
+
+Or hand the graph to NetworkX to use its algorithms directly:
+
+```python
+crate.to_networkx()    # -> NetworkX MultiDiGraph with 4270 nodes and 12601 edges
 ```
 
 ## Next steps
