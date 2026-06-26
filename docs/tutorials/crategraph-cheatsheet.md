@@ -10,7 +10,7 @@ relationships, filtering and transforming the graph, and visualising the result.
 
 [Open the cheat sheet as a PDF](../assets/crategraph-cheatsheet.pdf)
 
-Inspired by Franz Diebold's [Polars cheat sheet].
+Inspired by Franz Diebold's Polars cheat sheet.
 
 ???+ card card1 ":material-graph: The data model"
 
