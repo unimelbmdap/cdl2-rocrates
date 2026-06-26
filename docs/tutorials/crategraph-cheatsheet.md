@@ -5,7 +5,7 @@ relationships, filtering and transforming the graph, and visualising the result.
 
 > Inspired by Franz Diebold's [Polars cheat sheet](https://franzdiebold.github.io/polars-cheat-sheet/Polars_cheat_sheet.pdf).
 
-???+ card card1 "1. The data model"
+???+ card card1 ":material-graph: The data model"
 
     A crate loaded with `crategraph` is a **`Graph`** with two layers: **entities**, the nodes
     (people, files, places, events), and **relationships**, the directed edges that link them.
@@ -31,7 +31,7 @@ relationships, filtering and transforming the graph, and visualising the result.
 
     Every filter and transform returns a **new `Graph`**, so they chain.
 
-??? card card2 "2. Load a graph"
+??? card card2 ":material-folder-open: Load a graph"
 
     We explore the package on the **University of Melbourne Perpetual Calendar (UMPC)** crate,
     from the [OHRM Upload Project](https://figshare.unimelb.edu.au/projects/OHRM_Upload_Project/230466).
@@ -58,7 +58,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     Crate(path, inline_relations=False) # only reified Relationship entities become edges
     ```
 
-??? card card3 "3. Get a feel for the crate"
+??? card card3 ":material-chart-box-outline: Get a feel for the crate"
 
     A summary of the graph, including the full list of entity types and relationship counts:
 
@@ -122,7 +122,7 @@ relationships, filtering and transforming the graph, and visualising the result.
 
     ![Type-level glimpse of the UMPC crate](../assets/umpc-cheatsheet-glimpse.svg)
 
-??? card card4 "4. Entities (nodes)"
+??? card card4 ":material-circle-multiple-outline: Entities (nodes)"
 
     The items in a crate: people, files, places. Each has `.properties` (a data dictionary)
     and a `.types` attribute.
@@ -343,7 +343,7 @@ relationships, filtering and transforming the graph, and visualising the result.
      (Entity('Regulations_and Statutes', 'Chapter R7, Endowments Other Than Those of Prizes, Exhibitions and Scholarships', id='#E001373'), 321)]
     ```
 
-??? card card5 "5. Relationships (edges)"
+??? card card5 ":material-link-variant: Relationships (edges)"
 
     Directed links between entities. Each has a `.type`, `.source` and `.target`.
 
@@ -459,7 +459,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     (12601, 7307)
     ```
 
-??? card card6 "6. File content"
+??? card card6 ":material-file-document-outline: File content"
 
     The data files attached to file-entities:
 
@@ -507,7 +507,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     See [Searching a Collection](searching-a-collection.md) for the full semantic-search
     walk-through.
 
-??? card card7 "7. Graph manipulations"
+??? card card7 ":material-tune-variant: Graph manipulations"
 
     Each manipulation returns a new graph.
 
@@ -689,7 +689,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     Graph(263 entities, ...)
     ```
 
-??? card card8 "8. Visualising and exporting"
+??? card card8 ":material-chart-scatter-plot: Visualising and exporting"
 
     The default renderer for `visualise()` is `"2d"` (sigma.js, WebGL). Other options are `"3d"`
     (3d-force-graph), `"svg"` (static SVG) and `"pyvis"` (vis.js, needs an extra install).
