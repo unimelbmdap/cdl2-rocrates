@@ -5,40 +5,60 @@ relationships, filtering and transforming the graph, and visualising the result.
 
 > Inspired by Franz Diebold's Polars cheat sheet.
 
-## Before we begin
+## Contents
 
-A crate loaded with `crategraph` is a **`Graph`** made of two layers of data:
+- [The data model](#the-data-model)
+- [The example crate](#the-example-crate)
+- [Running this tutorial](#running-this-tutorial)
+- [1. Load a graph](#1-load-a-graph)
+- [2. Get a feel for the crate](#2-get-a-feel-for-the-crate)
+- [3. Entities (nodes)](#3-entities-nodes)
+    - [Inspecting an individual entity](#inspecting-an-individual-entity)
+    - [List all property keys](#list-all-property-keys)
+    - [Count distinct property values](#count-distinct-property-values)
+    - [Filter entities by property](#filter-entities-by-property)
+    - [Enrich entities with derived properties](#enrich-entities-with-derived-properties)
+- [4. Relationships (edges)](#4-relationships-edges)
+    - [Count relationships by type](#count-relationships-by-type)
+    - [Filter by relationship type (`select`)](#filter-by-relationship-type-select)
+    - [Enrich relationships with derived properties](#enrich-relationships-with-derived-properties)
+- [5. File content](#5-file-content)
+- [6. Graph manipulations](#6-graph-manipulations)
+    - [Filter and subset](#filter-and-subset)
+    - [Transform: dates, merging, communities](#transform-dates-merging-communities)
+- [7. Visualising and exporting](#7-visualising-and-exporting)
+- [Next steps](#next-steps)
 
+## The data model
+
+A crate loaded with `crategraph` is a **`Graph`** with two layers: **entities**, the nodes
+(people, files, places, events), and **relationships**, the directed edges that link them.
+
+```mermaid
+graph LR
+    A["<b>Entity</b> (node)<br/>id · types · name · properties"]
+    B["<b>Entity</b> (node)<br/>id · types · name · properties"]
+    A -->|"<b>Relationship</b> (edge)<br/>type · source · target · properties"| B
 ```
-        ENTITY (node)                 RELATIONSHIP (edge)
-        ┌──────────────┐  --type-->   ┌──────────────────┐
-        │ .id  .types  │  ══════════>  │ .type            │
-        │ .properties  │              │ .source  .target │
-        │ .name        │              │ .properties      │
-        └──────────────┘              └──────────────────┘
-              │                                │
-     filter by PROPERTIES              filter by STRUCTURE
-        crate.where(...)                 crate.select(...)
-```
 
-The layer you query must match the method:
+Each layer has its own accessor and its own filter:
 
-| Filtering by… | Method | Example |
-|---|---|---|
-| a value *on a node* (name, year, nationality) | `where` | `crate.where(name="Smith")` |
-| a *type* or *edge* (entity types, relationship types) | `select` | `crate.select(relationship_types="Primary")` |
+| Layer | What it holds | List them | Filter by |
+|---|---|---|---|
+| **Entities** (nodes) | `id`, `types`, `name`, `properties` | `crate.entities` | `where()` — a property *value* |
+| **Relationships** (edges) | `type`, `source`, `target`, `properties` | `crate.relationships` | `select()` — a *type* or structure |
 
-For example, `where(relationship_types="Primary")` returns **0** results: it looks for a node
-*property* literally called `relationship_types`, which does not exist.
+The layer you query must match the method. For example,
+`crate.where(relationship_types="Primary")` returns **0** results: `where` looks for a node
+*property* literally named `relationship_types`, which does not exist; matching a
+relationship type is `select`'s job (`crate.select(relationship_types="Primary")`).
 
 Every filter and transform returns a **new `Graph`**, so they chain.
 
-We will explore the package on a real crate below.
+## The example crate
 
-### Case study: the University of Melbourne Perpetual Calendar (UMPC)
-
-We use the **University of Melbourne Perpetual Calendar (UMPC)** crate, from the
-[OHRM Upload Project](https://figshare.unimelb.edu.au/projects/OHRM_Upload_Project/230466).
+We explore the package on the **University of Melbourne Perpetual Calendar (UMPC)** crate,
+from the [OHRM Upload Project](https://figshare.unimelb.edu.au/projects/OHRM_Upload_Project/230466).
 Source: [umpc.esrc.unimelb.edu.au](https://umpc.esrc.unimelb.edu.au/index.html).
 
 ## Running this tutorial
@@ -229,7 +249,7 @@ If anything is unclear, call `help()` on an object:
 help(e2)
 ```
 
-### Discover all property keys
+### List all property keys
 
 To see which property keys appear across the graph:
 
@@ -237,7 +257,7 @@ To see which property keys appear across the graph:
 sorted({k for e in crate.entities for k in e.properties})
 ```
 
-### A count of distinct values
+### Count distinct property values
 
 Return a count of distinct values for any property, sorted by count, descending:
 
@@ -264,7 +284,7 @@ crate.entity_counts("type")
  ...]
 ```
 
-### Filter by a property
+### Filter entities by property
 
 Find all the lawyers in the graph:
 
@@ -286,7 +306,7 @@ crate.where(startDate=(1870, 1900))
 Graph(70 entities, 130 relationships, source='experiments/crates/UMPC')
 ```
 
-### Enrich
+### Enrich entities with derived properties
 
 Suppose we want the people born in Victoria. Start by seeing what `Victoria` is linked to.
 First, where is `birthPlace` pointing?
@@ -366,7 +386,7 @@ print(crate.relationships[111])
 Relationship('#E000018' --deathState--> '#Victoria')
 ```
 
-### Count
+### Count relationships by type
 
 A count of how many relationships exist for each type, sorted by count, descending:
 
@@ -380,7 +400,7 @@ crate.relationship_counts("type")
  {'type': 'entity', 'count': 358}, ...]
 ```
 
-### Filter by edge type (use `select`)
+### Filter by relationship type (`select`)
 
 Find entities connected by a `Primary` relationship:
 
@@ -413,7 +433,7 @@ crate.pattern(via="preparedBy")
 Graph(266 entities, 561 relationships, source='experiments/crates/UMPC')
 ```
 
-### Enrich edges
+### Enrich relationships with derived properties
 
 `annotate_relationships()` derives a property per edge from a function that receives a
 `RelationshipView` (with `.source`, `.target`, `.type`). For example, label each edge with
@@ -460,7 +480,7 @@ len(crate.files)
 
 Each manipulation returns a new graph.
 
-### Filter / subset
+### Filter and subset
 
 Select a single entity type:
 
@@ -555,7 +575,7 @@ crate.search("Elisabeth", threshold=90, top_n=3)
 Graph(8 entities, 0 relationships, source='experiments/crates/UMPC')
 ```
 
-### Transform
+### Transform: dates, merging, communities
 
 Raw string dates (like `"1985"`, `"c.1920s"`, or `"1 March 2003"`) can be parsed into ISO
 date columns:
