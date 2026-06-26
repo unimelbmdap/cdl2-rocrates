@@ -70,6 +70,7 @@ nav:
     - Building a Thumbnail Gallery: tutorials/building-a-thumbnail-gallery.md
     - Searching a Collection: tutorials/searching-a-collection.md
     - Basic NLP with Text Records: tutorials/basic-nlp-with-text-records.ipynb
+    - crategraph Cheat Sheet: tutorials/crategraph-cheatsheet.md
   - Case Studies:
     - Overview: case-studies/index.md
     - Lifelines of the Encyclopedia of Melbourne: case-studies/encyclopedia-of-melbourne-lifelines.md
