@@ -728,10 +728,3 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```python
     crate.to_networkx()    # -> NetworkX MultiDiGraph with 4270 nodes and 12601 edges
     ```
-
-## Next steps
-
-For a deeper, worked treatment of individual features, see the other
-[tutorials](index.md), which cover [dates and timelines](exploring-temporal-dimensions.md),
-[mapping places](mapping-collection-places.md), [visualisation](visualising-a-collection.md),
-[search](searching-a-collection.md) and [exporting to DataFrames](from-graph-to-dataframe.md).
