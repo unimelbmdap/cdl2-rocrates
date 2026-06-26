@@ -5,7 +5,7 @@ relationships, filtering and transforming the graph, and visualising the result.
 
 > Inspired by Franz Diebold's [Polars cheat sheet](https://franzdiebold.github.io/polars-cheat-sheet/Polars_cheat_sheet.pdf).
 
-???+ card card0 "The data model"
+???+ card card1 "1. The data model"
 
     A crate loaded with `crategraph` is a **`Graph`** with two layers: **entities**, the nodes
     (people, files, places, events), and **relationships**, the directed edges that link them.
@@ -31,13 +31,11 @@ relationships, filtering and transforming the graph, and visualising the result.
 
     Every filter and transform returns a **new `Graph`**, so they chain.
 
-## The example crate
+??? card card2 "2. Load a graph"
 
-We explore the package on the **University of Melbourne Perpetual Calendar (UMPC)** crate,
-from the [OHRM Upload Project](https://figshare.unimelb.edu.au/projects/OHRM_Upload_Project/230466).
-Source: [umpc.esrc.unimelb.edu.au](https://umpc.esrc.unimelb.edu.au/index.html).
-
-??? card card1 "1. Load a graph"
+    We explore the package on the **University of Melbourne Perpetual Calendar (UMPC)** crate,
+    from the [OHRM Upload Project](https://figshare.unimelb.edu.au/projects/OHRM_Upload_Project/230466).
+    Source: [umpc.esrc.unimelb.edu.au](https://umpc.esrc.unimelb.edu.au/index.html).
 
     Load a crate (RO-Crate) from a local directory containing `ro-crate-metadata.json`:
 
@@ -60,7 +58,7 @@ Source: [umpc.esrc.unimelb.edu.au](https://umpc.esrc.unimelb.edu.au/index.html).
     Crate(path, inline_relations=False) # only reified Relationship entities become edges
     ```
 
-??? card card2 "2. Get a feel for the crate"
+??? card card3 "3. Get a feel for the crate"
 
     A summary of the graph, including the full list of entity types and relationship counts:
 
@@ -124,7 +122,7 @@ Source: [umpc.esrc.unimelb.edu.au](https://umpc.esrc.unimelb.edu.au/index.html).
 
     ![Type-level glimpse of the UMPC crate](../assets/umpc-cheatsheet-glimpse.svg)
 
-??? card card3 "3. Entities (nodes)"
+??? card card4 "4. Entities (nodes)"
 
     The items in a crate: people, files, places. Each has `.properties` (a data dictionary)
     and a `.types` attribute.
@@ -345,7 +343,7 @@ Source: [umpc.esrc.unimelb.edu.au](https://umpc.esrc.unimelb.edu.au/index.html).
      (Entity('Regulations_and Statutes', 'Chapter R7, Endowments Other Than Those of Prizes, Exhibitions and Scholarships', id='#E001373'), 321)]
     ```
 
-??? card card4 "4. Relationships (edges)"
+??? card card5 "5. Relationships (edges)"
 
     Directed links between entities. Each has a `.type`, `.source` and `.target`.
 
@@ -461,7 +459,7 @@ Source: [umpc.esrc.unimelb.edu.au](https://umpc.esrc.unimelb.edu.au/index.html).
     (12601, 7307)
     ```
 
-??? card card5 "5. File content"
+??? card card6 "6. File content"
 
     The data files attached to file-entities:
 
@@ -509,7 +507,7 @@ Source: [umpc.esrc.unimelb.edu.au](https://umpc.esrc.unimelb.edu.au/index.html).
     See [Searching a Collection](searching-a-collection.md) for the full semantic-search
     walk-through.
 
-??? card card6 "6. Graph manipulations"
+??? card card7 "7. Graph manipulations"
 
     Each manipulation returns a new graph.
 
@@ -691,7 +689,7 @@ Source: [umpc.esrc.unimelb.edu.au](https://umpc.esrc.unimelb.edu.au/index.html).
     Graph(263 entities, ...)
     ```
 
-??? card card7 "7. Visualising and exporting"
+??? card card8 "8. Visualising and exporting"
 
     The default renderer for `visualise()` is `"2d"` (sigma.js, WebGL). Other options are `"3d"`
     (3d-force-graph), `"svg"` (static SVG) and `"pyvis"` (vis.js, needs an extra install).
