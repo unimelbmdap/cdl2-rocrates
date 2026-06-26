@@ -13,7 +13,7 @@ If you haven't already, start with the [Getting Started](../getting-started.md) 
 - [Building a thumbnail gallery](building-a-thumbnail-gallery.md) — Find a crate's images, select a subset, and assemble an interactive thumbnail gallery with `gallery()`
 - [Searching a collection](searching-a-collection.md) — Fuzzy-match a collection's metadata, then build a semantic index and search the text by meaning
 - [Basic NLP with text records](basic-nlp-with-text-records.ipynb) — Use graph filtering and metadata grouping before handing text to NLP tools
-- [Cheat sheet](crategraph-cheatsheet.md) — Not a walkthrough but a condensed, card-by-card reference to the main crategraph operations, from loading a crate to visualising it
+- [Cheat sheet](crategraph-cheatsheet.md) — Condensed reference for the main crategraph operations
 
 ## Data sources
 
