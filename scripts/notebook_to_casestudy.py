@@ -151,7 +151,8 @@ def convert(
             elif "text/html" in data:
                 html = _join(data["text/html"])
                 if _is_table_html(html):
-                    out.append(html.rstrip() + "\n")  # table: inline
+                    # wrap in a scroll container so wide tables don't overflow the page
+                    out.append('<div class="nb-table">\n' + html.rstrip() + "\n</div>\n")
                 elif _is_network_html(html) or len(html) > INLINE_HTML_LIMIT:
                     path, name = asset("html")
                     path.write_text(html)
