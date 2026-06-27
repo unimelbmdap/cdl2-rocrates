@@ -1,0 +1,208 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2-DRAFT/context",
+    {
+      "@vocab": "http://schema.org/"
+    },
+    "http://purl.archive.org/language-data-commons/context.json",
+    {
+      "Geometry": "http://www.opengis.net/ont/geosparql#Geometry",
+      "asWKT": "http://www.opengis.net/ont/geosparql#asWKT"
+    },
+    "https://w3id.org/ldac/context"
+  ],
+  "@graph": [
+    {
+      "@id": "https://catalog.paradisec.org.au/repository/NT8",
+      "@type": [
+        "Data",
+        "Object",
+        "RepositoryCollection"
+      ],
+      "conformsTo": {
+        "@id": "https://w3id.org/ldac/profile#Collection"
+      },
+      "additionalType": "collection",
+      "identifier": [
+        {
+          "@id": "#identifier_domain"
+        },
+        {
+          "@id": "#identifier_identifier"
+        },
+        {
+          "@id": "#identifier_collectionIdentifier"
+        },
+        {
+          "@id": "#identifier_doi"
+        }
+      ],
+      "name": "Dictionary and texts in South Efate",
+      "description": "A dictionary and texts in South Efate. Created in Toolbox, this is a work-in-progress that will be updated periodically. Toolbox requires settings files (TYP) that accompany the main data. Thus the file NT8-TEXT-DIC_[DATE].txt has the accompanying file NT8-TEXT-DICTYP_[DATE].txt. The collection of texts in NT8-TEXT-TX_[DATE].txt has the TYP file in NT8-TEXT-TXTYP_[DATE].txt. Contact Nick Thieberger for the latest version of this material. ",
+      "creditText": "Nick Thieberger (collector), 2006. Dictionary and texts in South Efate. Collection NT8 at catalog.paradisec.org.au [Open Access].  https://dx.doi.org/10.4225/72/56E975C830BC6",
+      "contentLocation": [
+        {
+          "@id": "#place-168.197,-17.868-168.436,-17.681"
+        }
+      ],
+      "dateCreated": "2006-09-04",
+      "dateModified": "2024-10-19",
+      "datePublished": "2024-10-19",
+      "publisher": {
+        "@id": "http://nla.gov.au/nla.party-1810306"
+      },
+      "collector": {
+        "@id": "http://nla.gov.au/nla.party-479603"
+      },
+      "inLanguage": [
+        {
+          "@id": "http://www.language-archives.org/language/erk"
+        }
+      ],
+      "ldac:subjectLanguage": [
+        {
+          "@id": "http://www.language-archives.org/language/erk"
+        }
+      ],
+      "countries": [
+        {
+          "@id": "#country-Vanuatu"
+        }
+      ],
+      "ldac:doi": "10.4225/72/56E975C830BC6",
+      "license": {
+        "@id": "#license-1"
+      },
+      "sourceOrganization": {
+        "@id": "http://nla.gov.au/nla.party-593909"
+      },
+      "paradisec:metadataSource": "Depositor",
+      "about": {
+        "@id": "https://linked.data.gov.au/def/anzsrc-for/2020/451310"
+      },
+      "funder": [
+        {
+          "@id": "#grant-11"
+        },
+        {
+          "@id": "#grant-73"
+        },
+        {
+          "@id": "#grant-74"
+        }
+      ]
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2-DRAFT"
+      },
+      "about": {
+        "@id": "https://catalog.paradisec.org.au/repository/NT8"
+      }
+    },
+    {
+      "@id": "#identifier_domain",
+      "@type": "PropertyValue",
+      "name": "domain",
+      "value": "paradisec.org.au"
+    },
+    {
+      "@id": "#identifier_identifier",
+      "@type": "PropertyValue",
+      "name": "identifier",
+      "value": "NT8"
+    },
+    {
+      "@id": "#identifier_collectionIdentifier",
+      "@type": "PropertyValue",
+      "name": "collectionIdentifier",
+      "value": "NT8"
+    },
+    {
+      "@id": "#identifier_doi",
+      "@type": "PropertyValue",
+      "name": "doi",
+      "value": "10.4225/72/56E975C830BC6"
+    },
+    {
+      "@id": "#country-Vanuatu",
+      "@type": "Country",
+      "code": "VU",
+      "name": "Vanuatu"
+    },
+    {
+      "@id": "#license-1",
+      "@type": "CreativeWork",
+      "name": "Open (subject to agreeing to PDSC access conditions)"
+    },
+    {
+      "@id": "http://nla.gov.au/nla.party-479603",
+      "@type": "Person",
+      "familyName": "Thieberger",
+      "givenName": "Nick",
+      "name": "Nick Thieberger",
+      "email": "thien@unimelb.edu.au"
+    },
+    {
+      "@id": "#geo-168.197,-17.868-168.436,-17.681",
+      "@type": "Geometry",
+      "asWKT": "POLYGON((168.197 -17.681, 168.436 -17.681, 168.436 -17.868, 168.197 -17.868, 168.197 -17.681))"
+    },
+    {
+      "@id": "#geo-168.159,-17.83-168.594,-17.585",
+      "@type": "Geometry",
+      "asWKT": "POLYGON((168.159 -17.585, 168.594 -17.585, 168.594 -17.83, 168.159 -17.83, 168.159 -17.585))"
+    },
+    {
+      "@id": "#place-168.197,-17.868-168.436,-17.681",
+      "@type": "Place",
+      "geo": {
+        "@id": "#geo-168.197,-17.868-168.436,-17.681"
+      }
+    },
+    {
+      "@id": "http://www.language-archives.org/language/erk",
+      "@type": "Language",
+      "code": "erk",
+      "name": "Efate, South",
+      "geo": {
+        "@id": "#geo-168.159,-17.83-168.594,-17.585"
+      }
+    },
+    {
+      "@id": "https://linked.data.gov.au/def/anzsrc-for/2020/451310",
+      "@type": "DefinedTerm",
+      "name": "Pacific Peoples linguistics and languages"
+    },
+    {
+      "@id": "http://nla.gov.au/nla.party-1810306",
+      "@type": "Organisation",
+      "name": "PARADISEC"
+    },
+    {
+      "@id": "http://nla.gov.au/nla.party-593909",
+      "@type": "Organisation",
+      "name": "University of Melbourne"
+    },
+    {
+      "@id": "#grant-11",
+      "@type": "Organisation",
+      "name": "ARC - Australian Research Council",
+      "description": "DP0984419 (ARC - Australian Research Council)"
+    },
+    {
+      "@id": "#grant-73",
+      "@type": "Organisation",
+      "name": "ARC - Australian Research Council",
+      "description": "FT140100214 (ARC - Australian Research Council)"
+    },
+    {
+      "@id": "#grant-74",
+      "@type": "Organisation",
+      "name": "ARC - Australian Research Council",
+      "description": "CE140100041 (ARC - Australian Research Council)"
+    }
+  ]
+}

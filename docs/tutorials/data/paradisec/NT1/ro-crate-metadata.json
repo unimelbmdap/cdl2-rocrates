@@ -1,0 +1,251 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2-DRAFT/context",
+    {
+      "@vocab": "http://schema.org/"
+    },
+    "http://purl.archive.org/language-data-commons/context.json",
+    {
+      "Geometry": "http://www.opengis.net/ont/geosparql#Geometry",
+      "asWKT": "http://www.opengis.net/ont/geosparql#asWKT"
+    },
+    "https://w3id.org/ldac/context"
+  ],
+  "@graph": [
+    {
+      "@id": "https://catalog.paradisec.org.au/repository/NT1",
+      "@type": [
+        "Data",
+        "Object",
+        "RepositoryCollection"
+      ],
+      "conformsTo": {
+        "@id": "https://w3id.org/ldac/profile#Collection"
+      },
+      "additionalType": "collection",
+      "identifier": [
+        {
+          "@id": "#identifier_domain"
+        },
+        {
+          "@id": "#identifier_identifier"
+        },
+        {
+          "@id": "#identifier_collectionIdentifier"
+        },
+        {
+          "@id": "#identifier_doi"
+        }
+      ],
+      "name": "South Efate (Vanuatu)",
+      "description": "Records in this collection were made during fieldwork, mainly in Erakor Village, Efate, Vanuatu since 1996. They consist of audio recordings of South Efate speakers, originally on audio cassettes (hence there are often A and B sides of a single item). There is a total of over 40 hours of language material, and the collection includes time-aligned transcripts in Elan for many recordings, and interlinear text for a small proportion of them. It also includes field notes. The material here is the basis for Thieberger's grammar of South Efate which also cites primary material in this collection. Where there is a transcript the file has the same name as the recording with a .txt extension. These transcriptions are not as accurate as the versions that are found in the interlinear annotation, and also have relics of earlier transcription conventions (p$ and m$ for coarticulated p\u0303 and m\u0303). \r\nMany of these transcripts have then been interlinearised in the version that can be found in NT8. More recordings and other material in South Efate can be found in collections NT1 to NT7 in PARADISEC. A description of the collections is given here: https://www.nthieberger.net/sefate.html",
+      "creditText": "Nick Thieberger (collector), 1995. South Efate (Vanuatu). Collection NT1 at catalog.paradisec.org.au [Open Access].  https://dx.doi.org/10.4225/72/56E97595B6D0A",
+      "contentLocation": [
+        {
+          "@id": "#place-Erakor, Eratap, Lelepa"
+        }
+      ],
+      "dateCreated": "2012-09-27",
+      "dateModified": "2025-01-29",
+      "datePublished": "2025-01-29",
+      "publisher": {
+        "@id": "http://nla.gov.au/nla.party-1810306"
+      },
+      "collector": {
+        "@id": "http://nla.gov.au/nla.party-479603"
+      },
+      "inLanguage": [
+        {
+          "@id": "http://www.language-archives.org/language/bis"
+        },
+        {
+          "@id": "http://www.language-archives.org/language/erk"
+        },
+        {
+          "@id": "http://www.language-archives.org/language/lpa"
+        }
+      ],
+      "ldac:subjectLanguage": [
+        {
+          "@id": "http://www.language-archives.org/language/erk"
+        },
+        {
+          "@id": "http://www.language-archives.org/language/lpa"
+        },
+        {
+          "@id": "http://www.language-archives.org/language/bis"
+        }
+      ],
+      "countries": [
+        {
+          "@id": "#country-Vanuatu"
+        }
+      ],
+      "ldac:doi": "10.4225/72/56E97595B6D0A",
+      "license": {
+        "@id": "#license-1"
+      },
+      "sourceOrganization": {
+        "@id": "http://nla.gov.au/nla.party-593909"
+      },
+      "orthographic_notes": "p$ and m$ are co-articulated labio-velars",
+      "paradisec:metadataSource": "depositor",
+      "itemLocation": "returned to depositor",
+      "about": {
+        "@id": "https://linked.data.gov.au/def/anzsrc-for/2020/451310"
+      },
+      "funder": [
+        {
+          "@id": "#grant-3"
+        },
+        {
+          "@id": "#grant-64"
+        },
+        {
+          "@id": "#grant-72"
+        }
+      ]
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2-DRAFT"
+      },
+      "about": {
+        "@id": "https://catalog.paradisec.org.au/repository/NT1"
+      }
+    },
+    {
+      "@id": "#identifier_domain",
+      "@type": "PropertyValue",
+      "name": "domain",
+      "value": "paradisec.org.au"
+    },
+    {
+      "@id": "#identifier_identifier",
+      "@type": "PropertyValue",
+      "name": "identifier",
+      "value": "NT1"
+    },
+    {
+      "@id": "#identifier_collectionIdentifier",
+      "@type": "PropertyValue",
+      "name": "collectionIdentifier",
+      "value": "NT1"
+    },
+    {
+      "@id": "#identifier_doi",
+      "@type": "PropertyValue",
+      "name": "doi",
+      "value": "10.4225/72/56E97595B6D0A"
+    },
+    {
+      "@id": "#country-Vanuatu",
+      "@type": "Country",
+      "code": "VU",
+      "name": "Vanuatu"
+    },
+    {
+      "@id": "#license-1",
+      "@type": "CreativeWork",
+      "name": "Open (subject to agreeing to PDSC access conditions)"
+    },
+    {
+      "@id": "http://nla.gov.au/nla.party-479603",
+      "@type": "Person",
+      "familyName": "Thieberger",
+      "givenName": "Nick",
+      "name": "Nick Thieberger",
+      "email": "thien@unimelb.edu.au"
+    },
+    {
+      "@id": "#geo-168.033,-17.882-168.652,-17.418",
+      "@type": "Geometry",
+      "asWKT": "POLYGON((168.033 -17.418, 168.652 -17.418, 168.652 -17.882, 168.033 -17.882, 168.033 -17.418))"
+    },
+    {
+      "@id": "#geo-166.427,-22.283-166.467,-22.241",
+      "@type": "Geometry",
+      "asWKT": "POLYGON((166.427 -22.241, 166.467 -22.241, 166.467 -22.283, 166.427 -22.283, 166.427 -22.241))"
+    },
+    {
+      "@id": "#geo-168.159,-17.83-168.594,-17.585",
+      "@type": "Geometry",
+      "asWKT": "POLYGON((168.159 -17.585, 168.594 -17.585, 168.594 -17.83, 168.159 -17.83, 168.159 -17.585))"
+    },
+    {
+      "@id": "#geo-168.195,-17.616-168.226,-17.579",
+      "@type": "Geometry",
+      "asWKT": "POLYGON((168.195 -17.579, 168.226 -17.579, 168.226 -17.616, 168.195 -17.616, 168.195 -17.579))"
+    },
+    {
+      "@id": "#place-Erakor, Eratap, Lelepa",
+      "@type": "Place",
+      "geo": {
+        "@id": "#geo-168.033,-17.882-168.652,-17.418"
+      },
+      "name": "Erakor, Eratap, Lelepa"
+    },
+    {
+      "@id": "http://www.language-archives.org/language/bis",
+      "@type": "Language",
+      "code": "bis",
+      "name": "Bislama",
+      "geo": {
+        "@id": "#geo-166.427,-22.283-166.467,-22.241"
+      }
+    },
+    {
+      "@id": "http://www.language-archives.org/language/erk",
+      "@type": "Language",
+      "code": "erk",
+      "name": "Efate, South",
+      "geo": {
+        "@id": "#geo-168.159,-17.83-168.594,-17.585"
+      }
+    },
+    {
+      "@id": "http://www.language-archives.org/language/lpa",
+      "@type": "Language",
+      "code": "lpa",
+      "name": "Lelepa",
+      "geo": {
+        "@id": "#geo-168.195,-17.616-168.226,-17.579"
+      }
+    },
+    {
+      "@id": "https://linked.data.gov.au/def/anzsrc-for/2020/451310",
+      "@type": "DefinedTerm",
+      "name": "Pacific Peoples linguistics and languages"
+    },
+    {
+      "@id": "http://nla.gov.au/nla.party-1810306",
+      "@type": "Organisation",
+      "name": "PARADISEC"
+    },
+    {
+      "@id": "http://nla.gov.au/nla.party-593909",
+      "@type": "Organisation",
+      "name": "University of Melbourne"
+    },
+    {
+      "@id": "#grant-3",
+      "@type": "Organisation",
+      "name": "ARC - Australian Research Council",
+      "description": "DP0450342  (ARC - Australian Research Council)"
+    },
+    {
+      "@id": "#grant-64",
+      "@type": "Organisation",
+      "name": "ARC - Australian Research Council",
+      "description": "CE140100041 (ARC - Australian Research Council)"
+    },
+    {
+      "@id": "#grant-72",
+      "@type": "Organisation",
+      "name": "ARC - Australian Research Council",
+      "description": "FT140100214 (ARC - Australian Research Council)"
+    }
+  ]
+}

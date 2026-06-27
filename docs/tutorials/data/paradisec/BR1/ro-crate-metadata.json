@@ -1,0 +1,213 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2-DRAFT/context",
+    {
+      "@vocab": "http://schema.org/"
+    },
+    "http://purl.archive.org/language-data-commons/context.json",
+    {
+      "Geometry": "http://www.opengis.net/ont/geosparql#Geometry",
+      "asWKT": "http://www.opengis.net/ont/geosparql#asWKT"
+    },
+    "https://w3id.org/ldac/context"
+  ],
+  "@graph": [
+    {
+      "@id": "https://catalog.paradisec.org.au/repository/BR1",
+      "@type": [
+        "Data",
+        "Object",
+        "RepositoryCollection"
+      ],
+      "conformsTo": {
+        "@id": "https://w3id.org/ldac/profile#Collection"
+      },
+      "additionalType": "collection",
+      "identifier": [
+        {
+          "@id": "#identifier_domain"
+        },
+        {
+          "@id": "#identifier_identifier"
+        },
+        {
+          "@id": "#identifier_collectionIdentifier"
+        },
+        {
+          "@id": "#identifier_doi"
+        }
+      ],
+      "name": "Rosey Billington Nafsan materials",
+      "description": "Recordings of Nafsan (South Efate) made in Erakor, Vanuatu in 2017 as part of a project investigating phonetic and phonological patterns in the language.",
+      "creditText": "Rosey Billington (collector), 2017. Rosey Billington Nafsan materials. Collection BR1 at catalog.paradisec.org.au [Open Access].  https://dx.doi.org/10.26278/GXDM-J159",
+      "contentLocation": [
+        {
+          "@id": "#place-168.159,-17.83-168.594,-17.585"
+        }
+      ],
+      "dateCreated": "2017-09-12",
+      "dateModified": "2024-10-19",
+      "datePublished": "2024-10-19",
+      "publisher": {
+        "@id": "http://nla.gov.au/nla.party-1810306"
+      },
+      "collector": {
+        "@id": "mailto:rosey.billington@gmail.com"
+      },
+      "inLanguage": [
+        {
+          "@id": "http://www.language-archives.org/language/bis"
+        },
+        {
+          "@id": "http://www.language-archives.org/language/eng"
+        },
+        {
+          "@id": "http://www.language-archives.org/language/erk"
+        }
+      ],
+      "ldac:subjectLanguage": [
+        {
+          "@id": "http://www.language-archives.org/language/erk"
+        },
+        {
+          "@id": "http://www.language-archives.org/language/bis"
+        }
+      ],
+      "countries": [
+        {
+          "@id": "#country-Vanuatu"
+        }
+      ],
+      "ldac:doi": "10.26278/GXDM-J159",
+      "license": {
+        "@id": "#license-1"
+      },
+      "sourceOrganization": {
+        "@id": "http://nla.gov.au/nla.party-593909"
+      },
+      "funder": [
+        {
+          "@id": "#grant-71"
+        }
+      ]
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2-DRAFT"
+      },
+      "about": {
+        "@id": "https://catalog.paradisec.org.au/repository/BR1"
+      }
+    },
+    {
+      "@id": "#identifier_domain",
+      "@type": "PropertyValue",
+      "name": "domain",
+      "value": "paradisec.org.au"
+    },
+    {
+      "@id": "#identifier_identifier",
+      "@type": "PropertyValue",
+      "name": "identifier",
+      "value": "BR1"
+    },
+    {
+      "@id": "#identifier_collectionIdentifier",
+      "@type": "PropertyValue",
+      "name": "collectionIdentifier",
+      "value": "BR1"
+    },
+    {
+      "@id": "#identifier_doi",
+      "@type": "PropertyValue",
+      "name": "doi",
+      "value": "10.26278/GXDM-J159"
+    },
+    {
+      "@id": "#country-Vanuatu",
+      "@type": "Country",
+      "code": "VU",
+      "name": "Vanuatu"
+    },
+    {
+      "@id": "#license-1",
+      "@type": "CreativeWork",
+      "name": "Open (subject to agreeing to PDSC access conditions)"
+    },
+    {
+      "@id": "mailto:rosey.billington@gmail.com",
+      "@type": "Person",
+      "familyName": "Billington",
+      "givenName": "Rosey",
+      "name": "Rosey Billington",
+      "email": "rosey.billington@gmail.com"
+    },
+    {
+      "@id": "#geo-168.159,-17.83-168.594,-17.585",
+      "@type": "Geometry",
+      "asWKT": "POLYGON((168.159 -17.585, 168.594 -17.585, 168.594 -17.83, 168.159 -17.83, 168.159 -17.585))"
+    },
+    {
+      "@id": "#geo-166.427,-22.283-166.467,-22.241",
+      "@type": "Geometry",
+      "asWKT": "POLYGON((166.427 -22.241, 166.467 -22.241, 166.467 -22.283, 166.427 -22.283, 166.427 -22.241))"
+    },
+    {
+      "@id": "#geo--163.191,-52.361-168.0,60.846",
+      "@type": "Geometry",
+      "asWKT": "POLYGON((-163.191 60.846, 168.0 60.846, 168.0 -52.361, -163.191 -52.361, -163.191 60.846))"
+    },
+    {
+      "@id": "#place-168.159,-17.83-168.594,-17.585",
+      "@type": "Place",
+      "geo": {
+        "@id": "#geo-168.159,-17.83-168.594,-17.585"
+      }
+    },
+    {
+      "@id": "http://www.language-archives.org/language/bis",
+      "@type": "Language",
+      "code": "bis",
+      "name": "Bislama",
+      "geo": {
+        "@id": "#geo-166.427,-22.283-166.467,-22.241"
+      }
+    },
+    {
+      "@id": "http://www.language-archives.org/language/eng",
+      "@type": "Language",
+      "code": "eng",
+      "name": "English",
+      "geo": {
+        "@id": "#geo--163.191,-52.361-168.0,60.846"
+      }
+    },
+    {
+      "@id": "http://www.language-archives.org/language/erk",
+      "@type": "Language",
+      "code": "erk",
+      "name": "Efate, South",
+      "geo": {
+        "@id": "#geo-168.159,-17.83-168.594,-17.585"
+      }
+    },
+    {
+      "@id": "http://nla.gov.au/nla.party-1810306",
+      "@type": "Organisation",
+      "name": "PARADISEC"
+    },
+    {
+      "@id": "http://nla.gov.au/nla.party-593909",
+      "@type": "Organisation",
+      "name": "University of Melbourne"
+    },
+    {
+      "@id": "#grant-71",
+      "@type": "Organisation",
+      "name": "ARC - Australian Research Council",
+      "description": "CE140100041 (ARC - Australian Research Council)"
+    }
+  ]
+}

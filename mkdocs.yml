@@ -76,6 +76,7 @@ nav:
     - From Graph to DataFrame: tutorials/from-graph-to-dataframe.md
     - Exploring Temporal Dimensions: tutorials/exploring-temporal-dimensions.md
     - Mapping a Collection's Places: tutorials/mapping-collection-places.md
+    - Combining Multiple Crates: tutorials/combining-multiple-crates.md
     - Visualising a Collection: tutorials/visualising-a-collection.md
     - Building a Thumbnail Gallery: tutorials/building-a-thumbnail-gallery.md
     - Searching a Collection: tutorials/searching-a-collection.md
