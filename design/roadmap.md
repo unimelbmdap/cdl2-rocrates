@@ -96,6 +96,32 @@ The plugin-style architecture is unevenly mature across subsystems. Current rank
 
 Recommended next step: standardise plugin registration before adding many new plugin implementations. Use private dictionaries or ordered lists internally, expose public helpers (`register_*`, `get_*` or `find_*`, and `list_*`), and define built-ins declaratively so they can be lazily registered. Named plugins such as writers, renderers, readers, and validators should use name-based registries; capability-matched plugins such as inspectors and viewers should use ordered registries where specialised plugins can take priority over broad defaults.
 
+## Matplotlib (static, styleable) Renderer
+
+The current renderers (2D sigma, 3D force-graph, SVG, Pyvis) all colour nodes from a fixed
+vivid palette via `resolve_colour_map()`, and the sigma legend is always built from entity
+*types* regardless of `colour_by`. This works well for type-coloured exploration but blocks two
+things that came up writing the EOAS case study:
+
+- **Highlight-and-dim views.** A common analytical move is to draw a large network with a few
+  nodes emphasised (the connectivity hubs, the isolated records, a query result) and everything
+  else faded to a muted grey. `colour_by` on an annotated binary field *does* drive the node
+  colours correctly, but both groups get saturated palette colours, so the common mass is as loud
+  as the highlighted few. The case study had to drop to raw matplotlib (`graph.layout()` for
+  positions, then `scatter`/`LineCollection` with hand-set colours, sizes, and alpha) to get a
+  readable highlight-on-grey figure.
+- **Correct legends for non-type colourings.** When `colour_by` is not `"type"`, the sigma legend
+  still lists types, which is misleading. The `simple=True` variant sidesteps this by omitting the
+  legend entirely, but then there is no key at all.
+
+A `renderer="matplotlib"` (static PNG/SVG) option would cover these: reuse the graph's existing
+`layout()`, expose per-group colours (or a base-plus-highlight scheme), node size/alpha control,
+and a legend keyed to whatever `colour_by` resolved. It would also give publication-quality static
+figures for papers and docs without a browser. A lighter alternative that stays within the existing
+renderers is to (a) let `colour_by` accept an explicit colour map / a "dim everything except these
+ids" highlight mode, and (b) make the sigma legend follow `colour_by` rather than always showing
+types.
+
 ## Interoperability
 
 Export methods to bridge crategraph with other tools:

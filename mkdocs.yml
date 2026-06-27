@@ -85,6 +85,7 @@ nav:
   - Case Studies:
     - Overview: case-studies/index.md
     - Lifelines of the Encyclopedia of Melbourne: case-studies/encyclopedia-of-melbourne-lifelines.md
+    - Navigating the Encyclopedia of Australian Science: case-studies/questions-for-a-collection-eoas.md
   - Architecture: architecture.md
   - API Reference:
     - Overview: api/index.md
