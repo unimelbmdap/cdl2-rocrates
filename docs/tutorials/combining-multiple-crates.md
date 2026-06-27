@@ -21,6 +21,7 @@ sits behind PARADISEC's access conditions. Metadata is all we need to find the o
 
 - Loading several crates into one graph with `Crate(...)`.
 - Why the crates arrive as disconnected islands, and how to see it.
+- Reading a type-coloured network before switching to collection colours.
 - Choosing what counts as the "same thing" across collections.
 - Using a shared identifier to bring matching records together.
 - Using `merge_nodes` to reveal what the crates share and watch the separate collections join into one connected graph.
@@ -60,6 +61,22 @@ what links a collection to its languages, people, and places. Every node now car
 prefixed id like `NT1/...`; the original id is preserved on each node as `raw_id`,
 which we rely on shortly. Because loading does not invent links between separate crates,
 the three collections arrive as **three disconnected islands**.
+
+Before looking for overlaps, look at the graph using crategraph's normal type colours.
+The legend shows what kind of thing each node is: collection roots, files, languages,
+people, places, organisations, and so on. These colours do **not** show which crate a
+node came from yet.
+
+```python
+combined.visualise(colour_by="type", simple=False, filepath="paradisec-type-network.html")
+```
+
+<iframe src="../../assets/paradisec-type-network.html" width="100%" height="520"
+        style="border:none" loading="lazy" scrolling="no" title="Three PARADISEC crates coloured by entity type"></iframe>
+
+This view is useful for orientation. It shows that languages are part of the same
+metadata structure as people, places, and collection records. For the merge question,
+though, we need to see which crate each node came from.
 
 ## 2. See the duplication
 
@@ -125,24 +142,34 @@ keyed = tagged.annotate_entities(share_key=share_key)
 
 ## 4. Merge, and read off what they share
 
-`merge_nodes` turns records with the same `share_key` into one node. The `count` column
-tells us how many original records were brought together:
+`merge_nodes` turns records with the same `share_key` into one node. Because our
+language keys are stable URLs, we also keep a small lookup from URL to language name so
+the merged result remains readable. The `count` column tells us how many original
+records were brought together:
 
 ```python
-merged = keyed.merge_nodes(by="share_key")
-shared = [r for r in merged.entity_records(columns=["label", "count"]) if r["count"] > 1]
+language_names = {
+    r["raw_id"]: r["name"]
+    for r in tagged.select(entity_types=["Language"]).entity_records(columns=["raw_id", "name"])
+}
+
+merged = keyed.merge_nodes(by="share_key").annotate_entities(
+    name=lambda e: language_names.get(e.id, e.id)
+)
+shared = [r for r in merged.entity_records(columns=["name", "count"]) if r["count"] > 1]
 sorted(shared, key=lambda r: -r["count"])
 ```
 
 ```
-[{'label': 'http://www.language-archives.org/language/erk', 'count': 3},
- {'label': 'http://www.language-archives.org/language/bis', 'count': 2}]
+[{'name': 'Efate, South', 'count': 3},
+ {'name': 'Bislama', 'count': 2}]
 ```
 
-South Efate (`.../language/erk`) has a count of **3**: all three collections document it.
-Bislama (`.../language/bis`), the national creole, turns up in two. `merge_nodes` gives
-you a summary view of the overlap, which is exactly what you want for the question
-"which languages do these collections have in common?".
+Efate, South has a count of **3**: all three collections document it. Bislama, the
+national creole, turns up in two. The names are for display; the actual matching still
+used the OLAC language URLs in `raw_id`. `merge_nodes` gives you a summary view of the
+overlap, which is exactly what you want for the question "which languages do these
+collections have in common?".
 
 This result follows from the match we chose. If we used `raw_id` for every kind of
 record, people and institutions would join too. If we wanted to compare places, there
