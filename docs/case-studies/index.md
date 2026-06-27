@@ -12,6 +12,14 @@ Where the [tutorials](../tutorials/index.md) each teach one capability (such as 
   thin links, name variants, events on a given day, a whole period drawn as a network, the
   establishment of awards, who built the collection, a word cloud and gallery of its contents, and
   resolving a person against Wikidata.
+- [Women in the Encyclopedia of Australian Science](women-in-the-encyclopedia-of-australian-science.md) —
+  Build a verified subset of the women recorded in EOAS, then read their history off it: when they
+  begin to appear, which fields they entered and how that shifts by decade, where they came from, and
+  the medals they shared. *(Draft.)*
+- [Exploring the Australian Radio Talkback corpus](australian-radio-talkback.md) — Profile the people
+  and recordings of a radio-transcript collection, build and visualise a speaker network, search the
+  transcripts in plain language, then hand the text to NLP tools for sentiment, named entities, and
+  topics. *(Draft.)*
 
 ## Data sources
 
@@ -22,4 +30,8 @@ reuse the data, and check each collection's own terms of use before reusing it.
   [emelbourne.net.au](https://www.emelbourne.net.au/).
 - **Encyclopedia of Australian Science and Innovation (EOAS)** and **University of Melbourne
   Perpetual Calendar (UMPC)** (questions case study). Source: [eoas.info](https://www.eoas.info/)
-  and the [UMPC website](https://umpc.esrc.unimelb.edu.au/index.html).
+  and the [UMPC website](https://umpc.esrc.unimelb.edu.au/index.html). The EOAS crate is also used by
+  the women case study.
+- **Australian Radio Talkback (ART)** (talkback case study). A linguistics corpus archived by
+  Macquarie University, licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Source:
+  [LDaCA](https://data.ldaca.edu.au/) (DOI 10.25949/24769434.v1).

@@ -86,6 +86,8 @@ nav:
     - Overview: case-studies/index.md
     - Lifelines of the Encyclopedia of Melbourne: case-studies/encyclopedia-of-melbourne-lifelines.md
     - Navigating the Encyclopedia of Australian Science: case-studies/questions-for-a-collection-eoas.md
+    - Women in the Encyclopedia of Australian Science: case-studies/women-in-the-encyclopedia-of-australian-science.md
+    - Exploring the Australian Radio Talkback corpus: case-studies/australian-radio-talkback.md
   - Architecture: architecture.md
   - API Reference:
     - Overview: api/index.md
