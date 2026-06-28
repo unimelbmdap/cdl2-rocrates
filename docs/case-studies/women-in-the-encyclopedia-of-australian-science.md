@@ -77,9 +77,12 @@ We ask crategraph to count the values of the `gender` property directly with `en
 crate.entity_counts("gender")
 ```
 
-<div class="nb-table">
-<div style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: #222;"><div style="color: #666; margin-bottom: 2px;">Records: 4 rows x 2 fields</div><table style="border-collapse: collapse; border: none; background: none;"><thead><tr><th style="text-align: left; padding: 1px 12px 3px 0; border: none; border-bottom: 1px solid #ccc; color: #666; font-weight: 600; white-space: nowrap;">gender</th><th style="text-align: left; padding: 1px 12px 3px 0; border: none; border-bottom: 1px solid #ccc; color: #666; font-weight: 600; white-space: nowrap;">count</th></tr></thead><tbody><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">M</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">5126</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">F</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">892</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">m</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">9</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">f</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">2</td></tr></tbody></table></div>
-</div>
+| gender | count |
+| --- | --- |
+| M | 5126 |
+| F | 892 |
+| m | 9 |
+| f | 2 |
 
 
 We flag each person's gender once on the crate with `annotate_entities`, adding derived
@@ -170,9 +173,12 @@ real_function_mismatches = profession_overlap.where(function_overlap="both, diff
 profession_overlap.entity_counts("function_overlap")
 ```
 
-<div class="nb-table">
-<div style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: #222;"><div style="color: #666; margin-bottom: 2px;">Records: 4 rows x 2 fields</div><table style="border-collapse: collapse; border: none; background: none;"><thead><tr><th style="text-align: left; padding: 1px 12px 3px 0; border: none; border-bottom: 1px solid #ccc; color: #666; font-weight: 600; white-space: nowrap;">function_overlap</th><th style="text-align: left; padding: 1px 12px 3px 0; border: none; border-bottom: 1px solid #ccc; color: #666; font-weight: 600; white-space: nowrap;">count</th></tr></thead><tbody><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">both, same</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">654</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">function only</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">199</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">neither</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">23</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">both, different</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">18</td></tr></tbody></table></div>
-</div>
+| function_overlap | count |
+| --- | --- |
+| both, same | 654 |
+| function only | 199 |
+| neither | 23 |
+| both, different | 18 |
 
 
 No woman has `x_efunction` without `function`, and only 18 women have both fields populated with different values. Inspect those real mismatches before settling on the profession field.
@@ -183,95 +189,18 @@ pd.DataFrame(
 ).head(10)
 ```
 
-<div class="nb-table">
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>name</th>
-      <th>function</th>
-      <th>x_efunction</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>Hobler, Mabel Theodore</td>
-      <td>Zoological collector</td>
-      <td>Zoological collector,</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>Scarth-Johnson, Vera</td>
-      <td>Botanical collector, Botanical artist</td>
-      <td>Botanical collector, Botanical illustrator</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>Eardley, Constance Margaret</td>
-      <td>Botanist, Educator</td>
-      <td>Botanist</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>Meredith, Louisa Ann</td>
-      <td>Author, Botanical artist</td>
-      <td>Author</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>Lloyd, Elizabeth Gertrude (Beth)</td>
-      <td>Dietician</td>
-      <td>Dietician, Dietician</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>Livingstone, Catherine Brighid</td>
-      <td>Accountant, Science administrator</td>
-      <td>Accountant</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>Ladiges, Pauline Yvonne</td>
-      <td>Botanist, Phylogenetic systematist, Taxonomist</td>
-      <td>Botanist</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>Workman, Barbara Skeete</td>
-      <td>Medical administrator, Medical educator</td>
-      <td>Medical educator</td>
-    </tr>
-    <tr>
-      <th>8</th>
-      <td>Turner, Susan</td>
-      <td>Science historian, Geologist</td>
-      <td>Historian, Geologist</td>
-    </tr>
-    <tr>
-      <th>9</th>
-      <td>McMillen, Isabella Caroline</td>
-      <td>Physiologist, University Administrator</td>
-      <td>Physiologist</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
+|  | name | function | x_efunction |
+| --- | --- | --- | --- |
+| 0 | Hobler, Mabel Theodore | Zoological collector | Zoological collector, |
+| 1 | Scarth-Johnson, Vera | Botanical collector, Botanical artist | Botanical collector, Botanical illustrator |
+| 2 | Eardley, Constance Margaret | Botanist, Educator | Botanist |
+| 3 | Meredith, Louisa Ann | Author, Botanical artist | Author |
+| 4 | Lloyd, Elizabeth Gertrude (Beth) | Dietician | Dietician, Dietician |
+| 5 | Livingstone, Catherine Brighid | Accountant, Science administrator | Accountant |
+| 6 | Ladiges, Pauline Yvonne | Botanist, Phylogenetic systematist, Taxonomist | Botanist |
+| 7 | Workman, Barbara Skeete | Medical administrator, Medical educator | Medical educator |
+| 8 | Turner, Susan | Science historian, Geologist | Historian, Geologist |
+| 9 | McMillen, Isabella Caroline | Physiologist, University Administrator | Physiologist |
 
 
 The check supports using `function`: it covers every `x_efunction` record and carries more detail for most women. Now split `function` into one role per value, because many people hold more than one role.
@@ -290,9 +219,30 @@ prof_counts = fem_roles.entity_counts("roles")
 prof_counts
 ```
 
-<div class="nb-table">
-<div style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: #222;"><div style="color: #666; margin-bottom: 2px;">Records: 269 rows x 2 fields</div><table style="border-collapse: collapse; border: none; background: none;"><thead><tr><th style="text-align: left; padding: 1px 12px 3px 0; border: none; border-bottom: 1px solid #ccc; color: #666; font-weight: 600; white-space: nowrap;">roles</th><th style="text-align: left; padding: 1px 12px 3px 0; border: none; border-bottom: 1px solid #ccc; color: #666; font-weight: 600; white-space: nowrap;">count</th></tr></thead><tbody><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Educator</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">90</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Nurse</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">77</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Physician</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">59</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Botanist</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">45</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Nurse educator</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">39</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Botanical collector</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">36</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Company director</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">23</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Ornithologist</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">21</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Teacher</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">21</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Biochemist</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">19</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Botanical artist</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">19</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Nurse administrator</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">19</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Physicist</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">18</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Author</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">17</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Medical administrator</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">17</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Naturalist</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">17</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Zoologist</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">16</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Pathologist</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">15</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Chemist</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">14</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Anthropologist</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">13</td></tr></tbody></table><div style="color: #999; margin-top: 3px;">Showing 20 of 269 rows</div></div>
-</div>
+| roles | count |
+| --- | --- |
+| Educator | 90 |
+| Nurse | 77 |
+| Physician | 59 |
+| Botanist | 45 |
+| Nurse educator | 39 |
+| Botanical collector | 36 |
+| Company director | 23 |
+| Ornithologist | 21 |
+| Teacher | 21 |
+| Biochemist | 19 |
+| Botanical artist | 19 |
+| Nurse administrator | 19 |
+| Physicist | 18 |
+| Author | 17 |
+| Medical administrator | 17 |
+| Naturalist | 17 |
+| Zoologist | 16 |
+| Pathologist | 15 |
+| Chemist | 14 |
+| Anthropologist | 13 |
+
+*Showing 20 of 269 rows*
 
 
 ```python
@@ -568,113 +518,21 @@ share = decade_counts["% women"].dropna()
 decade_counts.tail(12)
 ```
 
-<div class="nb-table">
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>women</th>
-      <th>men</th>
-      <th>% women</th>
-    </tr>
-    <tr>
-      <th>decade</th>
-      <th></th>
-      <th></th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>1900</th>
-      <td>64</td>
-      <td>408</td>
-      <td>13.6</td>
-    </tr>
-    <tr>
-      <th>1910</th>
-      <td>88</td>
-      <td>460</td>
-      <td>16.1</td>
-    </tr>
-    <tr>
-      <th>1920</th>
-      <td>81</td>
-      <td>480</td>
-      <td>14.4</td>
-    </tr>
-    <tr>
-      <th>1930</th>
-      <td>71</td>
-      <td>345</td>
-      <td>17.1</td>
-    </tr>
-    <tr>
-      <th>1940</th>
-      <td>116</td>
-      <td>264</td>
-      <td>30.5</td>
-    </tr>
-    <tr>
-      <th>1950</th>
-      <td>71</td>
-      <td>94</td>
-      <td>43.0</td>
-    </tr>
-    <tr>
-      <th>1960</th>
-      <td>14</td>
-      <td>37</td>
-      <td>27.5</td>
-    </tr>
-    <tr>
-      <th>1970</th>
-      <td>10</td>
-      <td>16</td>
-      <td>38.5</td>
-    </tr>
-    <tr>
-      <th>1980</th>
-      <td>0</td>
-      <td>8</td>
-      <td>0.0</td>
-    </tr>
-    <tr>
-      <th>1990</th>
-      <td>0</td>
-      <td>8</td>
-      <td>0.0</td>
-    </tr>
-    <tr>
-      <th>2000</th>
-      <td>0</td>
-      <td>2</td>
-      <td>0.0</td>
-    </tr>
-    <tr>
-      <th>2010</th>
-      <td>0</td>
-      <td>3</td>
-      <td>0.0</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
+|  | women | men | % women |
+| --- | --- | --- | --- |
+| decade |  |  |  |
+| 1900 | 64 | 408 | 13.6 |
+| 1910 | 88 | 460 | 16.1 |
+| 1920 | 81 | 480 | 14.4 |
+| 1930 | 71 | 345 | 17.1 |
+| 1940 | 116 | 264 | 30.5 |
+| 1950 | 71 | 94 | 43.0 |
+| 1960 | 14 | 37 | 27.5 |
+| 1970 | 10 | 16 | 38.5 |
+| 1980 | 0 | 8 | 0.0 |
+| 1990 | 0 | 8 | 0.0 |
+| 2000 | 0 | 2 | 0.0 |
+| 2010 | 0 | 3 | 0.0 |
 
 
 ```python
@@ -769,9 +627,11 @@ family = fem.annotate_entities(
 family.entity_records(columns=["name", "parent_jobs"])
 ```
 
-<div class="nb-table">
-<div style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: #222;"><div style="color: #666; margin-bottom: 2px;">Records: 3 rows x 2 fields</div><table style="border-collapse: collapse; border: none; background: none;"><thead><tr><th style="text-align: left; padding: 1px 12px 3px 0; border: none; border-bottom: 1px solid #ccc; color: #666; font-weight: 600; white-space: nowrap;">name</th><th style="text-align: left; padding: 1px 12px 3px 0; border: none; border-bottom: 1px solid #ccc; color: #666; font-weight: 600; white-space: nowrap;">parent_jobs</th></tr></thead><tbody><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Wehl, Louise Therese</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Botanical collector</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Wehl, Marie Magdalene</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Botanical collector</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Wehl, Clara Christine Maria</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Botanical artist, Plant collector, Botanical collector</td></tr></tbody></table></div>
-</div>
+| name | parent_jobs |
+| --- | --- |
+| Wehl, Louise Therese | Botanical collector |
+| Wehl, Marie Magdalene | Botanical collector |
+| Wehl, Clara Christine Maria | Botanical artist, Plant collector, Botanical collector |
 
 
 The family links are very sparse: only a handful across 894 women, and the few that exist connect members of the same scientific family (the Wehls, all botanical collectors) rather than independent women from educated backgrounds. So the dataset can't really tell us whether these women came from educated families; we note it as a limitation rather than forcing an answer.
@@ -853,9 +713,30 @@ with_medal_flags = women_plus_related.annotate_entities(
 with_medal_flags.where(is_medal=True).entity_records(columns=["name", "types"])
 ```
 
-<div class="nb-table">
-<div style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: #222;"><div style="color: #666; margin-bottom: 2px;">Records: 32 rows x 2 fields</div><table style="border-collapse: collapse; border: none; background: none;"><thead><tr><th style="text-align: left; padding: 1px 12px 3px 0; border: none; border-bottom: 1px solid #ccc; color: #666; font-weight: 600; white-space: nowrap;">name</th><th style="text-align: left; padding: 1px 12px 3px 0; border: none; border-bottom: 1px solid #ccc; color: #666; font-weight: 600; white-space: nowrap;">types</th></tr></thead><tbody><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Tom Vallance Medal</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Australia Prize</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">M A Sargent Medal</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">R. M. Johnston Memorial Medal</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Leighton Memorial Medal</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Australian Natural History Medallion</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Mueller Medal</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Walter Burfitt Prize</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Lemberg Medal and Oration</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Clarke Medal</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Frank Fenner Prize for Life Scientist of the Year</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Nancy T. Burbidge Medal</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Thomas Ranken Lyle Medal</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Malcolm McIntosh Prize for Physical Scientist of the Year</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Pawsey Medal</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Gottschalk Medal</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Edgeworth David Medal</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">W. H. (Beattie) Steel Medal</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Archibald Liversidge Medal and Lecture</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Prime Minister&#x27;s Prize for Science</td><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Award</td></tr></tbody></table><div style="color: #999; margin-top: 3px;">Showing 20 of 32 rows</div></div>
-</div>
+| name | types |
+| --- | --- |
+| Tom Vallance Medal | Award |
+| Australia Prize | Award |
+| M A Sargent Medal | Award |
+| R. M. Johnston Memorial Medal | Award |
+| Leighton Memorial Medal | Award |
+| Australian Natural History Medallion | Award |
+| Mueller Medal | Award |
+| Walter Burfitt Prize | Award |
+| Lemberg Medal and Oration | Award |
+| Clarke Medal | Award |
+| Frank Fenner Prize for Life Scientist of the Year | Award |
+| Nancy T. Burbidge Medal | Award |
+| Thomas Ranken Lyle Medal | Award |
+| Malcolm McIntosh Prize for Physical Scientist of the Year | Award |
+| Pawsey Medal | Award |
+| Gottschalk Medal | Award |
+| Edgeworth David Medal | Award |
+| W. H. (Beattie) Steel Medal | Award |
+| Archibald Liversidge Medal and Lecture | Award |
+| Prime Minister's Prize for Science | Award |
+
+*Showing 20 of 32 rows*
 
 
 Then keep all women plus medals won by at least two women, and drop isolated women whose medals were not shared.

@@ -47,27 +47,3 @@
 .md-typeset details.card8 { border-color: #8e24aa; }
 .md-typeset .card8 > summary,
 .md-typeset .card8 > .admonition-title { background-color: rgba(142, 36, 170, 0.15); }
-
-/* Tables recovered from notebook outputs (pandas `.dataframe`, crategraph Records).
-   Keep wide tables inside the content column with a horizontal scroll instead of
-   overflowing into the page margin / table of contents, and tone the pandas borders
-   down to match Material's own table styling. */
-.md-typeset .nb-table {
-  overflow-x: auto;
-  max-width: 100%;
-  margin: 0.6rem 0;
-}
-.md-typeset .nb-table table {
-  margin: 0;
-  font-size: 0.72rem;
-}
-.md-typeset .nb-table .dataframe {
-  border: none;
-}
-.md-typeset .nb-table .dataframe th,
-.md-typeset .nb-table .dataframe td {
-  border: 1px solid var(--md-default-fg-color--lightest);
-  padding: 0.25em 0.6em;
-  text-align: left;
-  white-space: nowrap;
-}

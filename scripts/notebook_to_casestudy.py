@@ -29,6 +29,7 @@ import argparse
 import base64
 import json
 import re
+from html.parser import HTMLParser
 from pathlib import Path
 
 import plotly.io as pio
@@ -92,6 +93,67 @@ def _is_network_html(html: str) -> bool:
     return any(m in low for m in NETWORK_MARKERS)
 
 
+class _TableExtractor(HTMLParser):
+    """Collect <tr>/<th>/<td> cells from an HTML table into rows of (is_header, text)."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.rows: list[list[tuple[bool, str]]] = []
+        self._row: list[tuple[bool, str]] | None = None
+        self._cell: list[str] | None = None
+        self._cell_header = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "tr":
+            self._row = []
+        elif tag in ("td", "th"):
+            self._cell, self._cell_header = [], tag == "th"
+
+    def handle_endtag(self, tag):
+        if tag in ("td", "th") and self._cell is not None and self._row is not None:
+            text = " ".join("".join(self._cell).split())  # collapse whitespace/newlines
+            self._row.append((self._cell_header, text))
+            self._cell = None
+        elif tag == "tr" and self._row is not None:
+            self.rows.append(self._row)
+            self._row = None
+
+    def handle_data(self, data):
+        if self._cell is not None:
+            self._cell.append(data)
+
+
+def _html_table_to_markdown(html: str) -> str | None:
+    """Render a pandas/Records HTML table as a Material-themed Markdown pipe table."""
+    parser = _TableExtractor()
+    parser.feed(html)
+    if not parser.rows:
+        return None
+
+    header, body = None, []
+    for row in parser.rows:
+        if header is None and row and all(is_h for is_h, _ in row):
+            header = [text for _, text in row]
+        else:
+            body.append([text for _, text in row])
+    width = max([len(header or [])] + [len(r) for r in body])
+    if header is None:
+        header = [""] * width
+
+    def cells(row: list[str]) -> str:
+        row = row + [""] * (width - len(row))
+        return "| " + " | ".join(c.replace("|", r"\|") for c in row) + " |"
+
+    lines = [cells(header), "| " + " | ".join(["---"] * width) + " |"]
+    lines += [cells(r) for r in body]
+    md = "\n".join(lines) + "\n"
+
+    truncated = re.search(r">(Showing \d[\d,]* of [\d,]+ rows)<", html)
+    if truncated:
+        md += f"\n*{truncated.group(1)}*\n"
+    return md
+
+
 def _write_plotly_asset(fig_json: dict, path: Path) -> int:
     fig = pio.from_json(json.dumps(fig_json))
     pio.write_html(
@@ -150,9 +212,10 @@ def convert(
                 out.append(iframe(name, height + 20, "figure"))
             elif "text/html" in data:
                 html = _join(data["text/html"])
-                if _is_table_html(html):
-                    # wrap in a scroll container so wide tables don't overflow the page
-                    out.append('<div class="nb-table">\n' + html.rstrip() + "\n</div>\n")
+                table_md = _html_table_to_markdown(html) if _is_table_html(html) else None
+                if table_md:
+                    # a themed Markdown table (Material handles styling + width scrolling)
+                    out.append(table_md)
                 elif _is_network_html(html) or len(html) > INLINE_HTML_LIMIT:
                     path, name = asset("html")
                     path.write_text(html)

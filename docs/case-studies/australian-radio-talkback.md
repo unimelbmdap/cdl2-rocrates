@@ -117,11 +117,28 @@ for e in metadata.entities:
 ```
 
 ```
+https://ror.org/01sf06y89 ('Organization',)
+  name : Macquarie University
+
 ro-crate-metadata.json ('CreativeWork',)
   identifier : ro-crate-metadata.json
   about : arcp://name,doi10.25949%2F24769434.v1
   conformsTo : https://w3id.org/ldac/profile#Collection
   license : https://creativecommons.org/licenses/by/4.0/
+
+#provenance ('CreateAction',)
+  name : Create RO-Crate using corpus-tools-australian-radio-talkback
+  instrument : git+https://github.com/Language-Research-Technology/corpus-tools-australian-radio-talkback.git
+  result : ro-crate-metadata.json
+  object : ART-corpus-catalogue.xls
+
+_:local-id:LDaCA:arcp://name,doi10.25949%2F24769434.v1 ('PropertyValue',)
+  value : arcp://name,doi10.25949%2F24769434.v1
+  name : LDaCA
+
+_geo-glottolog-stan1293 ('Geometry',)
+  name : Geographical coverage for English
+  asWKT : POINT(-1.0 53.0)
 
 https://glottolog.org/resource/languoid/id/stan1293 ('Language',)
   languageCode : stan1293
@@ -132,22 +149,12 @@ https://glottolog.org/resource/languoid/id/stan1293 ('Language',)
   alternateName : ['English (Standard Southern British)', 'Englisch', 'Anglais moderne [fr]', 'English [en]', 'Inglese moderno [it]', 'Inglês moderno [pt]', 'Modern English [en]', 'Moderna angla lingvo [eo]', 'Moderne
   iso639-3 : eng
 
-#provenance ('CreateAction',)
-  name : Create RO-Crate using corpus-tools-australian-radio-talkback
-  instrument : git+https://github.com/Language-Research-Technology/corpus-tools-australian-radio-talkback.git
-  result : ro-crate-metadata.json
-  object : ART-corpus-catalogue.xls
-
-_geo-glottolog-stan1293 ('Geometry',)
-  name : Geographical coverage for English
-  asWKT : POINT(-1.0 53.0)
-
-https://ror.org/01sf06y89 ('Organization',)
-  name : Macquarie University
-
-_:local-id:LDaCA:arcp://name,doi10.25949%2F24769434.v1 ('PropertyValue',)
-  value : arcp://name,doi10.25949%2F24769434.v1
-  name : LDaCA
+git+https://github.com/Language-Research-Technology/corpus-tools-australian-radio-talkback.git ('SoftwareSourceCode',)
+  name : corpus-tools-australian-radio-talkback
+  description : Corpus Tools ART, corpus-tools-australian-radio-talkback
+  codeRepository : git+https://github.com/Language-Research-Technology/corpus-tools-australian-radio-talkback.git
+  programmingLanguage : ECMAScript
+  runtimePlarform : Node.js
 
 https://creativecommons.org/licenses/by/4.0/ ('DataReuseLicense',)
   metadataIsPublic : True
@@ -158,13 +165,6 @@ Share — copy and redistribute the material in any medium or format
 Adapt — remix, transform, and build upon the material
 for any purpose, even commercially.
 This license is acceptable
-
-git+https://github.com/Language-Research-Technology/corpus-tools-australian-radio-talkback.git ('SoftwareSourceCode',)
-  name : corpus-tools-australian-radio-talkback
-  description : Corpus Tools ART, corpus-tools-australian-radio-talkback
-  codeRepository : git+https://github.com/Language-Research-Technology/corpus-tools-australian-radio-talkback.git
-  programmingLanguage : ECMAScript
-  runtimePlarform : Node.js
 ```
 
 
@@ -197,269 +197,37 @@ recordings_df
 29 recordings
 ```
 
-<div class="nb-table">
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>id</th>
-      <th>station</th>
-      <th>program</th>
-      <th>subject</th>
-      <th>speakers</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>ABCe1</td>
-      <td>ABC Local</td>
-      <td>Gardening Talkback</td>
-      <td>gardening</td>
-      <td>15</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>COMe4</td>
-      <td>2UE</td>
-      <td>John Laws Morning Show</td>
-      <td>NaN</td>
-      <td>21</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>COMe2</td>
-      <td>2GB</td>
-      <td>Real Estate</td>
-      <td>property prices</td>
-      <td>11</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>COMne1</td>
-      <td>6PR</td>
-      <td>Sports Today</td>
-      <td>NaN</td>
-      <td>14</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>Nat3</td>
-      <td>ABC National</td>
-      <td>Life Matters</td>
-      <td>children's books</td>
-      <td>15</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>COMne5</td>
-      <td>FiveAA</td>
-      <td>Leon Byner</td>
-      <td>NaN</td>
-      <td>7</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>ABCe2</td>
-      <td>ABC Local</td>
-      <td>The Woodies</td>
-      <td>DIY</td>
-      <td>12</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>COMe1</td>
-      <td>2GB</td>
-      <td>The Garden Clinic</td>
-      <td>Gardening</td>
-      <td>25</td>
-    </tr>
-    <tr>
-      <th>8</th>
-      <td>ABCe4</td>
-      <td>ABC Local</td>
-      <td>Wildlife Talkback</td>
-      <td>NaN</td>
-      <td>9</td>
-    </tr>
-    <tr>
-      <th>9</th>
-      <td>COMne3</td>
-      <td>6PR</td>
-      <td>Talking Real Estate</td>
-      <td>NaN</td>
-      <td>16</td>
-    </tr>
-    <tr>
-      <th>10</th>
-      <td>Nat4</td>
-      <td>ABC Local</td>
-      <td>Nightlife</td>
-      <td>Hormone replacement therapy/quiz/terrorism</td>
-      <td>49</td>
-    </tr>
-    <tr>
-      <th>11</th>
-      <td>Nat7</td>
-      <td>ABC TripleJ</td>
-      <td>Super Request</td>
-      <td>various</td>
-      <td>15</td>
-    </tr>
-    <tr>
-      <th>12</th>
-      <td>COMne6</td>
-      <td>FiveAA</td>
-      <td>Graham Goodings</td>
-      <td>NaN</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>13</th>
-      <td>Nat1</td>
-      <td>ABC National</td>
-      <td>Australia Talks Back</td>
-      <td>week review</td>
-      <td>22</td>
-    </tr>
-    <tr>
-      <th>14</th>
-      <td>ABCe3</td>
-      <td>ABC Local</td>
-      <td>The Melbourne Book Club</td>
-      <td>NaN</td>
-      <td>14</td>
-    </tr>
-    <tr>
-      <th>15</th>
-      <td>COMe6</td>
-      <td>Nova 96.9</td>
-      <td>Paul Murray Show</td>
-      <td>"installing stuff" "love song dedications" fil...</td>
-      <td>16</td>
-    </tr>
-    <tr>
-      <th>16</th>
-      <td>Nat6</td>
-      <td>ABC TripleJ</td>
-      <td>Morning Show</td>
-      <td>water</td>
-      <td>9</td>
-    </tr>
-    <tr>
-      <th>17</th>
-      <td>COMe5</td>
-      <td>2UE</td>
-      <td>Sharina's Psychic Encounters</td>
-      <td>NaN</td>
-      <td>26</td>
-    </tr>
-    <tr>
-      <th>18</th>
-      <td>Nat2</td>
-      <td>ABC National</td>
-      <td>Australia Talks Books</td>
-      <td>Cloudstreet: Tim Winton</td>
-      <td>15</td>
-    </tr>
-    <tr>
-      <th>19</th>
-      <td>Nat8</td>
-      <td>ABC TripleJ</td>
-      <td>The Chat Room</td>
-      <td>refugees</td>
-      <td>18</td>
-    </tr>
-    <tr>
-      <th>20</th>
-      <td>ABCne2</td>
-      <td>ABC Local</td>
-      <td>Gardening Talkback</td>
-      <td>NaN</td>
-      <td>10</td>
-    </tr>
-    <tr>
-      <th>21</th>
-      <td>COMe8</td>
-      <td>Mix 106.5</td>
-      <td>Love Song Dedications</td>
-      <td>NaN</td>
-      <td>16</td>
-    </tr>
-    <tr>
-      <th>22</th>
-      <td>Nat5</td>
-      <td>ABC Local</td>
-      <td>Sunday Night</td>
-      <td>What would Jesus vote?</td>
-      <td>10</td>
-    </tr>
-    <tr>
-      <th>23</th>
-      <td>COMne2</td>
-      <td>6PR</td>
-      <td>Drive</td>
-      <td>NaN</td>
-      <td>13</td>
-    </tr>
-    <tr>
-      <th>24</th>
-      <td>COMne7</td>
-      <td>FiveAA</td>
-      <td>Nicole Haack</td>
-      <td>NaN</td>
-      <td>8</td>
-    </tr>
-    <tr>
-      <th>25</th>
-      <td>ABCne1</td>
-      <td>ABC Local</td>
-      <td>Language Talkback</td>
-      <td>NaN</td>
-      <td>11</td>
-    </tr>
-    <tr>
-      <th>26</th>
-      <td>COMe3</td>
-      <td>2GB</td>
-      <td>Your Health</td>
-      <td>health queries</td>
-      <td>21</td>
-    </tr>
-    <tr>
-      <th>27</th>
-      <td>COMne4</td>
-      <td>6PR</td>
-      <td>The Weekend Garden Party</td>
-      <td>NaN</td>
-      <td>21</td>
-    </tr>
-    <tr>
-      <th>28</th>
-      <td>COMe7</td>
-      <td>3AW</td>
-      <td>Neil Mitchell</td>
-      <td>NaN</td>
-      <td>6</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
+|  | id | station | program | subject | speakers |
+| --- | --- | --- | --- | --- | --- |
+| 0 | Nat5 | ABC Local | Sunday Night | What would Jesus vote? | 10 |
+| 1 | ABCe4 | ABC Local | Wildlife Talkback | NaN | 9 |
+| 2 | COMne4 | 6PR | The Weekend Garden Party | NaN | 21 |
+| 3 | COMe6 | Nova 96.9 | Paul Murray Show | "installing stuff" "love song dedications" fil... | 16 |
+| 4 | COMe7 | 3AW | Neil Mitchell | NaN | 6 |
+| 5 | Nat7 | ABC TripleJ | Super Request | various | 15 |
+| 6 | ABCe1 | ABC Local | Gardening Talkback | gardening | 15 |
+| 7 | ABCe3 | ABC Local | The Melbourne Book Club | NaN | 14 |
+| 8 | COMe2 | 2GB | Real Estate | property prices | 11 |
+| 9 | ABCne1 | ABC Local | Language Talkback | NaN | 11 |
+| 10 | COMne1 | 6PR | Sports Today | NaN | 14 |
+| 11 | COMne6 | FiveAA | Graham Goodings | NaN | 5 |
+| 12 | COMne5 | FiveAA | Leon Byner | NaN | 7 |
+| 13 | COMe4 | 2UE | John Laws Morning Show | NaN | 21 |
+| 14 | COMne3 | 6PR | Talking Real Estate | NaN | 16 |
+| 15 | Nat4 | ABC Local | Nightlife | Hormone replacement therapy/quiz/terrorism | 49 |
+| 16 | COMe5 | 2UE | Sharina's Psychic Encounters | NaN | 26 |
+| 17 | Nat8 | ABC TripleJ | The Chat Room | refugees | 18 |
+| 18 | COMe8 | Mix 106.5 | Love Song Dedications | NaN | 16 |
+| 19 | Nat3 | ABC National | Life Matters | children's books | 15 |
+| 20 | Nat6 | ABC TripleJ | Morning Show | water | 9 |
+| 21 | Nat2 | ABC National | Australia Talks Books | Cloudstreet: Tim Winton | 15 |
+| 22 | COMe3 | 2GB | Your Health | health queries | 21 |
+| 23 | ABCne2 | ABC Local | Gardening Talkback | NaN | 10 |
+| 24 | Nat1 | ABC National | Australia Talks Back | week review | 22 |
+| 25 | COMe1 | 2GB | The Garden Clinic | Gardening | 25 |
+| 26 | COMne2 | 6PR | Drive | NaN | 13 |
+| 27 | COMne7 | FiveAA | Nicole Haack | NaN | 8 |
+| 28 | ABCe2 | ABC Local | The Woodies | DIY | 12 |
 
 
 29 recordings spanning 10 stations, from national programs like *Australia Talks Back* (ABC National) down to local commercial shows like *Gardening
@@ -489,9 +257,9 @@ Total people: 323
 Role-tagged speakers: 322
 ```
 
-<div class="nb-table">
-<div style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: #222;"><div style="color: #666; margin-bottom: 2px;">Records: 1 rows x 1 fields</div><table style="border-collapse: collapse; border: none; background: none;"><thead><tr><th style="text-align: left; padding: 1px 12px 3px 0; border: none; border-bottom: 1px solid #ccc; color: #666; font-weight: 600; white-space: nowrap;">name</th></tr></thead><tbody><tr><td style="text-align: left; padding: 1px 12px 1px 0; border: none; white-space: nowrap; vertical-align: top;">Pam Peters</td></tr></tbody></table></div>
-</div>
+| name |
+| --- |
+| Pam Peters |
 
 
 ### Speaker demographics
@@ -552,123 +320,24 @@ role_sex["% male"] = (
 role_sex
 ```
 
-<div class="nb-table">
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th>sex</th>
-      <th>?</th>
-      <th>F</th>
-      <th>M</th>
-      <th>% male</th>
-    </tr>
-    <tr>
-      <th>role</th>
-      <th></th>
-      <th></th>
-      <th></th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>Caller</th>
-      <td>2</td>
-      <td>142</td>
-      <td>113</td>
-      <td>44.3</td>
-    </tr>
-    <tr>
-      <th>Expert</th>
-      <td>2</td>
-      <td>10</td>
-      <td>26</td>
-      <td>72.2</td>
-    </tr>
-    <tr>
-      <th>Presenter</th>
-      <td>1</td>
-      <td>10</td>
-      <td>16</td>
-      <td>61.5</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
+| sex | ? | F | M | % male |
+| --- | --- | --- | --- | --- |
+| role |  |  |  |  |
+| Caller | 2 | 142 | 113 | 44.3 |
+| Expert | 2 | 10 | 26 | 72.2 |
+| Presenter | 1 | 10 | 16 | 61.5 |
 
 
 ```python
 pd.crosstab(speakers_df["role"], speakers_df["age_band"])
 ```
 
-<div class="nb-table">
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th>age_band</th>
-      <th>&lt;45</th>
-      <th>&gt;45</th>
-      <th>?</th>
-    </tr>
-    <tr>
-      <th>role</th>
-      <th></th>
-      <th></th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>Caller</th>
-      <td>113</td>
-      <td>139</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>Expert</th>
-      <td>8</td>
-      <td>17</td>
-      <td>13</td>
-    </tr>
-    <tr>
-      <th>Presenter</th>
-      <td>2</td>
-      <td>6</td>
-      <td>19</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
+| age_band | <45 | >45 | ? |
+| --- | --- | --- | --- |
+| role |  |  |  |
+| Caller | 113 | 139 | 5 |
+| Expert | 8 | 17 | 13 |
+| Presenter | 2 | 6 | 19 |
 
 
 The aggregate sex split (162F/155M) hides a real skew once you split by role:
@@ -1175,113 +844,13 @@ commercial            15
 public                14
 ```
 
-<div class="nb-table">
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>recording</th>
-      <th>speaker_id</th>
-      <th>role</th>
-      <th>sex</th>
-      <th>text</th>
-      <th>sentiment</th>
-      <th>program</th>
-      <th>recording_id</th>
-      <th>station_type</th>
-      <th>region</th>
-      <th>topic</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>Nat1</td>
-      <td>arcp://name,doi10.25949%2F24769434.v1/person/P...</td>
-      <td>Presenter</td>
-      <td>M</td>
-      <td>One-eight-hundred-eight-oh-two-three-four-one ...</td>
-      <td>0.999520</td>
-      <td>Australia Talks Back</td>
-      <td>Nat1</td>
-      <td>public</td>
-      <td>national</td>
-      <td>politics</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>Nat1</td>
-      <td>arcp://name,doi10.25949%2F24769434.v1/person/C...</td>
-      <td>Caller</td>
-      <td>M</td>
-      <td>Oh hi how are you.</td>
-      <td>0.999355</td>
-      <td>Australia Talks Back</td>
-      <td>Nat1</td>
-      <td>public</td>
-      <td>national</td>
-      <td>politics</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>Nat1</td>
-      <td>arcp://name,doi10.25949%2F24769434.v1/person/P...</td>
-      <td>Presenter</td>
-      <td>M</td>
-      <td>Yeah good thank you.</td>
-      <td>0.999832</td>
-      <td>Australia Talks Back</td>
-      <td>Nat1</td>
-      <td>public</td>
-      <td>national</td>
-      <td>politics</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>Nat1</td>
-      <td>arcp://name,doi10.25949%2F24769434.v1/person/C...</td>
-      <td>Caller</td>
-      <td>M</td>
-      <td>Um I just wanted to put a thought forward abou...</td>
-      <td>-0.981924</td>
-      <td>Australia Talks Back</td>
-      <td>Nat1</td>
-      <td>public</td>
-      <td>national</td>
-      <td>politics</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>Nat1</td>
-      <td>arcp://name,doi10.25949%2F24769434.v1/person/P...</td>
-      <td>Presenter</td>
-      <td>M</td>
-      <td>Oh the HECS funding yep yep.</td>
-      <td>-0.780669</td>
-      <td>Australia Talks Back</td>
-      <td>Nat1</td>
-      <td>public</td>
-      <td>national</td>
-      <td>politics</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
+|  | recording | speaker_id | role | sex | text | sentiment | program | recording_id | station_type | region | topic |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | Nat1 | arcp://name,doi10.25949%2F24769434.v1/person/P... | Presenter | M | One-eight-hundred-eight-oh-two-three-four-one ... | 0.999520 | Australia Talks Back | Nat1 | public | national | politics |
+| 1 | Nat1 | arcp://name,doi10.25949%2F24769434.v1/person/C... | Caller | M | Oh hi how are you. | 0.999355 | Australia Talks Back | Nat1 | public | national | politics |
+| 2 | Nat1 | arcp://name,doi10.25949%2F24769434.v1/person/P... | Presenter | M | Yeah good thank you. | 0.999832 | Australia Talks Back | Nat1 | public | national | politics |
+| 3 | Nat1 | arcp://name,doi10.25949%2F24769434.v1/person/C... | Caller | M | Um I just wanted to put a thought forward abou... | -0.981924 | Australia Talks Back | Nat1 | public | national | politics |
+| 4 | Nat1 | arcp://name,doi10.25949%2F24769434.v1/person/P... | Presenter | M | Oh the HECS funding yep yep. | -0.780669 | Australia Talks Back | Nat1 | public | national | politics |
 
 
 Which topics come up more in ABC vs commercial talkback? Each recording is counted once under its assigned topic.
