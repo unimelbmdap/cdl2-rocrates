@@ -181,6 +181,8 @@ pyrightconfig.json
 
 # Local data and generated outputs (not tracked)
 /data/
+# Local symlinks to crate data for running the draft notebooks (targets live under /data/)
+/docs/tutorials/draft/data/
 /examples/
 /notebooks/
 /docs/plans/
