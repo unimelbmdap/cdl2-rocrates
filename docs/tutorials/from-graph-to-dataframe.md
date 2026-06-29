@@ -76,17 +76,17 @@ In the next step we'll add a new field that's the same for everyone.
 
 ## 4. Add a derived field with `annotate_entities`
 
-`birthDate` is a string. To group people by decade, sort them chronologically, or compute an age, we want it as a real date instead. `annotate_entities` adds a new field to every entity, calculated from a small function we provide:
+`birthDate` is a string. To group people by decade, sort them chronologically, or compute an age, we want it as a number we can do arithmetic with. crategraph has native temporal accessors that parse date properties for you, so there's no need to pick the string apart by hand. `annotate_entities` adds a new field to every entity, calculated from a small function we provide:
 
 ```python
-from datetime import date
-
 people = crate.select(entity_types=["Person"]).annotate_entities(
-    birth_date=lambda e: date.fromisoformat(e.get("birthDate")),
+    birth_year=lambda e: e.parse_year("birthDate"),
 )
 ```
 
-The `lambda e: ...` part is just Python's compact way of writing a one-line function. It's called once per person; `e` is the person, `e.get("birthDate")` reads their `birthDate` property, and `date.fromisoformat(...)` turns the string into a real date.
+The `lambda e: ...` part is just Python's compact way of writing a one-line function. It's called once per person; `e` is the person, and `e.parse_year("birthDate")` reads their `birthDate` property and returns the year as an integer. It's safe on missing or malformed dates: it returns `None` rather than raising.
+
+`parse_year` is one of crategraph's temporal accessors. For the full parsed value, with start and end dates, precision, and `circa`/`uncertain` flags, use `e.parse_date("birthDate")`, which returns a `TemporalValue`. When a crate stores dates in standard fields, the `e.year` and `e.start_date` properties read them automatically without you naming a field.
 
 `annotate_entities` returns a new graph (it doesn't modify the original), so we save it as `people`.
 
@@ -98,15 +98,15 @@ The same approach works for many other kinds of derived field, for example:
 
 ## 5. Add a second annotation that uses the first
 
-Now that `birth_date` is a real date, the decade is one short expression away.
+Now that `birth_year` is a number, the decade is one short expression away.
 
 ```python
 people = people.annotate_entities(
-    decade_born=lambda e: (e.get("birth_date").year // 10) * 10,
+    decade_born=lambda e: (e.get("birth_year") // 10) * 10,
 )
 ```
 
-`e.get("birth_date")` returns the date object we computed in step 4. `.year // 10 * 10` rounds the year down to the start of the decade (1962 → 1960, 1991 → 1990).
+`e.get("birth_year")` returns the year we computed in step 4. `// 10 * 10` rounds it down to the start of the decade (1962 → 1960, 1991 → 1990).
 
 ## 6. Colour a visualisation by the new field
 
@@ -155,22 +155,22 @@ Two people, with one `knows` edge between them.
 ```python
 import pandas as pd
 
-df = pd.DataFrame(people.entity_records()).sort_values("birth_date").reset_index(drop=True)
-df[["label", "birthDate", "birth_date", "decade_born"]].head()
+df = pd.DataFrame(people.entity_records()).sort_values("birth_year").reset_index(drop=True)
+df[["label", "birthDate", "birth_year", "decade_born"]].head()
 ```
 
 ```
-             label   birthDate  birth_date  decade_born
-0  Elena Marchetti  1962-03-04  1962-03-04         1960
-1      Tom Pereira  1968-11-22  1968-11-22         1960
-2      Rita Okafor  1975-07-09  1975-07-09         1970
-3         Jin Park  1983-01-30  1983-01-30         1980
-4     Amelia Hoxha  1991-05-17  1991-05-17         1990
+             label   birthDate  birth_year  decade_born
+0  Elena Marchetti  1962-03-04        1962         1960
+1      Tom Pereira  1968-11-22        1968         1960
+2      Rita Okafor  1975-07-09        1975         1970
+3         Jin Park  1983-01-30        1983         1980
+4     Amelia Hoxha  1991-05-17        1991         1990
 ```
 
 The full DataFrame has every property as a column, plus four always-present columns at the front: `id`, `label`, `type`, and `types`. We're picking out four columns here just to fit the page; in a notebook, `df.head()` will show them all side by side.
 
-Sorting by `birth_date` works because the values keep their natural Python types: `birth_date` is a real date object rather than a string, so pandas sorts it chronologically rather than alphabetically.
+Sorting by `birth_year` works because the values keep their natural Python types: `birth_year` is a real integer rather than a string, so pandas sorts it numerically rather than alphabetically.
 
 If you prefer polars, the same list of records works with `pl.DataFrame(people.entity_records())`.
 
