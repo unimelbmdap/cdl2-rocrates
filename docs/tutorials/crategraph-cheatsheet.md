@@ -5,17 +5,16 @@ hide:
 
 # Cheat sheet
 
-A quick tour of `crategraph`'s basics: loading a crate, exploring its entities and
+A quick overview of `crategraph`'s basics: loading a crate, exploring its entities and
 relationships, filtering and transforming the graph, and visualising the result.
 
 [Open the cheat sheet as a PDF](../assets/crategraph-cheatsheet.pdf)
 
-Inspired by Franz Diebold's Polars cheat sheet.
+*Inspired by Franz Diebold's Polars cheat sheet.*
 
 ???+ card card1 ":material-graph: The data model"
 
-    A crate loaded with `crategraph` is a **`Graph`** with two layers: **entities**, the nodes
-    (people, files, places, events), and **relationships**, the directed edges that link them.
+    A crate loaded with `crategraph` is a **`Graph`** with two layers: **entities** (the nodes: people, files, places, events), and **relationships** (the directed edges that link them).
 
     ```mermaid
     graph LR
@@ -28,15 +27,15 @@ Inspired by Franz Diebold's Polars cheat sheet.
 
     | Layer | What it holds | List them | Filter by |
     |---|---|---|---|
-    | **Entities** (nodes) | `id`, `types`, `name`, `properties` | `crate.entities` | `where()` — a property *value* |
-    | **Relationships** (edges) | `type`, `source`, `target`, `properties` | `crate.relationships` | `select()` — a *type* or structure |
+    | **Entities** (nodes) | `id`, `types`, `name`, `properties` | `crate.entities` | `where()` - a property *value* |
+    | **Relationships** (edges) | `type`, `source`, `target`, `properties` | `crate.relationships` | `select()` - a *type* or structure |
 
-    The layer you query must match the method. For example,
+    The queried layer must match the method. For example,
     `crate.where(relationship_types="Primary")` returns **0** results: `where` looks for a node
     *property* literally named `relationship_types`, which does not exist; matching a
-    relationship type is `select`'s job (`crate.select(relationship_types="Primary")`).
+    relationship type is `select`'s job (`crate.select(relationship_types="Primary" will return results)`).
 
-    Every filter and transform returns a **new `Graph`**, so they chain.
+    Every filter/transformation returns a **new `Graph`**, so they chain.
 
 ??? card card2 ":material-folder-open: Load a graph"
 
@@ -107,8 +106,8 @@ Inspired by Franz Diebold's Polars cheat sheet.
       ...
     ```
 
-    Relationship coverage across entity types, useful for spotting data-quality gaps in the
-    RO-Crate metadata:
+    Relationship coverage across entity types (useful for spotting data-quality gaps in the
+    RO-Crate metadata):
 
     ```python
     crate.coverage()
@@ -121,7 +120,7 @@ Inspired by Franz Diebold's Polars cheat sheet.
      CoverageResult(Related source: 42/42 Individual_Story (100%))]
     ```
 
-    A visual snapshot of the graph, collapsed to a type-level overview:
+    A visual snapshot of the graph (collapsed to a type-level overview):
 
     ```python
     crate.glimpse()
@@ -131,17 +130,16 @@ Inspired by Franz Diebold's Polars cheat sheet.
 
 ??? card card4 ":material-circle-multiple-outline: Entities (nodes)"
 
-    The items in a crate: people, files, places. Each has `.properties` (a data dictionary)
+    Each item in a crate (people, files, places) has `.properties` (a data dictionary)
     and a `.types` attribute.
 
-    Get your bearings: what does this graph contain?
+    Look around: what does this graph contain?
 
     ```python
     crate.entities          # list[Entity] of all nodes
     ```
 
-    Grab a single entity to look at. Indexing the list works (`crate.entities[0]`), but to pull
-    out a specific one, filter by an exact property such as its name:
+    Explore a single entity. Index the list (`crate.entities[0]`), or find a specific one (filter by an exact property):
 
     ```python
     e = crate.where(name="UTR7.166 The Olga Lawless Ziegler Memorial Fund").entities[0]
@@ -202,7 +200,7 @@ Inspired by Franz Diebold's Polars cheat sheet.
      ...}
     ```
 
-    Get a specific entity by id (here reusing the id from the entity above):
+    Get a specific entity by id:
 
     ```python
     crate.get(e.id)
@@ -229,7 +227,7 @@ Inspired by Franz Diebold's Polars cheat sheet.
     sorted({k for e in crate.entities for k in e.properties})
     ```
 
-    ### Count distinct property values
+    ### Count distinct property values:
 
     Return a count of distinct values for any property, sorted by count, descending:
 
@@ -258,7 +256,7 @@ Inspired by Franz Diebold's Polars cheat sheet.
 
     ### Entities as records
 
-    `entity_records()` returns one dict per entity (`id`, `label`, `type`, then its properties),
+    `entity_records()` returns one dictionary per entity (`id`, `label`, `type`, then its properties),
     ready to hand to pandas or polars for a DataFrame, or to write out. Pass `columns` to keep
     only the fields you need:
 
@@ -298,8 +296,7 @@ Inspired by Franz Diebold's Polars cheat sheet.
 
     ### Enrich entities with derived properties
 
-    Suppose we want the people born in Victoria. Start by seeing what `Victoria` is linked to.
-    First, where is `birthPlace` pointing?
+    If we want to see people born in Victoria, we start by finding out what `Victoria` is linked to:
 
     ```python
     crate.annotate_entities(
@@ -338,7 +335,7 @@ Inspired by Franz Diebold's Polars cheat sheet.
     98
     ```
 
-    Find the top hub entities in the graph (10 by default; adjust `n`):
+    Find the top hub entities in the graph (10 by default, adjust the amount of connections `n` if needed):
 
     ```python
     crate.most_connected(n=3)
@@ -378,7 +375,7 @@ Inspired by Franz Diebold's Polars cheat sheet.
 
     ### Count relationships by type
 
-    A count of how many relationships exist for each type, sorted by count, descending:
+    A count of how many relationships exist for each type, sorted by count (descending):
 
     ```python
     crate.relationship_counts("type")
@@ -390,7 +387,7 @@ Inspired by Franz Diebold's Polars cheat sheet.
      {'type': 'entity', 'count': 358}, ...]
     ```
 
-    `relationship_records()` is the edge counterpart of `entity_records()`: one dict per edge,
+    `relationship_records()` is the edge counterpart of `entity_records()`: one dictionary per edge,
     ready for a DataFrame or export.
 
     ```python
@@ -626,7 +623,7 @@ Inspired by Franz Diebold's Polars cheat sheet.
     convert_dates: parsed 1643/1643 entities with date fields (100%).
     ```
 
-    …or you can name the fields to read:
+    … or you can specify the fields to convert:
 
     ```python
     crate.convert_dates(start="startDate", end="endDate")
@@ -678,7 +675,7 @@ Inspired by Franz Diebold's Polars cheat sheet.
     ```
 
     `expand()` grows a selection outward to include connected neighbours. Start from the 13
-    lawyers and pull in everything one hop away:
+    lawyers and pull in everything one layer away:
 
     ```python
     lawyers = crate.where(function="Lawyer")   # 13 entities
@@ -699,7 +696,7 @@ Inspired by Franz Diebold's Polars cheat sheet.
 ??? card card8 ":material-chart-scatter-plot: Visualising and exporting"
 
     The default renderer for `visualise()` is `"2d"` (sigma.js, WebGL). Other options are `"3d"`
-    (3d-force-graph), `"svg"` (static SVG) and `"pyvis"` (vis.js, needs an extra install).
+    (3d-force-graph), `"svg"` (static SVG) and `"pyvis"` (vis.js, requires an additional install).
 
     ```python
     crate.visualise(colour_by="type", filepath="umpc-network.html")
@@ -730,7 +727,7 @@ Inspired by Franz Diebold's Polars cheat sheet.
     crate.write("crate_export.graphml", format="graphml")
     ```
 
-    Or hand the graph to NetworkX to use its algorithms directly:
+    ... or hand the graph to NetworkX to use its algorithms directly:
 
     ```python
     crate.to_networkx()    # -> NetworkX MultiDiGraph with 4270 nodes and 12601 edges
