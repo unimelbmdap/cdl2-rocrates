@@ -53,7 +53,7 @@ crate.types
 ```
 
 ```
-TypeRegistry(['Person', 'File', 'Organisation', 'Dataset', 'Place', ...])
+TypeRegistry([Dataset, File, Organisation, Person, Place])
 ```
 
 ### Filtering by type
@@ -191,3 +191,17 @@ This performs fuzzy matching, so it handles minor misspellings. It returns a gra
 - Browse the [Tutorials](tutorials/index.md) for guided walkthroughs using real datasets
 - See the [API Reference](api/index.md) for the full list of methods
 - Check out the [Resources](resources.md) page for publicly available RO-Crate collections to explore
+
+## Verification Summary
+
+Verified against the codebase on 2026-06-29. **23 claims checked, 22 confirmed, 1 corrected, 0 unverifiable.**
+
+The original concern — that `visualise()` may have gained obligatory arguments — does **not** hold. Every method shown in this guide is still callable as written:
+
+- `crate.visualise()` — all parameters are keyword-only with defaults (`crategraph/core/graph.py:453-465`); no-argument calls remain valid. `renderer="3d"` and `filepath=` are confirmed (`crategraph/core/presentation.py:80,94-95,123`).
+- `Crate(path)`, repr format `Graph(N entities, M relationships, source=...)` — confirmed (`crategraph/__init__.py:16`, `crategraph/core/graph.py:211-221`).
+- `summary()`, `types`, `select(entity_types=, time_range=)`, `exclude(relationship_types=, entity_types=)`, `where(**kwargs)`, `search()`, `glimpse()`, `get()`, `view()`, `inspect()`, `has_data` — all confirmed against `crategraph/core/{graph,filtering,presentation,models}.py`.
+- `exclude()` default `drop_isolated=True` behaviour (drops newly-isolated entities, preserves already-isolated) — confirmed (`crategraph/core/filtering.py:111-132`).
+- `crategraph[inspect]` optional extra and `info.content` — confirmed (`pyproject.toml:25`, `crategraph/core/models.py:170-174`).
+
+**Correction made:** the `crate.types` example output was changed from `TypeRegistry(['Person', 'File', 'Organisation', 'Dataset', 'Place', ...])` to `TypeRegistry([Dataset, File, Organisation, Person, Place])`. The actual `TypeRegistry.__repr__` (`crategraph/core/types.py:34-40`) sorts type names alphabetically, does not quote them, and only appends ` ... (N total)` when there are more than 10 types.

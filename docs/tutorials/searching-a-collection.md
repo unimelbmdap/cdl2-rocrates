@@ -52,6 +52,30 @@ rather than identical, runs instantly, and needs no setup. Suppose you half-reme
 presenter's name:
 
 ```python
+crate.search("Sandy McCutchin")
+```
+
+```
+Found 3 matches for "Sandy McCutchin":
+
+   93  arcp://…/person/Presenter#Sandy_McCutcheon  (name: Sandy McCutcheon)
+   80  arcp://…/object/Nat1  (ldac:speaker: ['arcp://…/person/Presenter#Sandy_McCutcheon', …)
+   80  arcp://…/object/Nat2  (ldac:speaker: ['arcp://…/person/Presenter#Sandy_McCutcheon', …)
+Graph(3 entities, 2 relationships, source='data/ldaca/Australian Radio Talkback')
+```
+
+Despite the misspelling, fuzzy search finds the presenter Sandy McCutcheon, scoring the match
+93 out of 100. It also returns two show objects, though: by default the search scans *every*
+property, and these shows' `ldac:speaker` field *references* the presenter. `search()` returns
+a `Graph` (a subgraph of the matches), so you can chain `where`, `entity_records`, and the rest
+of the API onto the result.
+
+### Focus the search with `properties`
+
+To match only the field you mean, pass `properties`. Restricting the search to `name` drops the
+two shows and leaves the single presenter:
+
+```python
 crate.search("Sandy McCutchin", properties=["name"])
 ```
 
@@ -61,30 +85,6 @@ Found 1 match for "Sandy McCutchin":
    93  arcp://…/person/Presenter#Sandy_McCutcheon  (name: Sandy McCutcheon)
 Graph(1 entities, 0 relationships, source='data/ldaca/Australian Radio Talkback')
 ```
-
-Despite the misspelling, it finds the presenter Sandy McCutcheon, scoring the match 93 out of
-100. `search()` returns a `Graph` (a subgraph of the matches), so you can chain `where`,
-`entity_records`, and the rest of the API onto the result.
-
-### Focus the search with `properties`
-
-By default fuzzy search scans *every* property, which can surprise you. A bare search for the
-presenter's surname also pulls in two show objects, because their `ldac:speaker` field
-*references* him:
-
-```python
-crate.search("McCutcheon")
-```
-
-```
-Found 3 matches for "McCutcheon":
-
-  100  arcp://…/object/Nat1  (ldac:speaker: ['arcp://…/person/Presenter#Sandy_McCutcheon', …)
-  100  arcp://…/object/Nat2  (ldac:speaker: ['arcp://…/person/Presenter#Sandy_McCutcheon', …)
-  100  arcp://…/person/Presenter#Sandy_McCutcheon  (name: Sandy McCutcheon)
-```
-
-Pass `properties=["name"]` to match only the field you mean, as we did above.
 
 ### Tune the cutoff with `threshold`
 
