@@ -85,6 +85,11 @@ class PyvisRenderer(Renderer):
             width: CSS width of the canvas.
             filepath: If given, save the HTML to this path and return it.
             notebook: If True (default), configure for inline Jupyter display.
+            progress: If ``True``, show ForceAtlas2 layout progress for large
+                graphs (an upfront size line plus the live iteration bar, both
+                on stderr). Defaults to ``False``; ``visualise()`` opts in on
+                the user's behalf. Has no effect when fa2 is absent and pyvis
+                falls back to client-side physics.
 
         Returns the ``pyvis.network.Network`` object (or the filepath string
         if *filepath* was provided).

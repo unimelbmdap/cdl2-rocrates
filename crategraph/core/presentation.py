@@ -16,8 +16,10 @@ if TYPE_CHECKING:
     from crategraph.core.models import Entity, FileInfo, ViewInfo
 
 _FA2_FALLBACK_LIMIT = 2000
-# Below this node count layout is fast, so we stay silent; aligned with the
-# 2000 boundary where barnesHutOptimize flips and the fallback turns slow.
+# Below this node count layout is fast, so we stay silent. Set to the same 2000
+# figure as the fa2 fallback limit / Barnes-Hut neighbourhood, where layout
+# starts to get slow; note progress triggers at ``>= 2000`` whereas
+# ``barnesHutOptimize`` flips at ``> 2000``.
 _LAYOUT_PROGRESS_MIN_NODES = 2000
 
 
@@ -51,16 +53,21 @@ def layout(graph: Graph, *, progress: bool = False) -> dict[str, tuple[float, fl
     nx_undirected = graph._graph.to_undirected()
 
     show_progress = progress and n >= _LAYOUT_PROGRESS_MIN_NODES
-    if show_progress:
-        m = len(graph._relationships)
-        print(
-            f"Laying out {n:,} nodes and {m:,} relationships; "
-            f"this can take a while for large graphs.",
-            file=sys.stderr,
-        )
 
     try:
         from fa2 import ForceAtlas2
+
+        # Emit the upfront message only once fa2 is confirmed available, so it
+        # never misleads: callers like pyvis catch a missing-fa2 ImportError and
+        # silently fall back to client-side physics, where no server-side layout
+        # actually runs.
+        if show_progress:
+            m = len(graph._relationships)
+            print(
+                f"Laying out {n:,} nodes and {m:,} relationships; "
+                f"this can take a while for large graphs.",
+                file=sys.stderr,
+            )
 
         # Match graphology-layout-forceatlas2's inferSettings():
         #   barnesHutOptimize: order > 2000

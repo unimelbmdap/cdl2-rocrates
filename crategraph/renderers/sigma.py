@@ -228,6 +228,10 @@ class SigmaRenderer(Renderer):
                 ``simple=True`` (the simple template has no panel). The
                 name matches ``text_records(include_properties=...)`` —
                 same semantic, different surface.
+            progress: If ``True``, show ForceAtlas2 layout progress for large
+                graphs (an upfront size line plus the live iteration bar, both
+                on stderr). Defaults to ``False`` here; ``visualise()`` opts in
+                on the user's behalf.
 
         Returns an ``IPython.display.HTML`` object for notebook display,
         or the filepath string if *filepath* was provided.

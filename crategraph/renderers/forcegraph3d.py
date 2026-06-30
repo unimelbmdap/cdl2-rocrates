@@ -121,6 +121,7 @@ class ForceGraph3DRenderer(Renderer):
         height: str = "100vh",
         width: str = "100%",
         filepath: str | None = None,
+        progress: bool = False,
         **kwargs: Any,
     ) -> Any:
         """Build a 3D force-graph HTML visualisation from *graph*.
@@ -138,6 +139,9 @@ class ForceGraph3DRenderer(Renderer):
             height: CSS height of the canvas.
             width: CSS width of the canvas.
             filepath: If given, save the HTML to this path and return it.
+            progress: Accepted for API consistency with the other renderers
+                but unused: 3d-force-graph computes its layout in the browser,
+                so there is no server-side step to report on.
 
         Returns an ``IPython.display.HTML`` object for notebook display,
         or the filepath string if *filepath* was provided.

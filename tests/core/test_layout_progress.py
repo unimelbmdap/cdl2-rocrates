@@ -88,13 +88,15 @@ class TestLayoutMessage:
         out = capsys.readouterr().out
         assert out == ""
 
-    def test_message_emitted_even_when_fa2_absent(self, monkeypatch, capsys):
-        # ``import fa2`` raises -> fallback path; n > 2000 then raises ImportError,
-        # but the message must already have been printed beforehand.
+    def test_no_message_when_fa2_absent(self, monkeypatch, capsys):
+        # ``import fa2`` raises -> no server-side layout actually runs (here it
+        # raises; in pyvis the ImportError is caught and silently falls back to
+        # client-side physics). The upfront message must NOT mislead by claiming
+        # layout happened, so it is emitted only once fa2 is confirmed available.
         monkeypatch.setitem(sys.modules, "fa2", None)
         with pytest.raises(ImportError):
             _build_graph(_LARGE + 1).layout(progress=True)
-        assert "2,001" in capsys.readouterr().err
+        assert capsys.readouterr().err == ""
 
 
 class TestLayoutVerboseFlag:
