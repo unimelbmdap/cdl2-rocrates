@@ -25,7 +25,7 @@ While `crategraph` is pre-release, launch from the repository root with `uv run`
 the project plus the plotting dependencies:
 
 ```bash
-uv run --all-extras --with jupyter --with pandas --with plotly --with kaleido jupyter notebook
+uv run --all-extras --with jupyter,pandas,plotly,kaleido jupyter notebook
 ```
 
 ## 1. Load the crate and focus on events
@@ -33,7 +33,7 @@ uv run --all-extras --with jupyter --with pandas --with plotly --with kaleido ju
 ```python
 from crategraph import Crate
 
-crate = Crate("experiments/crates/UMPC")
+crate = Crate("data/ohrm/UMPC")
 crate
 ```
 

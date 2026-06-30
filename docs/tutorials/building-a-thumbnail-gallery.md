@@ -29,7 +29,7 @@ uv run --all-extras --with jupyter jupyter notebook
 ```python
 from crategraph import Crate
 
-crate = Crate("experiments/farms-to-freeways")
+crate = Crate("data/ldaca/farms-to-freeways")
 crate
 ```
 

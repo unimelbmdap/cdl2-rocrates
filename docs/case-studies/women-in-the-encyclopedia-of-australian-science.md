@@ -60,7 +60,7 @@ from crategraph import Crate
 import pandas as pd
 import plotly.express as px
 
-crate = Crate("./data/EOASI2022-ro-crate")
+crate = Crate("data/ohrm/EOASI2022-ro-crate")
 crate
 ```
 

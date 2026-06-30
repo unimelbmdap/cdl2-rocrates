@@ -48,7 +48,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```python
     from crategraph import Crate
 
-    crate = Crate("experiments/crates/UMPC")
+    crate = Crate("data/ohrm/UMPC")
     crate
     ```
 

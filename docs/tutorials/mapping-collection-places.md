@@ -29,7 +29,7 @@ While `crategraph` is pre-release, launch from the repository root with `uv run`
 in the project plus the plotting and geocoding dependencies:
 
 ```bash
-uv run --all-extras --with jupyter --with pandas --with plotly --with shapely --with geopy jupyter notebook
+uv run --all-extras --with jupyter,pandas,plotly,shapely,geopy jupyter notebook
 ```
 
 ## 1. Load the crate and find the places

@@ -33,7 +33,7 @@ While `crategraph` is pre-release, launch from the repository root with `uv run`
 project plus the plotting dependencies:
 
 ```bash
-uv run --all-extras --with jupyter --with pandas --with plotly --with kaleido jupyter notebook
+uv run --all-extras --with jupyter,pandas,plotly,kaleido jupyter notebook
 ```
 
 ## 1. Load the crate and get an overview
