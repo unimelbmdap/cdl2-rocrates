@@ -92,6 +92,7 @@ class SigmaRenderer(Renderer):
         size_by: str = "connections",
         edge_width: int | float | str | None = None,
         include_properties: bool = True,
+        progress: bool = False,
     ) -> dict[str, Any]:
         """Convert *graph* to the JSON structure expected by the Sigma.js template."""
         if not graph._entities:
@@ -107,7 +108,7 @@ class SigmaRenderer(Renderer):
         colour_map = resolve_colour_map(graph, colour_by)
 
         # Compute layout via Graph.layout() (FA2).
-        positions = graph.layout()
+        positions = graph.layout(progress=progress)
 
         # Build nodes.
         nodes = []
@@ -199,6 +200,7 @@ class SigmaRenderer(Renderer):
         animated: bool = False,
         simple: bool = False,
         include_properties: bool = False,
+        progress: bool = False,
         **kwargs: Any,
     ) -> Any:
         """Build a Sigma.js HTML visualisation from *graph*.
@@ -241,6 +243,7 @@ class SigmaRenderer(Renderer):
             size_by=size_by,
             edge_width=edge_width,
             include_properties=include_properties and not simple,
+            progress=progress,
         )
 
         # Build type → colour mapping for the legend.

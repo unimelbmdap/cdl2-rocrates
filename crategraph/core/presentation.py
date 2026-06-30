@@ -6,6 +6,7 @@ node positions, and accessing data files referenced by entities.
 
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -15,9 +16,12 @@ if TYPE_CHECKING:
     from crategraph.core.models import Entity, FileInfo, ViewInfo
 
 _FA2_FALLBACK_LIMIT = 2000
+# Below this node count layout is fast, so we stay silent; aligned with the
+# 2000 boundary where barnesHutOptimize flips and the fallback turns slow.
+_LAYOUT_PROGRESS_MIN_NODES = 2000
 
 
-def layout(graph: Graph) -> dict[str, tuple[float, float]]:
+def layout(graph: Graph, *, progress: bool = False) -> dict[str, tuple[float, float]]:
     """Compute 2D node positions for visualisation.
 
     Uses ForceAtlas2 (via the ``fa2`` package) when available, with
@@ -29,6 +33,14 @@ def layout(graph: Graph) -> dict[str, tuple[float, float]]:
 
         pip install crategraph[fa2]
 
+    Args:
+        progress: When ``True`` and the graph is large enough to be slow
+            (``>= _LAYOUT_PROGRESS_MIN_NODES`` nodes), print an upfront size
+            line to stderr and show ForceAtlas2's live iteration bar. Defaults
+            to ``False`` here because ``layout()`` is often called
+            programmatically, where stderr output would be surprising;
+            ``visualise()`` opts in on the user's behalf.
+
     Returns ``{entity_id: (x, y)}`` with raw coordinates (not scaled
     to any canvas).
     """
@@ -37,6 +49,15 @@ def layout(graph: Graph) -> dict[str, tuple[float, float]]:
 
     n = len(graph._entities)
     nx_undirected = graph._graph.to_undirected()
+
+    show_progress = progress and n >= _LAYOUT_PROGRESS_MIN_NODES
+    if show_progress:
+        m = len(graph._relationships)
+        print(
+            f"Laying out {n:,} nodes and {m:,} relationships; "
+            f"this can take a while for large graphs.",
+            file=sys.stderr,
+        )
 
     try:
         from fa2 import ForceAtlas2
@@ -54,10 +75,22 @@ def layout(graph: Graph) -> dict[str, tuple[float, float]]:
             scalingRatio=10,
             strongGravityMode=True,
             gravity=0.05,
-            verbose=False,
+            verbose=show_progress,
         )
         iters = min(200, 50 + n // 100)
-        return fa2.forceatlas2_networkx_layout(nx_undirected, iterations=iters)
+        # fa2's iteration bar goes to stderr (kept), but when verbose it also
+        # dumps a timing summary to stdout, which Jupyter captures into
+        # committed cell outputs. Swallow only that stdout noise.
+        import contextlib
+        import io
+
+        stdout_sink = (
+            contextlib.redirect_stdout(io.StringIO())
+            if show_progress
+            else contextlib.nullcontext()
+        )
+        with stdout_sink:
+            return fa2.forceatlas2_networkx_layout(nx_undirected, iterations=iters)
     except ImportError:
         pass
 
@@ -85,6 +118,7 @@ def visualise(
     width: str = "100%",
     filepath: str | None = None,
     collapse_edges: bool = False,
+    progress: bool = True,
     **kwargs: Any,
 ) -> Any:
     """Render the graph as a network visualisation.
@@ -110,6 +144,10 @@ def visualise(
             the display object.
         collapse_edges: If ``True``, collapse parallel edges between
             the same pair of nodes before rendering.
+        progress: When ``True`` (default), show layout progress for large
+            graphs (an upfront size line plus ForceAtlas2's live iteration
+            bar, both on stderr). Pass ``False`` to render silently. Has no
+            effect on small graphs or the browser-side ``"3d"`` renderer.
 
     Returns a renderer-specific object (for inline notebook display)
     or the filepath string if *filepath* was provided.
@@ -148,6 +186,7 @@ def visualise(
         height=height,
         width=width,
         filepath=filepath,
+        progress=progress,
         **kwargs,
     )
 

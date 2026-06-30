@@ -37,6 +37,7 @@ class SvgRenderer(Renderer):
         width: int | str = DEFAULT_WIDTH,
         height: int | str = DEFAULT_HEIGHT,
         filepath: str | None = None,
+        progress: bool = False,
         **kwargs: Any,
     ) -> Any:
         """Render *graph* and return an ``IPython.display.SVG`` or filepath.
@@ -93,7 +94,7 @@ class SvgRenderer(Renderer):
         max_radius = max(radii.values()) if radii else 16.0 * scale
         pad = max(80.0 * scale, max_radius + 30.0 * scale)
 
-        raw_positions = graph.layout()
+        raw_positions = graph.layout(progress=progress)
         positions = _scale_positions(raw_positions, pad=pad, width=vb_w, height=vb_h)
         _resolve_overlaps(positions, radii, width=vb_w, height=vb_h, pad=pad)
         colour_map = resolve_colour_map(graph, colour_by)

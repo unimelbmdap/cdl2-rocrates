@@ -26,12 +26,12 @@ def _node_size(degree: int, max_degree: int) -> int:
     return 6 + int(39 * math.sqrt(normalised))
 
 
-def _try_layout(graph: Graph) -> dict[str, tuple[float, float]] | None:
+def _try_layout(graph: Graph, *, progress: bool = False) -> dict[str, tuple[float, float]] | None:
     """Attempt server-side layout; return ``None`` to fall back to client-side physics."""
     if not graph._entities:
         return None
     try:
-        raw = graph.layout()
+        raw = graph.layout(progress=progress)
     except ImportError:
         return None
 
@@ -66,6 +66,7 @@ class PyvisRenderer(Renderer):
         width: str = "100%",
         filepath: str | None = None,
         notebook: bool = True,
+        progress: bool = False,
         **kwargs: Any,
     ) -> Any:
         """Build a pyvis Network from *graph*.
@@ -108,7 +109,7 @@ class PyvisRenderer(Renderer):
         colour_map = resolve_colour_map(graph, colour_by)
 
         # Try server-side layout; fall back to client-side physics.
-        positions = _try_layout(graph)
+        positions = _try_layout(graph, progress=progress)
 
         # Pre-compute size values.
         size_values: dict[str, float] = {}

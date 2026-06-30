@@ -446,9 +446,9 @@ class Graph:
 
     # --- Presentation methods (delegated to core/presentation.py) ---
 
-    def layout(self) -> dict[str, tuple[float, float]]:
+    def layout(self, *, progress: bool = False) -> dict[str, tuple[float, float]]:
         """Compute 2D node positions for visualisation."""
-        return presentation.layout(self)
+        return presentation.layout(self, progress=progress)
 
     def visualise(
         self,
@@ -461,6 +461,7 @@ class Graph:
         width: str = "100%",
         filepath: str | None = None,
         collapse_edges: bool = False,
+        progress: bool = True,
         **kwargs: Any,
     ) -> Any:
         """Render the graph as a network visualisation."""
@@ -474,6 +475,7 @@ class Graph:
             width=width,
             filepath=filepath,
             collapse_edges=collapse_edges,
+            progress=progress,
             **kwargs,
         )
 
