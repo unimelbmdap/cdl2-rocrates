@@ -56,9 +56,9 @@ class SvgRenderer(Renderer):
             height: Display height in CSS pixels (default 450).
             filepath: If given, save the SVG to this path and return it.
             progress: If ``True``, show ForceAtlas2 layout progress for large
-                graphs (an upfront size line plus the live iteration bar, both
-                on stderr). Defaults to ``False``; ``visualise()`` opts in on
-                the user's behalf.
+                graphs (an upfront size line plus the live iteration bar, on
+                stdout in a notebook and stderr otherwise). Defaults to
+                ``False``; ``visualise()`` opts in on the user's behalf.
 
         Returns:
             An ``IPython.display.SVG`` object (for notebook display) or the

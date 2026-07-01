@@ -18,6 +18,7 @@ import types
 
 import pytest
 
+from crategraph.core import presentation
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
 
@@ -40,12 +41,16 @@ class _FakeForceAtlas2:
     """
 
     last_verbose: bool | None = None
+    last_selfloops: int | None = None
 
     def __init__(self, **kwargs: object) -> None:
         self._verbose = bool(kwargs.get("verbose"))
         _FakeForceAtlas2.last_verbose = kwargs.get("verbose")  # type: ignore[assignment]
 
     def forceatlas2_networkx_layout(self, graph: object, iterations: int = 100) -> dict:
+        import networkx as nx
+
+        _FakeForceAtlas2.last_selfloops = nx.number_of_selfloops(graph)  # type: ignore[arg-type]
         if self._verbose:
             print("BarnesHut Approximation took 0.12 seconds")  # fa2 stdout noise
         return {node: (0.0, 0.0) for node in graph.nodes()}  # type: ignore[attr-defined]
@@ -111,6 +116,33 @@ class TestLayoutVerboseFlag:
     def test_verbose_false_when_below_threshold(self, fake_fa2):
         _build_graph(_SMALL).layout(progress=True)
         assert fake_fa2.last_verbose is False
+
+
+class TestSelfLoops:
+    def test_selfloops_stripped_before_layout(self, fake_fa2):
+        # Self-loops make fa2 warn ("non-zero diagonal") and inflate node mass;
+        # they must be removed from the graph handed to fa2.
+        g = _build_graph(_LARGE)
+        g._add_edge(Relationship(source="#n0", target="#n0", type="mentions"))
+        g.layout(progress=True)
+        assert fake_fa2.last_selfloops == 0
+
+
+class TestProgressStream:
+    def test_message_on_stderr_outside_notebook(self, fake_fa2, capsys):
+        _build_graph(_LARGE).layout(progress=True)
+        captured = capsys.readouterr()
+        assert "Laying out" in captured.err
+        assert "Laying out" not in captured.out
+
+    def test_message_on_stdout_in_notebook(self, fake_fa2, capsys, monkeypatch):
+        # In Jupyter, stderr is shown on an alarming red background, so progress
+        # is routed to stdout instead.
+        monkeypatch.setattr(presentation, "_in_notebook", lambda: True)
+        _build_graph(_LARGE).layout(progress=True)
+        captured = capsys.readouterr()
+        assert "Laying out" in captured.out
+        assert "Laying out" not in captured.err
 
 
 class TestVisualiseForwardsProgress:

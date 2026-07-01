@@ -23,6 +23,17 @@ _FA2_FALLBACK_LIMIT = 2000
 _LAYOUT_PROGRESS_MIN_NODES = 2000
 
 
+def _in_notebook() -> bool:
+    """True when running inside a Jupyter kernel (not a terminal or plain script)."""
+    try:
+        from IPython import get_ipython
+
+        shell = get_ipython()
+    except Exception:
+        return False
+    return shell is not None and shell.__class__.__name__ == "ZMQInteractiveShell"
+
+
 def layout(graph: Graph, *, progress: bool = False) -> dict[str, tuple[float, float]]:
     """Compute 2D node positions for visualisation.
 
@@ -38,10 +49,10 @@ def layout(graph: Graph, *, progress: bool = False) -> dict[str, tuple[float, fl
     Args:
         progress: When ``True`` and the graph is large enough to be slow
             (``>= _LAYOUT_PROGRESS_MIN_NODES`` nodes), print an upfront size
-            line to stderr and show ForceAtlas2's live iteration bar. Defaults
-            to ``False`` here because ``layout()`` is often called
-            programmatically, where stderr output would be surprising;
-            ``visualise()`` opts in on the user's behalf.
+            line and show ForceAtlas2's live iteration bar (on stdout in a
+            notebook, stderr otherwise). Defaults to ``False`` here because
+            ``layout()`` is often called programmatically, where such output
+            would be surprising; ``visualise()`` opts in on the user's behalf.
 
     Returns ``{entity_id: (x, y)}`` with raw coordinates (not scaled
     to any canvas).
@@ -51,11 +62,22 @@ def layout(graph: Graph, *, progress: bool = False) -> dict[str, tuple[float, fl
 
     n = len(graph._entities)
     nx_undirected = graph._graph.to_undirected()
+    # Drop self-loops before laying out: fa2 warns about them ("non-zero
+    # diagonal") and they inflate a node's mass without contributing any useful
+    # layout force. networkx spring layout is unaffected either way.
+    import networkx as nx
+
+    nx_undirected.remove_edges_from(nx.selfloop_edges(nx_undirected))
 
     show_progress = progress and n >= _LAYOUT_PROGRESS_MIN_NODES
 
     try:
         from fa2 import ForceAtlas2
+
+        # In a Jupyter notebook, stderr is rendered on a red "error" background
+        # that alarms users, so route progress to stdout there; in a terminal
+        # keep it on stderr (conventional, and keeps piped stdout clean).
+        progress_stream = sys.stdout if _in_notebook() else sys.stderr
 
         # Emit the upfront message only once fa2 is confirmed available, so it
         # never misleads: callers like pyvis catch a missing-fa2 ImportError and
@@ -66,7 +88,7 @@ def layout(graph: Graph, *, progress: bool = False) -> dict[str, tuple[float, fl
             print(
                 f"Laying out {n:,} nodes and {m:,} relationships; "
                 f"this can take a while for large graphs.",
-                file=sys.stderr,
+                file=progress_stream,
             )
 
         # Match graphology-layout-forceatlas2's inferSettings():
@@ -85,18 +107,19 @@ def layout(graph: Graph, *, progress: bool = False) -> dict[str, tuple[float, fl
             verbose=show_progress,
         )
         iters = min(200, 50 + n // 100)
-        # fa2's iteration bar goes to stderr (kept), but when verbose it also
-        # dumps a timing summary to stdout, which Jupyter captures into
-        # committed cell outputs. Swallow only that stdout noise.
+        if not show_progress:
+            return fa2.forceatlas2_networkx_layout(nx_undirected, iterations=iters)
+
+        # fa2 prints a timing summary to stdout (always swallow it) and its live
+        # bar to stderr. Match the bar to the chosen stream: in a notebook
+        # redirect it onto stdout so it is not red; in a terminal leave it be.
         import contextlib
         import io
 
-        stdout_sink = (
-            contextlib.redirect_stdout(io.StringIO())
-            if show_progress
-            else contextlib.nullcontext()
-        )
-        with stdout_sink:
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+            if progress_stream is not sys.stderr:
+                stack.enter_context(contextlib.redirect_stderr(progress_stream))
             return fa2.forceatlas2_networkx_layout(nx_undirected, iterations=iters)
     except ImportError:
         pass
@@ -108,8 +131,6 @@ def layout(graph: Graph, *, progress: bool = False) -> dict[str, tuple[float, fl
             f"Install it with: pip install crategraph[fa2]"
         )
         raise ImportError(msg)
-
-    import networkx as nx
 
     return nx.spring_layout(nx_undirected, seed=42)
 
@@ -152,9 +173,10 @@ def visualise(
         collapse_edges: If ``True``, collapse parallel edges between
             the same pair of nodes before rendering.
         progress: When ``True`` (default), show layout progress for large
-            graphs (an upfront size line plus ForceAtlas2's live iteration
-            bar, both on stderr). Pass ``False`` to render silently. Has no
-            effect on small graphs or the browser-side ``"3d"`` renderer.
+            graphs (an upfront size line plus ForceAtlas2's live iteration bar,
+            on stdout in a notebook and stderr otherwise). Pass ``False`` to
+            render silently. Has no effect on small graphs or the browser-side
+            ``"3d"`` renderer.
 
     Returns a renderer-specific object (for inline notebook display)
     or the filepath string if *filepath* was provided.
