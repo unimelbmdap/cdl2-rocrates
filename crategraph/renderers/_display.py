@@ -3,7 +3,16 @@
 from __future__ import annotations
 
 import html as _html
+import re
 from typing import Any
+
+# Scripts run in this frame, but with an opaque origin: no access to the host
+# notebook page. allow-popups (+ escape) keeps the details-panel "open in new
+# tab" links working; allow-same-origin is deliberately omitted.
+_IFRAME_SANDBOX = "allow-scripts allow-popups allow-popups-to-escape-sandbox"
+
+_PX_RE = re.compile(r"^\d+(?:\.\d+)?px$")
+_PX_OR_PCT_RE = re.compile(r"^\d+(?:\.\d+)?(?:px|%)$")
 
 
 def _iframe_height(height: str) -> str:
@@ -11,15 +20,17 @@ def _iframe_height(height: str) -> str:
 
     Viewport (``vh``) and percentage heights are meaningless for a frame
     embedded in a scrolling notebook output, so fall back to a sensible pixel
-    height while honouring an explicit ``px`` request.
+    height while honouring an explicit ``px`` request. Anything that is not a
+    clean pixel value is rejected (it would otherwise break out of the
+    ``style`` attribute if the helper is called with hostile input directly).
     """
     value = str(height).strip()
-    return value if value.endswith("px") else "600px"
+    return value if _PX_RE.match(value) else "600px"
 
 
 def _iframe_width(width: str) -> str:
     value = str(width).strip()
-    return value if value.endswith(("px", "%")) else "100%"
+    return value if _PX_OR_PCT_RE.match(value) else "100%"
 
 
 def wrap_iframe(page: str, *, width: str = "100%", height: str = "100vh") -> Any:
@@ -41,7 +52,7 @@ def wrap_iframe(page: str, *, width: str = "100%", height: str = "100vh") -> Any
     # (IFrame takes a src URL, not the srcdoc we need here).
     frame = (
         f'<div class="crategraph-viz">'
-        f'<iframe srcdoc="{srcdoc}" '
+        f'<iframe srcdoc="{srcdoc}" sandbox="{_IFRAME_SANDBOX}" '
         f'style="width:{_iframe_width(width)};height:{_iframe_height(height)};'
         f'border:none;"></iframe>'
         f"</div>"
