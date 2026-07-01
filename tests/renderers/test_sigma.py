@@ -261,13 +261,19 @@ class TestSigmaRenderer:
             result = SigmaRenderer().render(g, filepath=filepath)
             assert result == filepath
 
-    def test_theme_toggle_button_present(self):
+    def test_theme_toggle_hidden(self):
+        """The light/dark toggle is hidden for now.
+
+        Light mode renders edges near-black (baked-dark edge colours only suit
+        the dark theme); the toggle stays hidden until that is fixed. The
+        element remains in the DOM so the bundle's listener attaches cleanly.
+        """
         g = _build_graph()
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = str(Path(tmpdir) / "test.html")
             SigmaRenderer().render(g, filepath=filepath)
             content = Path(filepath).read_text()
-            assert 'id="btn-theme"' in content
+            assert re.search(r'id="btn-theme"[^>]*display:\s*none', content)
 
     def test_light_theme_css_present(self):
         g = _build_graph()

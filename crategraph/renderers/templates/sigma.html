@@ -305,8 +305,12 @@
     <div id="sigma-container"></div>
 
     <div id="info">
-        <button id="btn-theme" class="btn" style="display:inline-block">Light</button>
-        <span class="separator" style="color:var(--panel-border)">|</span>
+        <!-- Light/dark toggle hidden for now: light mode renders edges
+             near-black (baked-dark edge colours suit only the dark theme).
+             Kept in the DOM so the bundle's click handler still binds cleanly;
+             un-hide once edge colours are theme-aware. -->
+        <button id="btn-theme" class="btn" style="display:none">Light</button>
+        <span class="separator" style="color:var(--panel-border);display:none">|</span>
         <span id="status">Initialising&hellip;</span>
         <button id="btn-toggle" class="btn">Start FA2</button>
         <button id="btn-stop" class="btn">Stop</button>
