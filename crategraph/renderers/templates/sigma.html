@@ -163,15 +163,18 @@
         }
 
         #btn-legend {
+            display: flex;
+            align-items: center;
+            gap: 7px;
             background: var(--panel-bg);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid var(--panel-border);
             border-radius: var(--panel-radius);
-            padding: 5px 12px;
+            padding: 6px 13px;
             font-family: var(--sans);
-            font-size: 11px;
-            font-weight: 500;
+            font-size: 12px;
+            font-weight: 600;
             letter-spacing: 0.02em;
             color: var(--text-secondary);
             cursor: pointer;
@@ -181,6 +184,12 @@
 
         #btn-legend:hover {
             color: var(--text-primary);
+        }
+
+        #legend-caret {
+            font-size: 16px;
+            line-height: 1;
+            color: var(--accent);
         }
 
         #legend-panel.collapsed #legend {
@@ -352,7 +361,7 @@
 
     <div id="legend-panel">
         <button id="btn-legend" type="button" aria-expanded="true"
-                title="Show or hide the legend">Legend &#9662;</button>
+                title="Show or hide the legend">Legend <span id="legend-caret">&#9662;</span></button>
         <div id="legend"></div>
     </div>
 
@@ -374,11 +383,12 @@
     (function () {
         var panel = document.getElementById("legend-panel");
         var btn = document.getElementById("btn-legend");
+        var caret = document.getElementById("legend-caret");
         if (!panel || !btn) return;
         btn.addEventListener("click", function () {
             var collapsed = panel.classList.toggle("collapsed");
             btn.setAttribute("aria-expanded", String(!collapsed));
-            btn.innerHTML = collapsed ? "Legend &#9656;" : "Legend &#9662;";
+            if (caret) caret.innerHTML = collapsed ? "&#9656;" : "&#9662;";
         });
     })();
     </script>

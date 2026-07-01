@@ -293,6 +293,8 @@ class TestSigmaRenderer:
             assert 'id="btn-legend"' in content
             # The toggle sits outside #legend (which the bundle overwrites).
             assert 'id="legend-panel"' in content
+            # Caret is its own span so it can be enlarged and flipped on toggle.
+            assert 'id="legend-caret"' in content
 
     def test_colour_by_community(self):
         g = _build_graph()
