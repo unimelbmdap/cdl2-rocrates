@@ -295,6 +295,6 @@ class SigmaRenderer(Renderer):
                 fh.write(html)
             return filepath
 
-        from IPython.display import HTML
+        from crategraph.renderers._display import wrap_iframe
 
-        return HTML(html)
+        return wrap_iframe(html, width=width, height=height)

@@ -132,6 +132,15 @@ class TestForceGraph3DRenderer:
             assert "Alice" in content
             assert "3d-force-graph" in content
 
+    def test_inline_render_is_iframe_wrapped(self):
+        # Jupyter does not run <script> injected straight into cell output, so
+        # the page must be embedded in an <iframe srcdoc> to render inline.
+        g = _build_graph()
+        html_str = ForceGraph3DRenderer().render(g).data
+        assert "<iframe" in html_str
+        assert "srcdoc=" in html_str
+        assert "<script>" not in html_str
+
     def test_html_contains_graph_data(self):
         g = _build_graph()
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -211,7 +220,13 @@ class TestForceGraph3DRenderer:
                 properties={"name": "</script><script>alert(1)</script>"},
             )
         )
-        html = ForceGraph3DRenderer().render(g).data
+        # Assert on the raw file output: the inline path additionally escapes
+        # the whole page inside an iframe srcdoc, which would mask the
+        # JSON-level ``</`` escaping this test targets.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "breakout.html")
+            ForceGraph3DRenderer().render(g, filepath=filepath)
+            html = Path(filepath).read_text()
         assert "</script><script>alert(1)</script>" not in html
         assert "<\\/script><script>alert(1)<\\/script>" in html
 

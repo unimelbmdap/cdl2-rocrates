@@ -194,8 +194,13 @@ class TestSigmaRenderer:
         import struct
 
         g = _build_graph()
-        result = SigmaRenderer().render(g)
-        match = _PACKED_RE.search(result.data)
+        # Render to a file: the inline path escapes the page inside an iframe
+        # srcdoc, so read the raw (unescaped) HTML from disk for this byte check.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "test.html")
+            SigmaRenderer().render(g, filepath=filepath)
+            content = Path(filepath).read_text()
+        match = _PACKED_RE.search(content)
         assert match is not None
         raw = base64.b64decode(match.group(1))
         # Gzip stream layout: magic (2) + method (1) + flags (1) + mtime (4) + xfl (1) + os (1)
@@ -207,6 +212,22 @@ class TestSigmaRenderer:
         result = SigmaRenderer().render(g)
         html_str = result.data if hasattr(result, "data") else str(result)
         assert "sigma-container" in html_str
+
+    def test_inline_render_is_iframe_wrapped(self):
+        # Jupyter does not run <script> injected straight into cell output, so
+        # the self-contained page must be embedded in an <iframe srcdoc> where
+        # its scripts execute. Otherwise nothing renders.
+        g = _build_graph()
+        html_str = SigmaRenderer().render(g).data
+        assert "<iframe" in html_str
+        assert "srcdoc=" in html_str
+        # The page is escaped inside the srcdoc attribute, so a raw, executable
+        # <script> tag must not leak into the top-level cell output.
+        assert "<script>" not in html_str
+        # Single-escaped, not double: the browser must decode srcdoc back to
+        # real HTML. Double-escaping (&amp;lt;) would render visible source.
+        assert "&lt;!DOCTYPE" in html_str
+        assert "&amp;lt;" not in html_str
 
     def test_animated_false_by_default(self):
         g = _build_graph()
