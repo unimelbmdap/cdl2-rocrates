@@ -283,6 +283,17 @@ class TestSigmaRenderer:
             content = Path(filepath).read_text()
             assert '[data-theme="light"]' in content
 
+    def test_legend_has_toggle_button(self):
+        """The full template's legend is collapsible via a sibling toggle button."""
+        g = _build_graph()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = str(Path(tmpdir) / "test.html")
+            SigmaRenderer().render(g, filepath=filepath)
+            content = Path(filepath).read_text()
+            assert 'id="btn-legend"' in content
+            # The toggle sits outside #legend (which the bundle overwrites).
+            assert 'id="legend-panel"' in content
+
     def test_colour_by_community(self):
         g = _build_graph()
         with tempfile.TemporaryDirectory() as tmpdir:
