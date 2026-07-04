@@ -10,17 +10,20 @@ import sys
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
+    from typing import TextIO
 
     from crategraph.core.graph import Graph
     from crategraph.core.models import Entity, FileInfo, ViewInfo
 
-_FA2_FALLBACK_LIMIT = 2000
-# Below this node count layout is fast, so we stay silent. Set to the same 2000
-# figure as the fa2 fallback limit / Barnes-Hut neighbourhood, where layout
-# starts to get slow; note progress triggers at ``>= 2000`` whereas
-# ``barnesHutOptimize`` flips at ``> 2000``.
+# Below this node count layout is fast, so we stay silent. Set to the same
+# 2000 figure as the Barnes-Hut neighbourhood, where layout starts to get
+# slow; note progress triggers at ``>= 2000`` whereas ``barnesHutOptimize``
+# flips at ``> 2000``.
 _LAYOUT_PROGRESS_MIN_NODES = 2000
+
+# Granularity of the ``layout N%`` progress lines.
+_PROGRESS_STEP_PERCENT = 5
 
 
 def _in_notebook() -> bool:
@@ -34,105 +37,148 @@ def _in_notebook() -> bool:
     return shell is not None and shell.__class__.__name__ == "ZMQInteractiveShell"
 
 
-def layout(graph: Graph, *, progress: bool = False) -> dict[str, tuple[float, float]]:
+def _render_profile(n: int) -> dict[str, Any]:
+    """crategraph's ForceAtlas2 settings floor, keyed by graphology camelCase.
+
+    Derived from graphology-layout-forceatlas2's ``inferSettings()``, with
+    two deliberate departures chosen by eye across real crates: ``gravity``
+    is 0.3 (inferSettings uses 0.05) and ``slowDown`` is 1 (not
+    ``1 + log(order)``).
+    """
+    return {
+        "outboundAttractionDistribution": False,
+        "barnesHutOptimize": n > 2000,
+        "barnesHutTheta": 0.5,
+        "scalingRatio": 10,
+        "strongGravityMode": True,
+        "slowDown": 1,
+        "gravity": 0.3,
+    }
+
+
+def _percentage_reporter(stream: TextIO) -> Callable[[int, int], None]:
+    """A progress callback printing ``layout N%`` lines at ~5% steps."""
+    last_step = -1
+
+    def report(i: int, total: int) -> None:
+        nonlocal last_step
+        percent = 100 if total <= 0 else (i * 100) // total
+        step = percent - percent % _PROGRESS_STEP_PERCENT
+        if step > last_step:
+            last_step = step
+            print(f"layout {step}%", file=stream)
+
+    return report
+
+
+def layout(
+    graph: Graph,
+    *,
+    engine: str | None = None,
+    gravity: float | None = None,
+    iterations: int | None = None,
+    layout_settings: dict[str, Any] | None = None,
+    progress: bool = False,
+) -> dict[str, tuple[float, float]]:
     """Compute 2D node positions for visualisation.
 
-    Uses ForceAtlas2 (via the ``fa2`` package) when available, with
-    parameters matched to graphology's ``inferSettings()``.  Falls
-    back to NetworkX ``spring_layout`` for small graphs when ``fa2``
-    is not installed.
+    Runs ForceAtlas2 through a pluggable layout engine: the compiled
+    ``crategraph_forceatlas2`` package when available (fast, and seeded so
+    layouts are reproducible run-to-run), otherwise NetworkX's pure-Python
+    ``forceatlas2_layout``. Install the fast backend with::
 
-    Install the fast backend with::
-
-        pip install crategraph[fa2]
+        pip install "crategraph[forceatlas]"
 
     Args:
+        engine: Layout engine name (``"forceatlas2"`` or ``"nx"``).
+            ``None`` (default) picks the first available engine, preferring
+            the compiled backend.
+        gravity: Pull towards the centre, in graphology/rust units (the old
+            ``fa2`` dialect ran roughly 10x smaller under
+            ``strongGravityMode``, so an fa2-era 0.05 is not comparable).
+            ``None`` (default) means "not passed": the documented default of
+            0.3 comes from the render profile. An explicit value here always
+            wins, including over a ``gravity`` key in *layout_settings*.
+        iterations: Number of layout iterations. ``None`` (default) uses an
+            ``iterations`` key in *layout_settings* if present, else the size
+            formula ``min(200, 50 + n // 100)``.
+        layout_settings: Extra ForceAtlas2 settings (graphology camelCase
+            keys, e.g. ``{"barnesHutTheta": 0.9}``), layered over the render
+            profile. Keys an engine does not support are handled per engine:
+            the rust engine rejects unknown keys, the nx engine drops
+            unsupported ones with a warning.
         progress: When ``True`` and the graph is large enough to be slow
             (``>= _LAYOUT_PROGRESS_MIN_NODES`` nodes), print an upfront size
-            line and show ForceAtlas2's live iteration bar (on stdout in a
-            notebook, stderr otherwise). Defaults to ``False`` here because
-            ``layout()`` is often called programmatically, where such output
-            would be surprising; ``visualise()`` opts in on the user's behalf.
+            line and ``layout N%`` lines at ~5% steps (on stdout in a
+            notebook, stderr otherwise). The nx engine has no per-iteration
+            hook, so it reports a single final tick. Defaults to ``False``
+            here because ``layout()`` is often called programmatically, where
+            such output would be surprising; ``visualise()`` opts in on the
+            user's behalf.
 
     Returns ``{entity_id: (x, y)}`` with raw coordinates (not scaled
     to any canvas).
     """
+    from crategraph.core.layout_engines import resolve_engine
+
     if not graph._entities:
         return {}
 
-    n = len(graph._entities)
-    nx_undirected = graph._graph.to_undirected()
-    # Drop self-loops before laying out: fa2 warns about them ("non-zero
-    # diagonal") and they inflate a node's mass without contributing any useful
-    # layout force. networkx spring layout is unaffected either way.
-    import networkx as nx
+    # This function owns the id<->index mapping: engines work on integer
+    # indices ``[0, n)`` in the graph's stable entity order.
+    entity_ids = list(graph._entities)
+    n = len(entity_ids)
+    index_by_id = {entity_id: i for i, entity_id in enumerate(entity_ids)}
 
-    nx_undirected.remove_edges_from(nx.selfloop_edges(nx_undirected))
+    # Deduped undirected integer edges. Self-loops are dropped: they inflate
+    # a node's mass without contributing any useful layout force, and the
+    # rust engine rejects them outright.
+    edge_set: set[tuple[int, int]] = set()
+    for rel in graph._relationships:
+        a = index_by_id[rel.source]
+        b = index_by_id[rel.target]
+        if a != b:
+            edge_set.add((a, b) if a < b else (b, a))
+    edges = sorted(edge_set)
 
-    show_progress = progress and n >= _LAYOUT_PROGRESS_MIN_NODES
+    # ``iterations`` precedence: named arg > layout_settings key > formula.
+    # The key is always popped so it never reaches an engine's settings dict.
+    settings = dict(layout_settings) if layout_settings else {}
+    settings_iterations = settings.pop("iterations", None)
+    if iterations is None:
+        iterations = settings_iterations
+    if iterations is None:
+        iterations = min(200, 50 + n // 100)
 
-    try:
-        from fa2 import ForceAtlas2
+    # Settings precedence: named gravity > layout_settings > render profile.
+    merged_settings = {**_render_profile(n), **settings}
+    if gravity is not None:
+        merged_settings["gravity"] = gravity
 
+    layout_engine = resolve_engine(engine)
+
+    progress_cb = None
+    if progress and n >= _LAYOUT_PROGRESS_MIN_NODES:
         # In a Jupyter notebook, stderr is rendered on a red "error" background
         # that alarms users, so route progress to stdout there; in a terminal
         # keep it on stderr (conventional, and keeps piped stdout clean).
         progress_stream = sys.stdout if _in_notebook() else sys.stderr
-
-        # Emit the upfront message only once fa2 is confirmed available, so it
-        # never misleads: callers like pyvis catch a missing-fa2 ImportError and
-        # silently fall back to client-side physics, where no server-side layout
-        # actually runs.
-        if show_progress:
-            m = len(graph._relationships)
-            print(
-                f"Laying out {n:,} nodes and {m:,} relationships; "
-                f"this can take a while for large graphs.",
-                file=progress_stream,
-            )
-
-        # Match graphology-layout-forceatlas2's inferSettings():
-        #   barnesHutOptimize: order > 2000
-        #   strongGravityMode: true
-        #   gravity: 0.05
-        #   scalingRatio: 10
-        #   slowDown: 1 + Math.log(order)
-        fa2 = ForceAtlas2(
-            outboundAttractionDistribution=False,
-            barnesHutOptimize=n > 2000,
-            barnesHutTheta=0.5,
-            scalingRatio=10,
-            strongGravityMode=True,
-            gravity=0.05,
-            verbose=show_progress,
+        m = len(graph._relationships)
+        print(
+            f"Laying out {n:,} nodes and {m:,} relationships; "
+            f"this can take a while for large graphs.",
+            file=progress_stream,
         )
-        iters = min(200, 50 + n // 100)
-        if not show_progress:
-            return fa2.forceatlas2_networkx_layout(nx_undirected, iterations=iters)
+        progress_cb = _percentage_reporter(progress_stream)
 
-        # fa2 prints a timing summary to stdout (always swallow it) and its live
-        # bar to stderr. Match the bar to the chosen stream: in a notebook
-        # redirect it onto stdout so it is not red; in a terminal leave it be.
-        import contextlib
-        import io
-
-        with contextlib.ExitStack() as stack:
-            stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
-            if progress_stream is not sys.stderr:
-                stack.enter_context(contextlib.redirect_stderr(progress_stream))
-            return fa2.forceatlas2_networkx_layout(nx_undirected, iterations=iters)
-    except ImportError:
-        pass
-
-    if n > _FA2_FALLBACK_LIMIT:
-        msg = (
-            f"This graph has {n:,} nodes — the fallback spring layout "
-            f"will be extremely slow without the fa2 package.\n"
-            f"Install it with: pip install crategraph[fa2]"
-        )
-        raise ImportError(msg)
-
-    return nx.spring_layout(nx_undirected, seed=42)
+    positions = layout_engine.compute(
+        n,
+        edges,
+        iterations=iterations,
+        settings=merged_settings,
+        progress_cb=progress_cb,
+    )
+    return {entity_ids[i]: xy for i, xy in positions.items()}
 
 
 def visualise(
@@ -173,10 +219,10 @@ def visualise(
         collapse_edges: If ``True``, collapse parallel edges between
             the same pair of nodes before rendering.
         progress: When ``True`` (default), show layout progress for large
-            graphs (an upfront size line plus ForceAtlas2's live iteration bar,
-            on stdout in a notebook and stderr otherwise). Pass ``False`` to
-            render silently. Has no effect on small graphs or the browser-side
-            ``"3d"`` renderer.
+            graphs (an upfront size line plus ``layout N%`` lines at ~5%
+            steps, on stdout in a notebook and stderr otherwise). Pass
+            ``False`` to render silently. Has no effect on small graphs or
+            the browser-side ``"3d"`` renderer.
 
     Returns a renderer-specific object (for inline notebook display)
     or the filepath string if *filepath* was provided.

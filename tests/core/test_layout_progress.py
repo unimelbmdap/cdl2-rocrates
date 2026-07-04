@@ -1,23 +1,27 @@
 """Tests for layout progress feedback (`progress` flag + upfront message).
 
-The layout step (`presentation.layout`) is a single blocking ForceAtlas2 call.
+The layout step (`presentation.layout`) is a single blocking engine call.
 These tests cover the user-facing progress affordances added around it:
 
-* an upfront stderr message naming the node count, gated by a ``progress``
-  flag and a node-count threshold; and
-* the ``verbose`` flag passed to ForceAtlas2 tracking that same gate.
+* an upfront message naming the node count, gated by a ``progress`` flag and
+  a node-count threshold;
+* percentage lines (``layout N%``) at ~5% steps, driven by the engine's
+  progress callback; and
+* stream routing — stdout in a notebook, stderr in a terminal.
 
-ForceAtlas2 is faked (injected into ``sys.modules``) so the tests run fast and
-deterministically whether or not the optional ``fa2`` package is installed.
+The engine is a spy (registered via the engine registry) that drives the
+progress callback like a real iteration loop, so the tests run fast and
+deterministically whether or not ``crategraph_forceatlas2`` is installed.
 """
 
 from __future__ import annotations
 
+import re
 import sys
-import types
 
 import pytest
 
+from crategraph.core import layout_engines as le
 from crategraph.core import presentation
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity, Relationship
@@ -33,123 +37,108 @@ def _build_graph(n_nodes: int) -> Graph:
     return g
 
 
-class _FakeForceAtlas2:
-    """Records the ``verbose`` kwarg and returns dummy positions instantly.
+class _SpyEngine(le.LayoutEngine):
+    """Instant engine that drives ``progress_cb`` like a real iteration loop."""
 
-    Mimics the real ``fa2``: when ``verbose=True`` it dumps a timing summary to
-    *stdout* (the live progress bar itself goes to stderr).
-    """
+    name = "spy"
 
-    last_verbose: bool | None = None
-    last_selfloops: int | None = None
+    def available(self) -> tuple[bool, str]:
+        return (True, "spy")
 
-    def __init__(self, **kwargs: object) -> None:
-        self._verbose = bool(kwargs.get("verbose"))
-        _FakeForceAtlas2.last_verbose = kwargs.get("verbose")  # type: ignore[assignment]
-
-    def forceatlas2_networkx_layout(self, graph: object, iterations: int = 100) -> dict:
-        import networkx as nx
-
-        _FakeForceAtlas2.last_selfloops = nx.number_of_selfloops(graph)  # type: ignore[arg-type]
-        if self._verbose:
-            print("BarnesHut Approximation took 0.12 seconds")  # fa2 stdout noise
-        return {node: (0.0, 0.0) for node in graph.nodes()}  # type: ignore[attr-defined]
+    def compute(self, n_nodes, edges, *, iterations, settings, progress_cb):
+        if progress_cb is not None:
+            for i in range(1, iterations + 1):
+                progress_cb(i, iterations)
+        return {i: (float(i), 0.0) for i in range(n_nodes)}
 
 
 @pytest.fixture
-def fake_fa2(monkeypatch: pytest.MonkeyPatch) -> type[_FakeForceAtlas2]:
-    """Inject a fake ``fa2`` module so ``from fa2 import ForceAtlas2`` is fast."""
-    _FakeForceAtlas2.last_verbose = None
-    module = types.ModuleType("fa2")
-    module.ForceAtlas2 = _FakeForceAtlas2  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "fa2", module)
-    return _FakeForceAtlas2
+def spy_engine(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make the spy the only registered engine."""
+    monkeypatch.setattr(le, "ENGINES", [_SpyEngine()])
 
 
 # Threshold-sized graphs reused across tests.
 _LARGE = 2000  # == _LAYOUT_PROGRESS_MIN_NODES
 _SMALL = 5
 
+_PERCENT_LINE = re.compile(r"layout \d+%")
+
 
 class TestLayoutMessage:
-    def test_quiet_by_default_even_for_large_graph(self, fake_fa2, capsys):
+    def test_quiet_by_default_even_for_large_graph(self, spy_engine, capsys):
         _build_graph(_LARGE).layout()
-        assert capsys.readouterr().err == ""
+        captured = capsys.readouterr()
+        assert captured.err == ""
+        assert captured.out == ""
 
-    def test_progress_true_below_threshold_is_quiet(self, fake_fa2, capsys):
+    def test_progress_true_below_threshold_is_quiet(self, spy_engine, capsys):
         _build_graph(_SMALL).layout(progress=True)
-        assert capsys.readouterr().err == ""
+        captured = capsys.readouterr()
+        assert captured.err == ""
+        assert captured.out == ""
 
-    def test_progress_true_above_threshold_emits_message(self, fake_fa2, capsys):
+    def test_progress_true_above_threshold_emits_message(self, spy_engine, capsys):
         _build_graph(_LARGE).layout(progress=True)
         err = capsys.readouterr().err
         assert "2,000" in err
         assert "nodes" in err
 
-    def test_fa2_stdout_timing_noise_is_suppressed(self, fake_fa2, capsys):
-        # fa2's verbose timing summary goes to stdout, which Jupyter captures
-        # into committed cell outputs; the progress bar (stderr) is what we want.
+    def test_percentage_lines_step_to_completion(self, spy_engine, capsys):
         _build_graph(_LARGE).layout(progress=True)
-        out = capsys.readouterr().out
-        assert out == ""
-
-    def test_no_message_when_fa2_absent(self, monkeypatch, capsys):
-        # ``import fa2`` raises -> no server-side layout actually runs (here it
-        # raises; in pyvis the ImportError is caught and silently falls back to
-        # client-side physics). The upfront message must NOT mislead by claiming
-        # layout happened, so it is emitted only once fa2 is confirmed available.
-        monkeypatch.setitem(sys.modules, "fa2", None)
-        with pytest.raises(ImportError):
-            _build_graph(_LARGE + 1).layout(progress=True)
-        assert capsys.readouterr().err == ""
+        lines = _PERCENT_LINE.findall(capsys.readouterr().err)
+        assert lines, "expected percentage progress lines"
+        assert lines[-1] == "layout 100%"
+        assert len(lines) == len(set(lines))  # ~5% steps, no repeats
 
 
-class TestLayoutVerboseFlag:
-    def test_verbose_true_when_large_and_progress(self, fake_fa2):
-        _build_graph(_LARGE).layout(progress=True)
-        assert fake_fa2.last_verbose is True
+class TestNxFallback:
+    def test_absent_rust_falls_back_with_slow_warning(self, monkeypatch, capsys):
+        # Without the rust package, resolution falls through to the nx engine,
+        # which warns-and-proceeds on large graphs (the old path raised
+        # ImportError). Its layout call is stubbed out so the test is instant;
+        # the warning is emitted by the engine before the call.
+        import networkx as nx
 
-    def test_verbose_false_when_progress_disabled(self, fake_fa2):
-        _build_graph(_LARGE).layout(progress=False)
-        assert fake_fa2.last_verbose is False
-
-    def test_verbose_false_when_below_threshold(self, fake_fa2):
-        _build_graph(_SMALL).layout(progress=True)
-        assert fake_fa2.last_verbose is False
-
-
-class TestSelfLoops:
-    def test_selfloops_stripped_before_layout(self, fake_fa2):
-        # Self-loops make fa2 warn ("non-zero diagonal") and inflate node mass;
-        # they must be removed from the graph handed to fa2.
-        g = _build_graph(_LARGE)
-        g._add_edge(Relationship(source="#n0", target="#n0", type="mentions"))
-        g.layout(progress=True)
-        assert fake_fa2.last_selfloops == 0
+        monkeypatch.setitem(sys.modules, "crategraph_forceatlas2", None)
+        monkeypatch.setattr(
+            nx,
+            "forceatlas2_layout",
+            lambda graph, **kwargs: {node: (0.0, 0.0) for node in graph.nodes()},
+            raising=False,
+        )
+        with pytest.warns(UserWarning) as record:
+            pos = _build_graph(_LARGE).layout(progress=True)
+        messages = [str(warning.message) for warning in record]
+        assert any("slow without the forceatlas extra" in m for m in messages)
+        assert len(pos) == _LARGE
+        assert "2,000" in capsys.readouterr().err  # the size line still appears
 
 
 class TestProgressStream:
-    def test_message_on_stderr_outside_notebook(self, fake_fa2, capsys):
+    def test_progress_on_stderr_outside_notebook(self, spy_engine, capsys):
         _build_graph(_LARGE).layout(progress=True)
         captured = capsys.readouterr()
         assert "Laying out" in captured.err
-        assert "Laying out" not in captured.out
+        assert _PERCENT_LINE.search(captured.err)
+        assert captured.out == ""
 
-    def test_message_on_stdout_in_notebook(self, fake_fa2, capsys, monkeypatch):
+    def test_progress_on_stdout_in_notebook(self, spy_engine, capsys, monkeypatch):
         # In Jupyter, stderr is shown on an alarming red background, so progress
         # is routed to stdout instead.
         monkeypatch.setattr(presentation, "_in_notebook", lambda: True)
         _build_graph(_LARGE).layout(progress=True)
         captured = capsys.readouterr()
         assert "Laying out" in captured.out
-        assert "Laying out" not in captured.err
+        assert _PERCENT_LINE.search(captured.out)
+        assert captured.err == ""
 
 
 class TestVisualiseForwardsProgress:
-    def test_visualise_defaults_to_progress_on(self, fake_fa2, capsys):
+    def test_visualise_defaults_to_progress_on(self, spy_engine, capsys):
         _build_graph(_LARGE).visualise(renderer="svg")
         assert "2,000" in capsys.readouterr().err
 
-    def test_visualise_progress_false_is_silent(self, fake_fa2, capsys):
+    def test_visualise_progress_false_is_silent(self, spy_engine, capsys):
         _build_graph(_LARGE).visualise(renderer="svg", progress=False)
         assert capsys.readouterr().err == ""

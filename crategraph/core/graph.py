@@ -446,9 +446,28 @@ class Graph:
 
     # --- Presentation methods (delegated to core/presentation.py) ---
 
-    def layout(self, *, progress: bool = False) -> dict[str, tuple[float, float]]:
-        """Compute 2D node positions for visualisation."""
-        return presentation.layout(self, progress=progress)
+    def layout(
+        self,
+        *,
+        engine: str | None = None,
+        gravity: float | None = None,
+        iterations: int | None = None,
+        layout_settings: dict[str, Any] | None = None,
+        progress: bool = False,
+    ) -> dict[str, tuple[float, float]]:
+        """Compute 2D node positions for visualisation.
+
+        See :func:`crategraph.core.presentation.layout` for the full
+        parameter documentation.
+        """
+        return presentation.layout(
+            self,
+            engine=engine,
+            gravity=gravity,
+            iterations=iterations,
+            layout_settings=layout_settings,
+            progress=progress,
+        )
 
     def visualise(
         self,
