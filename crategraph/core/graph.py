@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import functools
 import warnings
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
@@ -27,6 +28,17 @@ if TYPE_CHECKING:
     from crategraph.core.views import EntityView, RelationshipView
 
 
+@functools.cache
+def _source_name(source: str) -> str:
+    """Final path component of a crate source path, memoised.
+
+    Module-level (not a method) so the cache never pins a Graph instance;
+    unbounded because the key space is crate source paths, a handful per
+    process.
+    """
+    return PurePosixPath(source).name
+
+
 class Graph:
     """The central object for loading, querying, and visualising graphs.
 
@@ -45,7 +57,9 @@ class Graph:
         self.metadata: dict[str, Any] = metadata if metadata is not None else {}
         self._entities: dict[str, Entity] = {}
         self._relationships: list[Relationship] = []
-        self._source_names: set[str] = set()
+        # Lazily built from _entities on first access to `sources`;
+        # None means "not built". Invalidated by _add_node.
+        self._source_names: set[str] | None = None
         self._graph: nx.MultiDiGraph = nx.MultiDiGraph()
         self._root: Graph = self  # reference to the root/full graph for expand()
         self._simplification_k: int | None = None
@@ -154,6 +168,12 @@ class Graph:
     @property
     def sources(self) -> list[str]:
         """Distinct source directory names, sorted."""
+        if self._source_names is None:
+            self._source_names = {
+                _source_name(entity.source)
+                for entity in self._entities.values()
+                if entity.source is not None
+            }
         return sorted(self._source_names)
 
     @property
@@ -1214,10 +1234,7 @@ class Graph:
         """Add or replace an entity in the graph."""
         self._entities[entity.id] = entity
         self._entity_types_cache = None  # invalidate cached entity types
-        if entity.source is not None:
-            from pathlib import PurePosixPath
-
-            self._source_names.add(PurePosixPath(entity.source).name)
+        self._source_names = None  # lazily rebuilt from _entities on next access
         self._graph.add_node(entity.id, entity=entity)
 
     def _add_edge(self, relationship: Relationship) -> None:
@@ -1321,13 +1338,7 @@ class Graph:
             for r in candidate_relationships
             if r.source in derived._entities and r.target in derived._entities
         ]
-        from pathlib import PurePosixPath
-
-        derived._source_names = {
-            PurePosixPath(entity.source).name
-            for entity in derived._entities.values()
-            if entity.source is not None
-        }
+        derived._source_names = None  # lazily rebuilt from derived._entities
         derived._graph = nx.MultiDiGraph()
         for nid, entity in derived._entities.items():
             derived._graph.add_node(nid, entity=entity)

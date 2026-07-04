@@ -112,8 +112,8 @@ class Crate(Graph):
         _meta_keys = {"@context", "_root_id"}
 
         # Multi-crate: metadata is nested under per-crate prefixes.
-        if self.source is None and self._source_names:
-            for source_path in sorted(self._source_names):
+        if self.source is None and self.sources:
+            for source_path in self.sources:
                 prefix = Path(source_path).name
                 crate_meta = self.metadata.get(prefix, {})
                 root_id = crate_meta.get("_root_id", "./")
