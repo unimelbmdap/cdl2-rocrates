@@ -135,7 +135,7 @@ class TestAddEdge:
         with pytest.warns(UserWarning, match="missing endpoint"):
             g._add_edge(r)
         assert len(g._relationships) == 0
-        assert "#missing" not in g._graph
+        assert "#missing" not in g._entities
 
 
 class TestNeighbours:

@@ -58,7 +58,7 @@ class TestToNetworkx:
         graph = _build_simple_graph()
         g = graph.to_networkx()
         g.add_node("__extra__")
-        assert "__extra__" not in graph._graph
+        assert "__extra__" not in graph._entities
         assert len(graph.entities) == 2
 
     def test_deep_copy_entity_property_isolation(self):
@@ -87,21 +87,21 @@ class TestToNetworkx:
         )
 
     def test_copy_false_returns_rebuilt_graph(self):
-        """copy=False returns a freshly rebuilt graph — no identity with _graph.
+        """copy=False returns a freshly rebuilt graph on every call.
 
         copy=False's contract is 'safe to read, do not mutate', not 'same
         object'. The attached Entity / Relationship objects are the originals.
         """
         graph = _build_simple_graph()
         g = graph.to_networkx(copy=False)
-        assert g is not graph._graph
+        assert g is not graph.to_networkx(copy=False)
         assert g.nodes["#alice"]["entity"] is graph.entities[0]
 
     def test_copy_true_returns_different_object(self):
-        """copy=True (default) returns a distinct object from _graph."""
+        """copy=True (default) returns a distinct object on every call."""
         graph = _build_simple_graph()
         g = graph.to_networkx()
-        assert g is not graph._graph
+        assert g is not graph.to_networkx()
 
     def test_parallel_same_type_edges_survive(self):
         """Two Relationships with the same source, target, and type both survive."""
@@ -114,8 +114,7 @@ class TestToNetworkx:
         graph._add_edge(
             Relationship(source="A", target="B", type="author", properties={"year": 2003})
         )
-        # Internal _graph and the authoritative list both retain full fidelity.
-        assert graph._graph.number_of_edges() == 2
+        # The authoritative relationships list retains full fidelity.
         assert len(graph.relationships) == 2
         g = graph.to_networkx()
         ab_edges = [data for _u, _v, _k, data in g.edges(keys=True, data=True)]
@@ -128,15 +127,14 @@ class TestToNetworkx:
         graph._add_node(Entity(id="B", types=["Person"]))
         graph._add_edge(Relationship(source="A", target="B", type="author"))
         graph._add_edge(Relationship(source="A", target="B", type="author"))
-        edges = list(graph._graph.edges(keys=True, data=True))
-        assert len(edges) == 2
-        assert all(data["relationship"].type == "author" for *_edge, data in edges)
+        assert len(graph.relationships) == 2
+        assert all(rel.type == "author" for rel in graph.relationships)
 
     def test_copy_contains_same_nodes(self):
         """The deep copy contains the same node IDs as the original."""
         graph = _build_simple_graph()
         g = graph.to_networkx()
-        assert set(g.nodes) == set(graph._graph.nodes)
+        assert set(g.nodes) == set(graph._entities)
 
 
 # ---------------------------------------------------------------------------

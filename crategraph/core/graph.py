@@ -42,9 +42,10 @@ def _source_name(source: str) -> str:
 class Graph:
     """The central object for loading, querying, and visualising graphs.
 
-    Uses a NetworkX ``MultiDiGraph`` internally for graph storage and
-    traversal.  ``MultiDiGraph`` supports directed edges and multiple
-    edges between the same node pair, both required by the data model.
+    Storage is plain dicts and lists (``_entities``, ``_relationships``)
+    with a lazy per-endpoint adjacency index built on demand, supporting
+    directed edges and multiple edges between the same node pair, both
+    required by the data model.
     """
 
     def __init__(
@@ -60,7 +61,6 @@ class Graph:
         # Lazily built from _entities on first access to `sources`;
         # None means "not built". Invalidated by _add_node.
         self._source_names: set[str] | None = None
-        self._graph: nx.MultiDiGraph = nx.MultiDiGraph()
         self._root: Graph = self  # reference to the root/full graph for expand()
         self._simplification_k: int | None = None
         self._derived_fields: dict[str, str | None] = {}
@@ -1235,7 +1235,6 @@ class Graph:
         self._entities[entity.id] = entity
         self._entity_types_cache = None  # invalidate cached entity types
         self._source_names = None  # lazily rebuilt from _entities on next access
-        self._graph.add_node(entity.id, entity=entity)
 
     def _add_edge(self, relationship: Relationship) -> None:
         """Add a relationship to the graph."""
@@ -1258,11 +1257,6 @@ class Graph:
         # invalidate caches derived from _relationships
         self._rel_adjacency = None
         self._relationship_types_cache = None
-        self._graph.add_edge(
-            relationship.source,
-            relationship.target,
-            relationship=relationship,
-        )
 
     def _display_name(self, entity_id: str) -> str:
         """Return the best display name for an entity ID."""
@@ -1271,9 +1265,12 @@ class Graph:
 
     def _neighbours(self, node_id: str) -> set[str]:
         """Return IDs of all nodes adjacent to *node_id* (in either direction)."""
-        if node_id not in self._graph:
+        if node_id not in self._entities:
             return set()
-        return set(self._graph.successors(node_id)) | set(self._graph.predecessors(node_id))
+        out_by_source, in_by_target = self._relationship_adjacency()
+        return {r.target for r in out_by_source.get(node_id, [])} | {
+            r.source for r in in_by_target.get(node_id, [])
+        }
 
     def _coerce_entity(self, entity: Entity | str) -> Entity:
         """Resolve an entity object or ID string to an Entity."""
@@ -1339,15 +1336,6 @@ class Graph:
             if r.source in derived._entities and r.target in derived._entities
         ]
         derived._source_names = None  # lazily rebuilt from derived._entities
-        derived._graph = nx.MultiDiGraph()
-        for nid, entity in derived._entities.items():
-            derived._graph.add_node(nid, entity=entity)
-        for relationship in derived._relationships:
-            derived._graph.add_edge(
-                relationship.source,
-                relationship.target,
-                relationship=relationship,
-            )
         derived._root = self._root
         derived._simplification_k = None
         derived._derived_fields = dict(self._derived_fields)

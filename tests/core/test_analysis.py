@@ -242,15 +242,13 @@ class TestGraphDetectCommunities:
         g = _build_graph()
         assert len(g.detect_communities().relationships) == len(g.relationships)
 
-    def test_internal_graph_nodes_use_updated_entities(self):
+    def test_annotated_entities_exposed_consistently(self):
         g = _build_graph()
         result = g.detect_communities()
         for eid, entity in result._entities.items():
-            assert result._graph.nodes[eid]["entity"] is entity
-            assert (
-                result._graph.nodes[eid]["entity"].properties["community"]
-                == entity.properties["community"]
-            )
+            assert "community" in entity.properties
+            # the public accessor must expose the SAME annotated object
+            assert result.get(eid) is entity
 
     def test_seed_deterministic(self):
         g = _build_graph()

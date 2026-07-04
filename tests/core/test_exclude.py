@@ -58,7 +58,6 @@ class TestExcludeByRelationshipType:
         g = _build_graph()
         result = g.exclude(relationship_types=["preparedBy"], drop_isolated=False)
         assert len(result.relationships) == 3
-        assert result._graph.number_of_edges() == 3
         assert "#meeting" not in result._neighbours("#gavan")
 
 
