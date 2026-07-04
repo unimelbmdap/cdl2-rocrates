@@ -46,6 +46,10 @@ class Graph:
     lazily built per-endpoint adjacency index for traversal.  NetworkX
     graphs are built on demand where needed (``to_networkx()``, Cypher
     queries, community detection).
+
+    Graphs are not thread-safe: mutating a graph (loading, ``_add_node``,
+    ``_add_edge``) concurrently with reads is unsupported, as the lazy
+    caches are built on first read.
     """
 
     def __init__(

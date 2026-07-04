@@ -127,3 +127,22 @@ class TestToNetworkxScopedCopy:
         g._add_node(Entity(id="#item", types=["Dataset"], properties={"k": "v"}))
         nxg = g.to_networkx(copy=False)
         assert nxg.nodes["#item"]["entity"] is g.entities[0]
+
+    def test_entity_valued_property_narrowed_contract(self):
+        """Pin the deliberately narrowed contract for a pathological shape.
+
+        No crategraph path puts Entity objects inside ``properties`` (values
+        come from JSON-LD), but if a caller does, the scoped copy detaches
+        that value as an independent deep copy rather than re-pointing it at
+        the enclosing copied Entity the way whole-object deepcopy once did.
+        Both entities stay detached from the source graph either way.
+        """
+        inner = Entity(id="#inner", types=["Person"], properties={"name": "X"})
+        g = Graph()
+        g._add_node(dataclasses.replace(inner, id="#outer", properties={"ref": inner}))
+        g._add_node(inner)
+        nxg = g.to_networkx()
+        copied_ref = nxg.nodes["#outer"]["entity"].properties["ref"]
+        assert copied_ref == inner
+        assert copied_ref is not inner  # detached from the source graph
+        assert copied_ref is not nxg.nodes["#inner"]["entity"]  # independent copy
