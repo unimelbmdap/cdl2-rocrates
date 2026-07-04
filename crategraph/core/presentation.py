@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import sys
 import warnings
+from html import escape
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -68,6 +69,78 @@ def _percentage_reporter(stream: TextIO) -> Callable[[int, int], None]:
         if step > last_step:
             last_step = step
             print(f"layout {step}%", file=stream)
+
+    return report
+
+
+def _terminal_progress_reporter(stream: TextIO, label: str) -> Callable[[int, int], None]:
+    """Return terminal progress feedback, using an updating bar on real TTYs."""
+    print(label, file=stream)
+    if not stream.isatty():
+        return _percentage_reporter(stream)
+
+    last_step = -1
+    bar_width = 28
+
+    def write_bar(percent: int) -> None:
+        filled = (percent * bar_width) // 100
+        bar = "#" * filled + "-" * (bar_width - filled)
+        end = "\n" if percent >= 100 else ""
+        print(f"\rlayout [{bar}] {percent:3d}%", end=end, file=stream, flush=True)
+
+    write_bar(0)
+
+    def report(i: int, total: int) -> None:
+        nonlocal last_step
+        percent = 100 if total <= 0 else (i * 100) // total
+        step = percent - percent % _PROGRESS_STEP_PERCENT
+        if step > last_step:
+            last_step = step
+            write_bar(step)
+
+    return report
+
+
+def _progress_bar_html(percent: int, label: str) -> str:
+    """Return a compact notebook progress bar fragment."""
+    safe_label = escape(label)
+    return f"""
+    <div style="font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+                max-width: 520px; margin: 0.4rem 0;">
+      <div style="display: flex; justify-content: space-between;
+                  font-size: 0.85rem; color: #4a4e59; margin-bottom: 0.25rem;">
+        <span>{safe_label}</span>
+        <span>{percent}%</span>
+      </div>
+      <div role="progressbar" aria-valuemin="0" aria-valuemax="100"
+           aria-valuenow="{percent}"
+           style="height: 8px; background: #e6e8eb; border-radius: 999px;
+                  overflow: hidden;">
+        <div style="height: 100%; width: {percent}%; background: #2ba89e;
+                    transition: width 120ms ease-out;"></div>
+      </div>
+    </div>
+    """
+
+
+def _notebook_progress_reporter(n_nodes: int, n_relationships: int) -> Callable[[int, int], None]:
+    """A progress callback that updates one inline Jupyter progress bar."""
+    from IPython.display import HTML, display
+
+    label = (
+        f"Laying out {n_nodes:,} nodes and {n_relationships:,} relationships; "
+        f"this can take a while for large graphs."
+    )
+    handle = display(HTML(_progress_bar_html(0, label)), display_id=True)
+    last_step = -1
+
+    def report(i: int, total: int) -> None:
+        nonlocal last_step
+        percent = 100 if total <= 0 else (i * 100) // total
+        step = percent - percent % _PROGRESS_STEP_PERCENT
+        if step > last_step:
+            last_step = step
+            handle.update(HTML(_progress_bar_html(step, label)))
 
     return report
 
@@ -160,17 +233,15 @@ def layout(
 
     progress_cb = None
     if progress and n >= _LAYOUT_PROGRESS_MIN_NODES:
-        # In a Jupyter notebook, stderr is rendered on a red "error" background
-        # that alarms users, so route progress to stdout there; in a terminal
-        # keep it on stderr (conventional, and keeps piped stdout clean).
-        progress_stream = sys.stdout if _in_notebook() else sys.stderr
         m = len(graph._relationships)
-        print(
+        label = (
             f"Laying out {n:,} nodes and {m:,} relationships; "
-            f"this can take a while for large graphs.",
-            file=progress_stream,
+            f"this can take a while for large graphs."
         )
-        progress_cb = _percentage_reporter(progress_stream)
+        if _in_notebook():
+            progress_cb = _notebook_progress_reporter(n, m)
+        else:
+            progress_cb = _terminal_progress_reporter(sys.stderr, label)
 
     positions = layout_engine.compute(
         n,

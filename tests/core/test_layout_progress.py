@@ -4,10 +4,10 @@ The layout step (`presentation.layout`) is a single blocking engine call.
 These tests cover the user-facing progress affordances added around it:
 
 * an upfront message naming the node count, gated by a ``progress`` flag and
-  a node-count threshold;
-* percentage lines (``layout N%``) at ~5% steps, driven by the engine's
-  progress callback; and
-* stream routing — stdout in a notebook, stderr in a terminal.
+  a node-count threshold in terminals;
+* percentage lines (``layout N%``) at ~5% steps in terminals, driven by the
+  engine's progress callback; and
+* an inline display progress reporter in notebooks.
 
 The engine is a spy (registered via the engine registry) that drives the
 progress callback like a real iteration loop, so the tests run fast and
@@ -123,14 +123,26 @@ class TestProgressStream:
         assert _PERCENT_LINE.search(captured.err)
         assert captured.out == ""
 
-    def test_progress_on_stdout_in_notebook(self, spy_engine, capsys, monkeypatch):
-        # In Jupyter, stderr is shown on an alarming red background, so progress
-        # is routed to stdout instead.
+    def test_progress_uses_inline_reporter_in_notebook(self, spy_engine, capsys, monkeypatch):
+        # In Jupyter, use an inline display progress bar rather than stdout or
+        # stderr text.
+        calls = []
+
+        def fake_notebook_reporter(n_nodes, n_relationships):
+            calls.append(("start", n_nodes, n_relationships))
+
+            def report(i, total):
+                calls.append((i, total))
+
+            return report
+
         monkeypatch.setattr(presentation, "_in_notebook", lambda: True)
+        monkeypatch.setattr(presentation, "_notebook_progress_reporter", fake_notebook_reporter)
         _build_graph(_LARGE).layout(progress=True)
         captured = capsys.readouterr()
-        assert "Laying out" in captured.out
-        assert _PERCENT_LINE.search(captured.out)
+        assert calls[0] == ("start", _LARGE, 1)
+        assert calls[-1] == (70, 70)  # default iterations for 2,000 nodes
+        assert captured.out == ""
         assert captured.err == ""
 
 
