@@ -297,12 +297,11 @@ class Graph:
         endpoints survive.
 
         With ``copy=True`` (default), each node's ``entity`` attribute and
-        each edge's ``relationship`` attribute are deep copies, so the
-        caller can mutate nested ``Entity.properties`` or
-        ``Relationship.properties`` dicts without affecting this ``Graph``.
-        With ``copy=False``, the original ``Entity`` / ``Relationship``
-        objects are attached directly; the caller must not mutate their
-        nested ``properties``.
+        each edge's ``relationship`` attribute are detached copies whose
+        nested ``properties`` are safe to mutate without affecting this
+        ``Graph``. With ``copy=False``, the original ``Entity`` /
+        ``Relationship`` objects are attached directly; the caller must not
+        mutate their nested ``properties``.
         """
         import dataclasses
 

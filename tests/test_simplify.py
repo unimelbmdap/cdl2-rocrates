@@ -195,7 +195,7 @@ class TestAnnotations:
         c_entity = simplified._entities["c"]
         assert c_entity.properties["simplified"] == {"Dataset": 1}
 
-    def test_internal_graph_nodes_use_updated_entities(self):
+    def test_simplified_entities_carry_annotation(self):
         g = _triangle_with_tails()
         simplified = g.simplify()
         a_entity = simplified._entities["a"]
