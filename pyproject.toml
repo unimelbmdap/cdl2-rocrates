@@ -11,7 +11,7 @@ requires-python = ">=3.12"
 dependencies = [
     "grand-cypher>=1.0",
     "markupsafe>=2.1",
-    "networkx>=3.2",
+    "networkx>=3.4",
     "numpy>=1.26",
     "pydantic>=2.0",
     "python-dateutil>=2.8",
@@ -20,7 +20,7 @@ dependencies = [
 
 [project.optional-dependencies]
 pyvis = ["pyvis>=0.3"]
-fa2 = ["fa2>=1.1"]
+forceatlas = ["crategraph-forceatlas2>=0.1"]
 rdf = ["rdflib>=7.0"]
 inspect = ["markitdown[all]>=0.1"]
 ohrm = ["pandas>=2.0"]
@@ -38,6 +38,7 @@ index = [
 
 [dependency-groups]
 dev = [
+    "crategraph-forceatlas2>=0.1",
     "hypothesis>=6.0",
     "mkdocs-jupyter>=0.25",
     "mkdocs-material>=9.6.21",

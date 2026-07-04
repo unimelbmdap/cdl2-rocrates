@@ -110,8 +110,8 @@ class PyvisRenderer(Renderer):
                 graphs (an upfront size line plus the live iteration bar, on
                 stdout in a notebook and stderr otherwise). Defaults to
                 ``False``; ``visualise()`` opts in on the user's behalf. Has no
-                effect when fa2 is absent and pyvis falls back to client-side
-                physics.
+                effect when no layout engine is available and pyvis falls back
+                to client-side physics.
             engine: Layout engine name, forwarded to ``Graph.layout()``.
             gravity: Layout gravity, forwarded to ``Graph.layout()``.
             iterations: Layout iteration count, forwarded to ``Graph.layout()``.

@@ -3,8 +3,9 @@
 // This module exists purely to isolate the FA2 dependency. The main
 // `SigmaRenderer.render()` pipeline uses server-side-computed positions
 // (config.precomputed: true) and never invokes these functions. They are
-// kept as an escape hatch for paths that would otherwise need FA2
-// installed on the Python side (the `fa2` extra + its native build).
+// kept as an escape hatch for paths that would otherwise need a
+// server-side layout engine installed on the Python side (the
+// `forceatlas` extra, or a new-enough NetworkX).
 //
 // If FA2-on-the-browser ever becomes unwanted, deleting this file,
 // removing the import + dispatch branches in `main.js`, and dropping
