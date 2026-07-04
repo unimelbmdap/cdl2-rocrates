@@ -26,9 +26,20 @@ from __future__ import annotations
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable
+from typing import Any
 
 _FORCEATLAS_INSTALL_HINT = 'pip install "crategraph[forceatlas]"'
 _NX_LARGE_GRAPH_THRESHOLD = 2000
+
+
+class NoLayoutEngineError(ValueError):
+    """Raised when no layout engine is available at all (name unspecified).
+
+    Distinct from a plain ``ValueError`` for an unknown engine name or a
+    setting rejected by an engine, so callers (e.g. the pyvis renderer) can
+    degrade gracefully on this specific case while still surfacing user
+    configuration mistakes.
+    """
 
 
 class LayoutEngine(ABC):
@@ -96,9 +107,9 @@ class ForceAtlas2RustEngine(LayoutEngine):
 
 
 # Explicit graphology-camelCase -> nx snake_case settings map. Anything not
-# listed here and not in _NX_DROPPED_SETTINGS is left untranslated (and dropped
-# with a warning) — in practice the render profile only ever supplies the keys
-# covered below.
+# listed here and not in _NX_DROPPED_SETTINGS is left untranslated and dropped
+# silently (no warning); in practice the render profile only ever supplies
+# the keys covered below.
 _NX_SETTINGS_MAP = {
     "gravity": "gravity",
     "strongGravityMode": "strong_gravity",
@@ -148,7 +159,7 @@ class NxFallbackEngine(LayoutEngine):
         graph.add_nodes_from(range(n_nodes))
         graph.add_edges_from(edges)
 
-        nx_settings: dict[str, object] = {"max_iter": iterations}
+        nx_settings: dict[str, Any] = {"max_iter": iterations}
         dropped = sorted(key for key in settings if key in _NX_DROPPED_SETTINGS)
         for key, value in settings.items():
             mapped = _NX_SETTINGS_MAP.get(key)
@@ -186,8 +197,10 @@ ENGINES: list[LayoutEngine] = [ForceAtlas2RustEngine(), NxFallbackEngine()]
 def resolve_engine(name: str | None) -> LayoutEngine:
     """Resolve a layout engine by name, or the first available one if ``name`` is ``None``.
 
-    Raises ``ValueError`` listing engine names and install hints if ``name``
-    is unknown, or names an engine that is not currently available.
+    Raises ``NoLayoutEngineError`` (a ``ValueError`` subclass) if no engine
+    is available and ``name`` was not given. Raises a plain ``ValueError``
+    listing engine names and install hints if ``name`` is unknown, or names
+    an engine that is not currently available.
     """
     if name is None:
         for engine in ENGINES:
@@ -195,7 +208,7 @@ def resolve_engine(name: str | None) -> LayoutEngine:
                 return engine
         hints = "; ".join(f"{e.name} ({e.available()[1]})" for e in ENGINES)
         msg = f"No layout engine is available: {hints}"
-        raise ValueError(msg)
+        raise NoLayoutEngineError(msg)
 
     by_name = {engine.name: engine for engine in ENGINES}
     if name not in by_name:

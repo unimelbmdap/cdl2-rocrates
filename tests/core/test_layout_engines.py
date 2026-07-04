@@ -56,10 +56,22 @@ def test_resolve_falls_back_to_nx_when_rust_missing():
         assert engine.name == "nx"
 
 
-def test_nx_engine_maps_and_drops_settings():
+def test_nx_engine_maps_and_drops_settings(monkeypatch):
+    import networkx as nx
+
     engine = resolve_engine("nx")
     n, edges = TRIANGLE
-    with pytest.warns(UserWarning, match="adjustSizes"):
+
+    original = nx.forceatlas2_layout
+    captured = {}
+
+    def spy(graph, *args, **kwargs):
+        captured.update(kwargs)
+        return original(graph, *args, **kwargs)
+
+    monkeypatch.setattr(nx, "forceatlas2_layout", spy)
+
+    with pytest.warns(UserWarning, match=r"barnesHutOptimize.*barnesHutTheta.*slowDown") as record:
         pos = engine.compute(
             n,
             edges,
@@ -68,7 +80,6 @@ def test_nx_engine_maps_and_drops_settings():
                 "gravity": 0.3,
                 "strongGravityMode": True,
                 "scalingRatio": 10,
-                "adjustSizes": True,
                 "barnesHutTheta": 0.9,
                 "barnesHutOptimize": True,
                 "slowDown": 1,
@@ -76,6 +87,14 @@ def test_nx_engine_maps_and_drops_settings():
             progress_cb=None,
         )
     assert set(pos) == {0, 1, 2}
+    # A single warning pinning every dropped key present in this call.
+    (warning,) = [w for w in record.list if issubclass(w.category, UserWarning)]
+    message = str(warning.message)
+    assert "barnesHutOptimize" in message
+    assert "barnesHutTheta" in message
+    assert "slowDown" in message
+    # A mapped key (scalingRatio -> scaling_ratio) actually reaches nx.
+    assert captured["scaling_ratio"] == 10
 
 
 def test_nx_engine_unavailable_without_forceatlas2_layout():
@@ -195,6 +214,25 @@ def test_self_loops_never_reach_engine(monkeypatch):
     pos = g.layout()
     assert all(u != v for u, v in captured["edges"])
     assert set(pos) == {"#n0", "#n1"}  # the self-looping node still gets a position
+
+
+@pytest.mark.skipif(not ENGINES[0].available()[0], reason="rust forceatlas2 engine not available")
+def test_topology_safety_net_through_rust_engine():
+    """The self-loop/isolated-node/parallel-edge handling in presentation.layout
+    also has to survive the real rust engine, not just the spy — this exercises
+    the whole pipeline end-to-end instead of stopping at the compute() boundary.
+    """
+    g = _build_graph(
+        3,
+        [
+            ("#n0", "#n0"),  # self-loop
+            ("#n0", "#n1"),
+            ("#n0", "#n1"),  # parallel edge
+            # #n2 is left isolated
+        ],
+    )
+    pos = g.layout(engine="forceatlas2")
+    assert set(pos) == {"#n0", "#n1", "#n2"}
 
 
 # --- visualise()/graph_to_json() layout kwarg threading ---

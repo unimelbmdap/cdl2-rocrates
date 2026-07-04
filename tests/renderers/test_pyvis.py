@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import sys
 import tempfile
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -73,6 +75,31 @@ class TestPyvisRenderer:
         result = PyvisRenderer().render(g)
         assert isinstance(result, Network)
         assert len(result.nodes) == 0
+
+
+class TestPyvisLayoutErrorHandling:
+    """Layout config errors (unknown engine, bad settings) must propagate
+    from pyvis exactly as they do from svg/sigma; only the "no engine at
+    all is available" case should degrade to client-side physics.
+    """
+
+    def test_unknown_engine_name_raises(self):
+        g = _build_graph()
+        with pytest.raises(ValueError, match="bogus"):
+            PyvisRenderer().render(g, engine="bogus")
+
+    def test_degrades_when_no_layout_engine_available(self):
+        import networkx as nx
+
+        g = _build_graph()
+        with (
+            mock.patch.dict(sys.modules, {"crategraph_forceatlas2": None}),
+            mock.patch.object(nx, "forceatlas2_layout", None, create=True),
+        ):
+            result = PyvisRenderer().render(g, notebook=False)
+        assert isinstance(result, Network)
+        # No pre-computed positions: nodes fall back to client-side physics.
+        assert all("x" not in n and "y" not in n for n in result.nodes)
 
 
 class TestRendererDispatch:

@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 from markupsafe import escape
 
 from crategraph.core.interfaces import Renderer
+from crategraph.core.layout_engines import NoLayoutEngineError
 from crategraph.renderers._colours import resolve_colour_map
 from crategraph.renderers._edge_width import resolve_edge_widths
 
@@ -46,10 +47,12 @@ def _try_layout(
             layout_settings=layout_settings,
             progress=progress,
         )
-    except ValueError:
+    except NoLayoutEngineError:
         # No layout engine is available at all (e.g. neither the rust
         # package nor a modern-enough NetworkX) — fall back to client-side
-        # physics rather than raising.
+        # physics rather than raising. Any other ValueError (unknown engine
+        # name, or a setting an engine rejects) propagates instead, matching
+        # the svg/sigma renderers.
         return None
 
     # Scale raw positions to a pixel range suitable for vis.js.
