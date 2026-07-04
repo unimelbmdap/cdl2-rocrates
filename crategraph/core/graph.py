@@ -17,7 +17,7 @@ from crategraph.core import (
     transforms,
 )
 from crategraph.core._files import entity_raw_id, is_contextual_entity, resolve_entity_path
-from crategraph.core.models import Entity, Relationship
+from crategraph.core.models import Entity, Relationship, _copy_properties
 from crategraph.core.types import TypeRegistry
 
 if TYPE_CHECKING:
@@ -304,14 +304,22 @@ class Graph:
         objects are attached directly; the caller must not mutate their
         nested ``properties``.
         """
-        import copy as _copy
+        import dataclasses
 
         nxg = nx.MultiDiGraph()
         for entity in self.entities:
-            attached = _copy.deepcopy(entity) if copy else entity
+            attached = (
+                dataclasses.replace(entity, properties=_copy_properties(entity.properties))
+                if copy
+                else entity
+            )
             nxg.add_node(entity.id, entity=attached)
         for rel in self.relationships:
-            attached = _copy.deepcopy(rel) if copy else rel
+            attached = (
+                dataclasses.replace(rel, properties=_copy_properties(rel.properties))
+                if copy
+                else rel
+            )
             nxg.add_edge(rel.source, rel.target, relationship=attached)
         return nxg
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy as _copy_module
 from dataclasses import dataclass, field
 from html import escape as _escape_html
 from pathlib import Path
@@ -10,6 +11,45 @@ from typing import Any, Literal
 from pydantic import BaseModel
 
 # --- Internal models (frozen dataclasses) ---
+
+
+def _copy_properties(value: Any, memo: dict[int, Any] | None = None) -> Any:
+    """Copy a ``properties`` value with deepcopy-equivalent semantics.
+
+    Specialises the two container types that dominate crate properties
+    (plain dict and list) to avoid ``copy.deepcopy``'s generic dispatch,
+    while preserving its observable behaviour exactly: nested structures
+    are fully detached, aliased objects stay aliased in the copy (one
+    ``memo`` per top-level call), self-referential structures terminate,
+    and every other value type (tuples, container subclasses, rich
+    objects) falls back to ``copy.deepcopy`` sharing the same memo.
+    """
+    # type() checks, not isinstance(): dict/list SUBCLASSES must take the
+    # deepcopy fallback so their concrete type survives, exactly as
+    # copy.deepcopy preserves it. Tuples also go to the fallback: a cycle
+    # can pass through a tuple (tuple -> list -> same tuple) and deepcopy
+    # preserves that object graph with an after-the-fact memo check that
+    # is not worth replicating here; tuples are rare in crate properties.
+    if value is None or type(value) in (str, int, float, bool):
+        return value
+    if memo is None:
+        memo = {}
+    key = id(value)
+    if key in memo:
+        return memo[key]
+    if type(value) is dict:
+        copied_dict: dict[Any, Any] = {}
+        memo[key] = copied_dict  # register BEFORE recursing: cycle safety
+        for k, v in value.items():
+            copied_dict[_copy_properties(k, memo)] = _copy_properties(v, memo)
+        return copied_dict
+    if type(value) is list:
+        copied_list: list[Any] = []
+        memo[key] = copied_list  # register BEFORE recursing: cycle safety
+        for item in value:
+            copied_list.append(_copy_properties(item, memo))
+        return copied_list
+    return _copy_module.deepcopy(value, memo)
 
 
 @dataclass(frozen=True)
