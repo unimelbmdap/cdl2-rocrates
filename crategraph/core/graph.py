@@ -481,6 +481,10 @@ class Graph:
         filepath: str | None = None,
         collapse_edges: bool = False,
         progress: bool = True,
+        engine: str | None = None,
+        gravity: float | None = None,
+        iterations: int | None = None,
+        layout_settings: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> Any:
         """Render the graph as a network visualisation."""
@@ -495,6 +499,10 @@ class Graph:
             filepath=filepath,
             collapse_edges=collapse_edges,
             progress=progress,
+            engine=engine,
+            gravity=gravity,
+            iterations=iterations,
+            layout_settings=layout_settings,
             **kwargs,
         )
 

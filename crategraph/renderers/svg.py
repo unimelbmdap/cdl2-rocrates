@@ -38,6 +38,10 @@ class SvgRenderer(Renderer):
         height: int | str = DEFAULT_HEIGHT,
         filepath: str | None = None,
         progress: bool = False,
+        engine: str | None = None,
+        gravity: float | None = None,
+        iterations: int | None = None,
+        layout_settings: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> Any:
         """Render *graph* and return an ``IPython.display.SVG`` or filepath.
@@ -59,6 +63,11 @@ class SvgRenderer(Renderer):
                 graphs (an upfront size line plus the live iteration bar, on
                 stdout in a notebook and stderr otherwise). Defaults to
                 ``False``; ``visualise()`` opts in on the user's behalf.
+            engine: Layout engine name, forwarded to ``Graph.layout()``.
+            gravity: Layout gravity, forwarded to ``Graph.layout()``.
+            iterations: Layout iteration count, forwarded to ``Graph.layout()``.
+            layout_settings: Extra ForceAtlas2 settings, forwarded to
+                ``Graph.layout()``.
 
         Returns:
             An ``IPython.display.SVG`` object (for notebook display) or the
@@ -98,7 +107,13 @@ class SvgRenderer(Renderer):
         max_radius = max(radii.values()) if radii else 16.0 * scale
         pad = max(80.0 * scale, max_radius + 30.0 * scale)
 
-        raw_positions = graph.layout(progress=progress)
+        raw_positions = graph.layout(
+            engine=engine,
+            gravity=gravity,
+            iterations=iterations,
+            layout_settings=layout_settings,
+            progress=progress,
+        )
         positions = _scale_positions(raw_positions, pad=pad, width=vb_w, height=vb_h)
         _resolve_overlaps(positions, radii, width=vb_w, height=vb_h, pad=pad)
         colour_map = resolve_colour_map(graph, colour_by)

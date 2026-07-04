@@ -195,3 +195,46 @@ def test_self_loops_never_reach_engine(monkeypatch):
     pos = g.layout()
     assert all(u != v for u, v in captured["edges"])
     assert set(pos) == {"#n0", "#n1"}  # the self-looping node still gets a position
+
+
+# --- visualise()/graph_to_json() layout kwarg threading ---
+
+
+def test_visualise_threads_gravity_and_layout_settings_to_engine(monkeypatch, tmp_path):
+    captured = _spy_engine(monkeypatch)
+    g = _build_graph(3, [("#n0", "#n1")])
+    filepath = str(tmp_path / "out.svg")
+    g.visualise(
+        renderer="svg",
+        gravity=0.1,
+        layout_settings={"barnesHutTheta": 0.9},
+        filepath=filepath,
+    )
+    settings = captured["settings"]
+    assert settings["gravity"] == 0.1
+    assert settings["barnesHutTheta"] == 0.9
+
+
+def test_graph_to_json_threads_gravity_to_engine(monkeypatch):
+    from crategraph.renderers.sigma import SigmaRenderer
+
+    captured = _spy_engine(monkeypatch)
+    g = _build_graph(3, [("#n0", "#n1")])
+    SigmaRenderer().graph_to_json(g, gravity=0.2)
+    assert captured["settings"]["gravity"] == 0.2
+
+
+def test_visualise_3d_with_layout_kwargs_warns_ignored(monkeypatch, tmp_path):
+    g = _build_graph(3, [("#n0", "#n1")])
+    filepath = str(tmp_path / "out.html")
+    with pytest.warns(UserWarning, match="ignored.*client-side"):
+        g.visualise(renderer="3d", gravity=0.2, filepath=filepath)
+
+
+def test_visualise_3d_without_layout_kwargs_does_not_warn(recwarn, tmp_path):
+    g = _build_graph(3, [("#n0", "#n1")])
+    filepath = str(tmp_path / "out.html")
+    g.visualise(renderer="3d", filepath=filepath)
+    assert not any(
+        "ignored" in str(w.message) and "client-side" in str(w.message) for w in recwarn.list
+    )

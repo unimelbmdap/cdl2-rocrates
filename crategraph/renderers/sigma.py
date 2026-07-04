@@ -93,8 +93,17 @@ class SigmaRenderer(Renderer):
         edge_width: int | float | str | None = None,
         include_properties: bool = True,
         progress: bool = False,
+        engine: str | None = None,
+        gravity: float | None = None,
+        iterations: int | None = None,
+        layout_settings: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Convert *graph* to the JSON structure expected by the Sigma.js template."""
+        """Convert *graph* to the JSON structure expected by the Sigma.js template.
+
+        *engine*, *gravity*, *iterations*, and *layout_settings* are
+        forwarded to ``Graph.layout()`` unchanged; see its docstring for
+        the full parameter documentation.
+        """
         if not graph._entities:
             return {"nodes": [], "edges": []}
 
@@ -108,7 +117,13 @@ class SigmaRenderer(Renderer):
         colour_map = resolve_colour_map(graph, colour_by)
 
         # Compute layout via Graph.layout() (FA2).
-        positions = graph.layout(progress=progress)
+        positions = graph.layout(
+            engine=engine,
+            gravity=gravity,
+            iterations=iterations,
+            layout_settings=layout_settings,
+            progress=progress,
+        )
 
         # Build nodes.
         nodes = []
@@ -201,6 +216,10 @@ class SigmaRenderer(Renderer):
         simple: bool = False,
         include_properties: bool = False,
         progress: bool = False,
+        engine: str | None = None,
+        gravity: float | None = None,
+        iterations: int | None = None,
+        layout_settings: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> Any:
         """Build a Sigma.js HTML visualisation from *graph*.
@@ -232,6 +251,11 @@ class SigmaRenderer(Renderer):
                 graphs (an upfront size line plus the live iteration bar, on
                 stdout in a notebook and stderr otherwise). Defaults to
                 ``False`` here; ``visualise()`` opts in on the user's behalf.
+            engine: Layout engine name, forwarded to ``Graph.layout()``.
+            gravity: Layout gravity, forwarded to ``Graph.layout()``.
+            iterations: Layout iteration count, forwarded to ``Graph.layout()``.
+            layout_settings: Extra ForceAtlas2 settings, forwarded to
+                ``Graph.layout()``.
 
         Returns an ``IPython.display.HTML`` object for notebook display,
         or the filepath string if *filepath* was provided.
@@ -248,6 +272,10 @@ class SigmaRenderer(Renderer):
             edge_width=edge_width,
             include_properties=include_properties and not simple,
             progress=progress,
+            engine=engine,
+            gravity=gravity,
+            iterations=iterations,
+            layout_settings=layout_settings,
         )
 
         # Build type → colour mapping for the legend.

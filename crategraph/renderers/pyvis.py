@@ -26,13 +26,30 @@ def _node_size(degree: int, max_degree: int) -> int:
     return 6 + int(39 * math.sqrt(normalised))
 
 
-def _try_layout(graph: Graph, *, progress: bool = False) -> dict[str, tuple[float, float]] | None:
+def _try_layout(
+    graph: Graph,
+    *,
+    engine: str | None = None,
+    gravity: float | None = None,
+    iterations: int | None = None,
+    layout_settings: dict[str, Any] | None = None,
+    progress: bool = False,
+) -> dict[str, tuple[float, float]] | None:
     """Attempt server-side layout; return ``None`` to fall back to client-side physics."""
     if not graph._entities:
         return None
     try:
-        raw = graph.layout(progress=progress)
-    except ImportError:
+        raw = graph.layout(
+            engine=engine,
+            gravity=gravity,
+            iterations=iterations,
+            layout_settings=layout_settings,
+            progress=progress,
+        )
+    except ValueError:
+        # No layout engine is available at all (e.g. neither the rust
+        # package nor a modern-enough NetworkX) — fall back to client-side
+        # physics rather than raising.
         return None
 
     # Scale raw positions to a pixel range suitable for vis.js.
@@ -67,6 +84,10 @@ class PyvisRenderer(Renderer):
         filepath: str | None = None,
         notebook: bool = True,
         progress: bool = False,
+        engine: str | None = None,
+        gravity: float | None = None,
+        iterations: int | None = None,
+        layout_settings: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> Any:
         """Build a pyvis Network from *graph*.
@@ -91,6 +112,11 @@ class PyvisRenderer(Renderer):
                 ``False``; ``visualise()`` opts in on the user's behalf. Has no
                 effect when fa2 is absent and pyvis falls back to client-side
                 physics.
+            engine: Layout engine name, forwarded to ``Graph.layout()``.
+            gravity: Layout gravity, forwarded to ``Graph.layout()``.
+            iterations: Layout iteration count, forwarded to ``Graph.layout()``.
+            layout_settings: Extra ForceAtlas2 settings, forwarded to
+                ``Graph.layout()``.
 
         Returns the ``pyvis.network.Network`` object (or the filepath string
         if *filepath* was provided).
@@ -115,7 +141,14 @@ class PyvisRenderer(Renderer):
         colour_map = resolve_colour_map(graph, colour_by)
 
         # Try server-side layout; fall back to client-side physics.
-        positions = _try_layout(graph, progress=progress)
+        positions = _try_layout(
+            graph,
+            engine=engine,
+            gravity=gravity,
+            iterations=iterations,
+            layout_settings=layout_settings,
+            progress=progress,
+        )
 
         # Pre-compute size values.
         size_values: dict[str, float] = {}

@@ -7,6 +7,7 @@ node positions, and accessing data files referenced by entities.
 from __future__ import annotations
 
 import sys
+import warnings
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -193,6 +194,10 @@ def visualise(
     filepath: str | None = None,
     collapse_edges: bool = False,
     progress: bool = True,
+    engine: str | None = None,
+    gravity: float | None = None,
+    iterations: int | None = None,
+    layout_settings: dict[str, Any] | None = None,
     **kwargs: Any,
 ) -> Any:
     """Render the graph as a network visualisation.
@@ -223,10 +228,30 @@ def visualise(
             steps, on stdout in a notebook and stderr otherwise). Pass
             ``False`` to render silently. Has no effect on small graphs or
             the browser-side ``"3d"`` renderer.
+        engine: Layout engine name, forwarded to :func:`layout`. Ignored
+            (with a warning) by the ``"3d"`` renderer, whose layout runs
+            client-side.
+        gravity: Layout gravity, forwarded to :func:`layout`. Ignored (with
+            a warning) by the ``"3d"`` renderer.
+        iterations: Layout iteration count, forwarded to :func:`layout`.
+            Ignored (with a warning) by the ``"3d"`` renderer.
+        layout_settings: Extra ForceAtlas2 settings, forwarded to
+            :func:`layout`. Ignored (with a warning) by the ``"3d"``
+            renderer.
 
     Returns a renderer-specific object (for inline notebook display)
     or the filepath string if *filepath* was provided.
     """
+    if renderer == "3d" and any(
+        v is not None for v in (engine, gravity, iterations, layout_settings)
+    ):
+        warnings.warn(
+            "engine/gravity/iterations/layout_settings are ignored by the "
+            'client-side "3d" renderer — its layout runs in the browser.',
+            UserWarning,
+            stacklevel=2,
+        )
+
     target = graph.collapse_edges() if collapse_edges else graph
 
     if renderer == "2d":
@@ -253,6 +278,15 @@ def visualise(
         )
         raise ValueError(msg)
 
+    layout_kwargs: dict[str, Any] = {}
+    if renderer != "3d":
+        layout_kwargs = {
+            "engine": engine,
+            "gravity": gravity,
+            "iterations": iterations,
+            "layout_settings": layout_settings,
+        }
+
     return impl.render(
         target,
         colour_by=colour_by,
@@ -262,6 +296,7 @@ def visualise(
         width=width,
         filepath=filepath,
         progress=progress,
+        **layout_kwargs,
         **kwargs,
     )
 
