@@ -96,9 +96,9 @@ class ForceAtlas2RustEngine(LayoutEngine):
 
 
 # Explicit graphology-camelCase -> nx snake_case settings map. Anything not
-# listed here and not in _NX_DROPPED_SETTINGS is left untranslated (and would
-# surface as a TypeError from nx.forceatlas2_layout) — in practice the
-# render profile only ever supplies the keys covered below.
+# listed here and not in _NX_DROPPED_SETTINGS is left untranslated (and dropped
+# with a warning) — in practice the render profile only ever supplies the keys
+# covered below.
 _NX_SETTINGS_MAP = {
     "gravity": "gravity",
     "strongGravityMode": "strong_gravity",
@@ -106,7 +106,9 @@ _NX_SETTINGS_MAP = {
     "linLogMode": "linlog",
     "outboundAttractionDistribution": "distributed_action",
 }
-_NX_DROPPED_SETTINGS = frozenset({"barnesHutOptimize", "barnesHutTheta", "slowDown"})
+_NX_DROPPED_SETTINGS = frozenset(
+    {"adjustSizes", "barnesHutOptimize", "barnesHutTheta", "edgeWeightInfluence", "slowDown"}
+)
 
 
 class NxFallbackEngine(LayoutEngine):

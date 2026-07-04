@@ -59,7 +59,7 @@ def test_resolve_falls_back_to_nx_when_rust_missing():
 def test_nx_engine_maps_and_drops_settings():
     engine = resolve_engine("nx")
     n, edges = TRIANGLE
-    with pytest.warns(UserWarning, match="barnesHutTheta"):
+    with pytest.warns(UserWarning, match="adjustSizes"):
         pos = engine.compute(
             n,
             edges,
@@ -68,6 +68,7 @@ def test_nx_engine_maps_and_drops_settings():
                 "gravity": 0.3,
                 "strongGravityMode": True,
                 "scalingRatio": 10,
+                "adjustSizes": True,
                 "barnesHutTheta": 0.9,
                 "barnesHutOptimize": True,
                 "slowDown": 1,
