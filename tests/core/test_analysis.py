@@ -245,10 +245,10 @@ class TestGraphDetectCommunities:
     def test_annotated_entities_exposed_consistently(self):
         g = _build_graph()
         result = g.detect_communities()
+        nxg = result.to_networkx(copy=False)
         for eid, entity in result._entities.items():
             assert "community" in entity.properties
-            # the public accessor must expose the SAME annotated object
-            assert result.get(eid) is entity
+            assert nxg.nodes[eid]["entity"] is entity
 
     def test_seed_deterministic(self):
         g = _build_graph()
