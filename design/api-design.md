@@ -12,11 +12,11 @@ Overview of `crategraph`'s design principles and current API surface. For the ra
 - **Smart defaults**: Visualisations are readable out of the box.
 - **Discoverable vocabulary**: Entity and relationship types are exposed as attributes (`crate.types.Person`) with fuzzy validation on string inputs.
 - **Pluggable architecture**: Readers, writers, renderers, validators, and inspectors are all extensible via ABCs. RO-Crate ships built-in but the core is format-agnostic.
-- **Escape hatches**: The underlying NetworkX graph is accessible when needed.
+- **Escape hatches**: A NetworkX view of the graph is available via `to_networkx()` when needed.
 
 ## Architecture
 
-The core uses **NetworkX** (`nx.MultiDiGraph`) directly for graph storage and traversal. See [decisions.md](decisions.md) for the reasoning.
+The core stores entities and relationships in plain Python containers with a lazily built adjacency index. **NetworkX** graphs are built on demand for algorithms and export (`to_networkx()`, Cypher, community detection). See [decisions.md](decisions.md) for the reasoning.
 
 ```
 crategraph/

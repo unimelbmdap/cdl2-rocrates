@@ -42,10 +42,10 @@ def _source_name(source: str) -> str:
 class Graph:
     """The central object for loading, querying, and visualising graphs.
 
-    Storage is plain dicts and lists (``_entities``, ``_relationships``)
-    with a lazy per-endpoint adjacency index built on demand, supporting
-    directed edges and multiple edges between the same node pair, both
-    required by the data model.
+    Stores entities and relationships in plain dicts and lists, with a
+    lazily built per-endpoint adjacency index for traversal.  NetworkX
+    graphs are built on demand where needed (``to_networkx()``, Cypher
+    queries, community detection).
     """
 
     def __init__(

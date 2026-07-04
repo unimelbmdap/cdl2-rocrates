@@ -167,7 +167,7 @@ Third-party packages that register additional formats show up here automatically
 
 ## Graph.to_networkx()
 
-`graph.to_networkx(copy=True)` returns the underlying `nx.MultiDiGraph` directly, bypassing all writer machinery. This is useful when you need NetworkX algorithms not exposed through the crategraph API.
+`graph.to_networkx(copy=True)` builds and returns an `nx.MultiDiGraph` view of the graph, bypassing all writer machinery. This is useful when you need NetworkX algorithms not exposed through the crategraph API.
 
 ```python
 import networkx as nx

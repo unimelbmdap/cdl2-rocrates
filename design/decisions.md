@@ -4,9 +4,9 @@ Rationale behind key architectural choices in crategraph. Companion to [api-desi
 
 ## Backend: NetworkX Direct
 
-**Decision:** `Graph` owns an `nx.MultiDiGraph` directly. There is no swappable backend abstraction. RDFLib is an optional dependency reserved for future validation and RDF-based readers (e.g. RiC-O), not as a graph engine.
+**Decision:** `Graph` stores entities and relationships in plain Python containers with a lazily built adjacency index; NetworkX graphs are built on demand for the algorithm layer (Cypher queries, community detection, `to_networkx()`). There is no swappable backend abstraction. RDFLib is an optional dependency reserved for future validation and RDF-based readers (e.g. RiC-O), not as a graph engine.
 
-**History:** The project originally had a `GraphBackend` ABC with NetworkX, rustworkx, and RDFLib implementations. This was removed because the abstraction only covered storage (add/query nodes and edges) while the algorithm layer (Cypher queries, community detection, connected components) imported NetworkX directly. A non-NetworkX backend could be plugged in for storage but was silently ignored by every analytical operation.
+**History:** The project originally had a `GraphBackend` ABC with NetworkX, rustworkx, and RDFLib implementations. This was removed because the abstraction only covered storage (add/query nodes and edges) while the algorithm layer (Cypher queries, community detection, connected components) imported NetworkX directly. A non-NetworkX backend could be plugged in for storage but was silently ignored by every analytical operation. A later performance pass (2026-07, profiling on an 82.7K-node crate) removed the eagerly maintained internal `nx.MultiDiGraph` as well: it was rebuilt on every derived graph but consulted by only one internal method, so derived-graph construction paid an O(N+E) rebuild per transform for nothing.
 
 **Why not RDFLib as a backend?** RDF export is a serialisation concern (Writer), not a storage concern. Forcing crates through RDF validation at load time would either drop data or hide quality issues — both unacceptable when surfacing data quality is a core use case.
 
