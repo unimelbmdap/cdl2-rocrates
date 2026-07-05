@@ -81,6 +81,81 @@ def test_entity_view_get_returns_default_when_missing() -> None:
     assert e.get("preparedBy", "") == ""
 
 
+def test_entity_view_has_data_delegates_to_entity() -> None:
+    e = EntityView(Entity(id="x", types=("File",), properties={}))
+    assert e.has_data is True
+
+
+def test_entity_view_has_data_false_for_contextual_entity() -> None:
+    e = EntityView(Entity(id="x", types=("Person",), properties={}))
+    assert e.has_data is False
+
+
+def test_entity_view_source_delegates_to_entity() -> None:
+    e = EntityView(Entity(id="x", source="crate.zip"))
+    assert e.source == "crate.zip"
+
+
+def test_entity_view_source_none_when_absent() -> None:
+    e = EntityView(Entity(id="x"))
+    assert e.source is None
+
+
+class TestEntityViewEquality:
+    """view == view, view == bare Entity (both directions), and hashability.
+
+    Bare ``Entity`` is unhashable — its ``properties`` dict breaks the
+    dataclass-generated ``__hash__`` — so ``EntityView`` filling that gap
+    (via ``id``) is deliberate, not incidental.
+    """
+
+    def test_equal_views_of_same_entity_object(self) -> None:
+        entity = Entity(id="x", types=("Person",))
+        assert EntityView(entity) == EntityView(entity)
+
+    def test_equal_across_two_graphs_sharing_the_entity(self) -> None:
+        entity = Entity(id="x", types=("Person",))
+        g1 = Graph()
+        g2 = Graph()
+        assert EntityView(entity, g1) == EntityView(entity, g2)
+
+    def test_equal_views_of_equal_but_distinct_entity_instances(self) -> None:
+        a = Entity(id="x", types=("Person",))
+        b = Entity(id="x", types=("Person",))
+        assert EntityView(a) == EntityView(b)
+
+    def test_view_equals_bare_entity_both_directions(self) -> None:
+        entity = Entity(id="x", types=("Person",))
+        view = EntityView(entity)
+        assert view == entity
+        assert entity == view
+
+    def test_views_of_different_entities_not_equal(self) -> None:
+        a = EntityView(Entity(id="x"))
+        b = EntityView(Entity(id="y"))
+        assert a != b
+
+    def test_view_not_equal_unrelated_type(self) -> None:
+        view = EntityView(Entity(id="x"))
+        assert view != "x"
+        assert (view == 42) is False
+
+    def test_views_are_hashable_and_dedup_in_a_set(self) -> None:
+        entity = Entity(id="x", types=("Person",))
+        views = {EntityView(entity), EntityView(entity)}
+        assert len(views) == 1
+
+    def test_hash_matches_hash_of_entity_id(self) -> None:
+        entity = Entity(id="x")
+        assert hash(EntityView(entity)) == hash("x")
+
+    def test_bare_entity_is_unhashable_but_view_is(self) -> None:
+        entity = Entity(id="x")
+        with pytest.raises(TypeError):
+            hash(entity)
+        assert isinstance(hash(EntityView(entity)), int)
+
+
 def test_relationship_view_record_style_fields() -> None:
     rel = Relationship(
         source="#bob",

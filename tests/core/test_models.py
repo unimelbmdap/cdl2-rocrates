@@ -59,6 +59,30 @@ class TestEntity:
         assert a != b
 
 
+# --- Entity.label ---
+
+
+class TestEntityLabel:
+    def test_label_prefers_name(self):
+        e = Entity(id="x", properties={"name": "Doc", "title": "T"})
+        assert e.label == "Doc"
+
+    def test_label_falls_back_to_title_when_no_name(self):
+        e = Entity(id="x", properties={"title": "My Paper"})
+        assert e.label == "My Paper"
+
+    def test_label_falls_back_to_id_when_no_name_or_title(self):
+        e = Entity(id="x", properties={})
+        assert e.label == "x"
+
+    def test_label_coerces_non_string_name(self):
+        e = Entity(id="x", properties={"name": 42})
+        assert e.label == "42"
+
+    def test_label_is_always_a_string(self):
+        assert isinstance(Entity(id="x").label, str)
+
+
 # --- Entity.has_data ---
 
 

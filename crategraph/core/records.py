@@ -37,6 +37,7 @@ from collections import Counter
 from typing import TYPE_CHECKING, Any
 
 from crategraph.core._properties import merge_properties
+from crategraph.core.models import _derive_label
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -160,34 +161,6 @@ class Records(list):
 # ---------------------------------------------------------------------------
 # Shared record builders (one source of truth for the column vocabulary)
 # ---------------------------------------------------------------------------
-
-
-def _derive_label(entity: Entity) -> str:
-    """Return a display label, falling back through the same chain as CSV.
-
-    Order of preference:
-
-    1. ``properties["name"]`` if present and a non-empty ``str``.
-    2. ``properties["title"]`` if present and a non-empty ``str``.
-    3. ``str(properties["name"])`` if ``name`` is non-``None`` and non-empty
-       but not a string (e.g. an ``int`` like ``42``).
-    4. ``str(properties["title"])`` under the same coercion rule.
-    5. ``entity.id`` as the final fallback.
-
-    Mirrors :func:`crategraph.writers._flatten.flatten_node`'s label
-    fallback so records produce the same label column as ``nodes.csv``.
-    """
-    name_val = entity.properties.get("name")
-    title_val = entity.properties.get("title")
-    if name_val and isinstance(name_val, str):
-        return name_val
-    if title_val and isinstance(title_val, str):
-        return title_val
-    if name_val is not None and name_val != "":
-        return str(name_val)
-    if title_val is not None and title_val != "":
-        return str(title_val)
-    return entity.id
 
 
 def _add_properties(

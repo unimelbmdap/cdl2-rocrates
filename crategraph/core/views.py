@@ -21,13 +21,14 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from crategraph.core._temporal import entity_temporal, parse_fields
+from crategraph.core.models import Entity, _derive_label
 
 if TYPE_CHECKING:
     from datetime import date
 
     from crategraph.core._temporal import TemporalValue
     from crategraph.core.graph import Graph
-    from crategraph.core.models import Entity, Relationship
+    from crategraph.core.models import Relationship
 
 
 class CardinalityError(ValueError):
@@ -67,15 +68,28 @@ class EntityView:
 
     @property
     def label(self) -> str:
-        """Human label via the shared ``name -> title -> id`` fallback."""
-        from crategraph.core.records import _derive_label
-
+        """Human label via the shared ``name -> title -> id`` fallback, always a string."""
         return _derive_label(self._entity)
 
     @property
     def properties(self) -> Mapping[str, Any]:
         """Shallow read-only view (top-level mutation raises ``TypeError``)."""
         return MappingProxyType(self._entity.properties)
+
+    @property
+    def has_data(self) -> bool:
+        """Whether this entity is a data entity (file or directory).
+
+        Verbatim delegation to ``Entity.has_data`` — ``True`` if the entity
+        has ``File`` or ``Dataset`` in its types, per the RO-Crate
+        specification, excluding the root Dataset entity.
+        """
+        return self._entity.has_data
+
+    @property
+    def source(self) -> str | None:
+        """The crate/source this entity came from (verbatim delegation to ``Entity.source``)."""
+        return self._entity.source
 
     def get(self, key: str, default: Any = None) -> Any:
         """Shorthand for ``properties.get(key, default)`` — preferred in lambdas."""
@@ -171,6 +185,30 @@ class EntityView:
 
     def has(self, rel: str, direction: str = "out") -> bool:
         return bool(self.related(rel, direction))
+
+    def __eq__(self, other: object) -> bool:
+        """Value equality on the wrapped entity — the graph reference is not part of identity.
+
+        Compares against another ``EntityView`` (unwraps both sides) or a
+        bare ``Entity`` (unwraps this side only), so ``view == entity`` and
+        ``entity == view`` both work: a frozen dataclass returns
+        ``NotImplemented`` for a foreign class, and Python falls back to the
+        reflected comparison, which lands here.
+        """
+        if isinstance(other, EntityView):
+            return self._entity == other._entity
+        if isinstance(other, Entity):
+            return self._entity == other
+        return NotImplemented
+
+    def __hash__(self) -> int:
+        """Hash by entity ``id``, consistent with value equality.
+
+        Unlike a bare ``Entity`` (unhashable — its ``properties`` dict
+        breaks the dataclass-generated ``__hash__``), ``EntityView`` is
+        hashable and usable in sets/dict keys.
+        """
+        return hash(self._entity.id)
 
     def __repr__(self) -> str:
         return f"EntityView(id={self._entity.id!r})"
