@@ -25,19 +25,27 @@ def test_entity_view_record_style_fields() -> None:
     e = EntityView(Entity(id="x", types=("File", "Thing"), properties={"name": "Doc"}))
     assert e.id == "x"
     assert e.types == ("File", "Thing")
-    assert e.type == "File"  # first type, NOT Entity.type's joined string
+    assert e.type == "File, Thing"  # matches Entity.type's joined string
     assert e.name == "Doc"
     assert e.label == "Doc"
 
 
-def test_entity_view_name_is_none_when_absent() -> None:
+def test_entity_view_name_falls_back_to_id_when_absent() -> None:
     e = EntityView(Entity(id="x", types=("File",), properties={}))
-    assert e.name is None  # raw .get("name"), NOT Entity.name's id fallback
+    assert e.name == "x"  # matches Entity.name's id fallback
     assert e.type == "File"
 
 
-def test_entity_view_type_empty_when_untyped() -> None:
-    assert EntityView(Entity(id="x")).type == ""
+def test_entity_view_type_unknown_when_untyped() -> None:
+    assert EntityView(Entity(id="x")).type == "Unknown"  # matches Entity.type
+
+
+def test_entity_view_type_and_name_delegate_to_entity() -> None:
+    """Delegation parity: the view mirrors Entity's display semantics exactly."""
+    entity = Entity(id="x", types=("File", "Thing"), properties={})
+    view = EntityView(entity)
+    assert view.type == entity.type
+    assert view.name == entity.name
 
 
 def test_entity_view_properties_top_level_read_only() -> None:

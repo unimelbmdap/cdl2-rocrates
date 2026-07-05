@@ -1,9 +1,9 @@
 """Graph-aware, ephemeral views over the immutable models.
 
 ``EntityView`` wraps an :class:`~crategraph.core.models.Entity` and a
-``Graph`` reference, exposing a *record-style* surface (matching
-``entity_records``/``_derive_label``, deliberately NOT
-``Entity.type``/``Entity.name``) plus one-hop traversal via
+``Graph`` reference, exposing ``type``/``name`` with the same display
+semantics as ``Entity.type``/``Entity.name`` (raw access is available
+via ``e.types`` and ``e.get("name")``), plus one-hop traversal via
 ``related``/``has``. ``Related`` is the collection ``related`` returns.
 ``CardinalityError`` is colocated here because it is raised by
 ``Related.first(strict=True)`` and the codebase has no
@@ -57,13 +57,13 @@ class EntityView:
 
     @property
     def type(self) -> str:
-        """First type or ``""`` (record-style; not ``Entity.type``)."""
-        return self._entity.types[0] if self._entity.types else ""
+        """Display string joining all types (same semantics as ``Entity.type``)."""
+        return self._entity.type
 
     @property
-    def name(self) -> Any:
-        """Raw ``properties['name']`` — may be ``None``."""
-        return self._entity.properties.get("name")
+    def name(self) -> str:
+        """Best display name: ``name`` property, falling back to ``id`` (as ``Entity.name``)."""
+        return self._entity.name
 
     @property
     def label(self) -> str:
