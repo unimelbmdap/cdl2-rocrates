@@ -201,29 +201,15 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     !!! warning "Properties are read-only"
-        `properties` on any accessor result is a read-only view: in-place
-        mutation (`e.properties["x"] = ...`) raises `TypeError`. crategraph
-        graphs are immutable; derive new fields with `annotate_entities(...)`
-        instead. (The raw dict is reachable via `e.entity.properties`, but
-        mutating it changes graph state in place; don't.)
+        `properties` is a read-only view — in-place mutation raises
+        `TypeError`. Derive new fields with `annotate_entities(...)` instead.
 
     Get a specific entity by id. Like every accessor, this returns a graph-aware
     `EntityView`, so you can traverse straight from it:
 
     ```python
-    crate.get(e.id).related("...")
+    crate.get(e.id)
     ```
-
-    `crate.entity_view(e.id)` is a kept alias of `crate.get(e.id)`. For the bare,
-    immutable record (e.g. for `dataclasses.replace`), use `.entity`:
-
-    ```python
-    e.entity  # the underlying Entity
-    ```
-
-    Views hold a live reference to their graph, so pickling one pickles the
-    whole graph with it. To persist a single record, pickle `e.entity` (or
-    pickle the `Graph` itself).
 
     If anything is unclear, call `help()` on an object:
 
