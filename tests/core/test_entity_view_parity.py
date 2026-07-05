@@ -52,3 +52,34 @@ def test_entity_view_exposes_every_public_entity_attribute_with_agreeing_value()
         assert getattr(view, attr) == getattr(entity, attr), (
             f"EntityView.{attr} disagrees with Entity.{attr}"
         )
+
+
+def test_entity_view_entity_returns_wrapped_record() -> None:
+    entity = _fixture_entity()
+    view = EntityView(entity)
+    assert view.entity is entity
+    assert isinstance(view.entity, Entity)
+
+
+def test_entity_view_repr_shape_matches_entity() -> None:
+    entity = _fixture_entity()
+    view = EntityView(entity)
+    # Same field shape as Entity's repr; only the class name differs.
+    assert repr(view) == f"EntityView({entity.type!r}, {entity.name!r}, id={entity.id!r})"
+    assert repr(view).replace("EntityView", "Entity", 1) == repr(entity)
+
+
+def test_entity_view_repr_html_matches_entity_wrapper() -> None:
+    from html import escape
+
+    entity = _fixture_entity()
+    view = EntityView(entity)
+    assert view._repr_html_() == f"<pre>{escape(repr(view))}</pre>"
+    assert view._repr_html_() == entity._repr_html_().replace("Entity(", "EntityView(", 1)
+
+
+def test_entity_view_repr_survives_inside_a_tuple_list() -> None:
+    # most_connected() will return list[tuple[EntityView, int]] after the flip;
+    # pin the tuple/list repr shape the cheatsheet relies on.
+    view = EntityView(_fixture_entity())
+    assert repr([(view, 3)]) == f"[({view!r}, 3)]"

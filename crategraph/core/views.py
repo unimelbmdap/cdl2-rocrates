@@ -17,6 +17,7 @@ adjacency through the narrow ``Graph._related_ids`` primitive.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from html import escape
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
@@ -99,6 +100,17 @@ class EntityView:
     def graph(self) -> Graph | None:
         """The owning graph (``None`` for a test-constructed view)."""
         return self._graph
+
+    @property
+    def entity(self) -> Entity:
+        """The wrapped bare :class:`~crategraph.core.models.Entity`.
+
+        Escape hatch for interop with ``Entity``-expecting code,
+        ``dataclasses.replace``/``asdict``/``fields`` workflows, and cheap
+        pickling of a single record. The dataclass protocol works on this,
+        not on the view itself.
+        """
+        return self._entity
 
     # --- Temporal accessors (delegate to the shared coercion engine) ---
     #
@@ -211,7 +223,12 @@ class EntityView:
         return hash(self._entity.id)
 
     def __repr__(self) -> str:
-        return f"EntityView(id={self._entity.id!r})"
+        e = self._entity
+        return f"EntityView({e.type!r}, {e.name!r}, id={e.id!r})"
+
+    def _repr_html_(self) -> str:
+        """Compact HTML representation for Jupyter (mirrors ``Entity._repr_html_``)."""
+        return f"<pre>{escape(repr(self))}</pre>"
 
 
 class RelationshipView:
