@@ -639,7 +639,7 @@ class Graph:
         ``restrict_to_view`` (default ``True``) intersects with the
         current graph view: a filtered subgraph (``crate.where(...)``)
         only yields records for its own entities, on either path. The
-        live path always walks ``self.entities``; the cached path
+        live path always walks ``self._entities``; the cached path
         injects an ``entity_id`` filter intersected with the view so
         results are consistent. Pass ``False`` to read every row in
         the index regardless of view.

@@ -45,7 +45,13 @@ class EntityView:
 
     __slots__ = ("_entity", "_graph")
 
-    def __init__(self, entity: Entity, graph: Graph | None = None) -> None:
+    def __init__(self, entity: Entity | EntityView, graph: Graph | None = None) -> None:
+        # Accepts either a bare Entity or an EntityView for compatibility with
+        # legacy callers such as ``EntityView(graph.get(id), graph)`` now that
+        # ``Graph.get()`` itself returns a view — storage is always the bare
+        # record, so an already-wrapped view is unwrapped rather than nested.
+        if isinstance(entity, EntityView):
+            entity = entity.entity
         self._entity = entity
         self._graph = graph
 

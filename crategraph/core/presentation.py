@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
     from crategraph.core.graph import Graph
     from crategraph.core.models import Entity, FileInfo, ViewInfo
+    from crategraph.core.views import EntityView
 
 # Below this node count layout is fast, so we stay silent. Set to the same
 # 2000 figure as the Barnes-Hut neighbourhood, where layout starts to get
@@ -445,7 +446,7 @@ def gallery(
     )
 
 
-def inspect(graph: Graph, entity: Entity | str) -> FileInfo:
+def inspect(graph: Graph, entity: Entity | str | EntityView) -> FileInfo:
     """Inspect the data file associated with an entity.
 
     Reads the file referenced by a data entity and returns a preview
@@ -454,7 +455,7 @@ def inspect(graph: Graph, entity: Entity | str) -> FileInfo:
 
     Args:
         graph: The graph containing the entity.
-        entity: An ``Entity`` object or an entity ID string.
+        entity: An ``Entity`` object, an ``EntityView``, or an entity ID string.
 
     Returns a ``FileInfo`` with the file's content, metadata, and size.
 
@@ -489,7 +490,7 @@ def inspect(graph: Graph, entity: Entity | str) -> FileInfo:
     )
 
 
-def view(graph: Graph, entity: Entity | str) -> ViewInfo:
+def view(graph: Graph, entity: Entity | str | EntityView) -> ViewInfo:
     """View the data file associated with an entity.
 
     Returns a rich HTML preview of the file — images as ``<img>``
@@ -497,7 +498,7 @@ def view(graph: Graph, entity: Entity | str) -> ViewInfo:
 
     Args:
         graph: The graph containing the entity.
-        entity: An ``Entity`` object or an entity ID string.
+        entity: An ``Entity`` object, an ``EntityView``, or an entity ID string.
 
     Returns a ``ViewInfo`` with the file's HTML preview and metadata.
 

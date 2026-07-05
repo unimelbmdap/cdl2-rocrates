@@ -48,11 +48,12 @@ class GraphMLWriter(Writer):
 def _to_flat_networkx(graph: Graph) -> nx.MultiDiGraph:
     """Build a fresh MultiDiGraph whose attributes are scalar-only.
 
-    Iterates ``graph.entities`` and ``graph.relationships`` so export follows
-    Graph's public relationship model rather than NetworkX-specific edge
-    attributes. Edge keys are assigned globally rather than per source/target
-    pair because GraphML consumers such as Gephi expect edge IDs to be unique
-    across the whole file.
+    Iterates the graph's stored entities (``graph._entities``) and
+    ``graph.relationships`` so export follows Graph's public relationship
+    model rather than NetworkX-specific edge attributes. Edge keys are
+    assigned globally rather than per source/target pair because GraphML
+    consumers such as Gephi expect edge IDs to be unique across the whole
+    file.
     """
     flat = nx.MultiDiGraph()
     for entity in graph._entities.values():

@@ -101,6 +101,41 @@ def test_entity_view_source_none_when_absent() -> None:
     assert e.source is None
 
 
+class TestEntityViewDoubleWrapProtection:
+    """Since Graph.get() now returns views, ``EntityView(graph.get(id), graph)``
+
+    is a realistic legacy call shape. The constructor must unwrap an
+    already-wrapped view so ``.entity`` keeps returning the bare, stored
+    ``Entity`` (the documented escape hatch), not another view.
+    """
+
+    def test_double_wrapped_view_unwraps_to_original_entity(self) -> None:
+        entity = Entity(id="x", types=("Person",))
+        graph = Graph()
+        inner = EntityView(entity, graph)
+        outer = EntityView(inner, graph)
+        assert outer.entity is entity
+
+    def test_wrapping_graph_get_result_yields_stored_bare_entity(self) -> None:
+        entity = Entity(id="#bob", types=("Person",), properties={"name": "Bob"})
+        graph = Graph()
+        graph._add_node(entity)
+        view_from_get = graph.get("#bob")
+        rewrapped = EntityView(view_from_get, graph)
+        assert rewrapped.entity is graph._entities["#bob"]
+
+    def test_unwrapped_view_equality_and_display_unchanged(self) -> None:
+        entity = Entity(id="x", types=("Person",), properties={"name": "Alice"})
+        graph = Graph()
+        double = EntityView(EntityView(entity, graph), graph)
+        single = EntityView(entity, graph)
+        assert double == single
+        assert double == entity
+        assert double.name == "Alice"
+        assert double.type == "Person"
+        assert hash(double) == hash(single)
+
+
 class TestEntityViewEquality:
     """view == view, view == bare Entity (both directions), and hashability.
 
