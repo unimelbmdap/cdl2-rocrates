@@ -1059,7 +1059,7 @@ class Graph:
             tagged = crate.annotate_entities(
                 genre=lambda e: e.related("ldac:linguisticGenre").join("name"),
                 has_genre=lambda e: e.has("ldac:linguisticGenre"),
-                is_plain_text=lambda e: e.type == "File" and e.id.endswith("-plain.txt"),
+                is_plain_text=lambda e: "File" in e.types and e.id.endswith("-plain.txt"),
             )
             reports = tagged.where(genre="Report", is_plain_text=True)
         """
@@ -1089,8 +1089,8 @@ class Graph:
         Examples::
 
             labelled = crate.annotate_relationships(
-                source_type=lambda r: r.source.type,
-                target_type=lambda r: r.target.type,
+                source_type=lambda r: r.source.types[0],
+                target_type=lambda r: r.target.types[0],
                 is_authorship=lambda r: r.type == "author",
             )
             labelled.relationship_records()[0]  # includes the new fields

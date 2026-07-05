@@ -139,7 +139,7 @@ alongside its raw and CSV versions), the same way the
 
 ```python
 transcripts = crate.annotate_entities(
-    is_plain_text=lambda e: e.type == "File" and e.id.endswith("-plain.txt")
+    is_plain_text=lambda e: "File" in e.types and e.id.endswith("-plain.txt")
 ).where(is_plain_text=True)
 transcripts
 ```

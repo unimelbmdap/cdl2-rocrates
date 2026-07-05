@@ -21,7 +21,7 @@ def test_cardinality_error_is_a_value_error() -> None:
     assert str(err) == "too many"
 
 
-def test_entity_view_record_style_fields() -> None:
+def test_entity_view_display_fields() -> None:
     e = EntityView(Entity(id="x", types=("File", "Thing"), properties={"name": "Doc"}))
     assert e.id == "x"
     assert e.types == ("File", "Thing")

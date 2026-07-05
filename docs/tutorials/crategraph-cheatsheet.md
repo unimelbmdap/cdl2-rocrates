@@ -440,7 +440,7 @@ relationships, filtering and transforming the graph, and visualising the result.
 
     ```python
     typed = crate.annotate_relationships(
-        pair=lambda r: f"{r.source.type} -> {r.target.type}"
+        pair=lambda r: f"{r.source.types[0]} -> {r.target.types[0]}"
     )
     typed.relationship_counts("pair")
     ```

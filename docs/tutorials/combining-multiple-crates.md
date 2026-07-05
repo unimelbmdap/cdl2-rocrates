@@ -135,7 +135,7 @@ only languages can be joined in this example:
 ```python
 def share_key(e):
     """Shared id for languages; every other node stays distinct."""
-    return e.get("raw_id") if e.type == "Language" else e.id
+    return e.get("raw_id") if "Language" in e.types else e.id
 
 keyed = tagged.annotate_entities(share_key=share_key)
 ```

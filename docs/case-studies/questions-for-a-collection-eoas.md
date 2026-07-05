@@ -670,7 +670,7 @@ graph, before narrowing to the image files):
 images = (
     eoas.annotate_entities(
         is_jpg=lambda e: e.id.lower().endswith(".jpg"),
-        title=lambda e: e.related("dobject", direction="out").join("name") or e.name,
+        title=lambda e: e.related("dobject", direction="out").join("name") or e.label,
     )
     .select(entity_types=["File"])
     .where(is_jpg=True)
