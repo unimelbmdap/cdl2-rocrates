@@ -102,7 +102,7 @@ def text_records(
     allowed = tuple(text_properties)
     included = _normalise_include_properties(include_properties)
 
-    for entity in graph.entities:
+    for entity in graph._entities.values():
         if entity.properties.get("_is_root"):
             continue
         if keep_entity_id is not None and entity.id not in keep_entity_id:

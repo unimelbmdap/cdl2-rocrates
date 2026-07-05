@@ -244,10 +244,11 @@ def entity_records(graph: Graph, columns: Sequence[str] | None = None) -> Record
         df = pd.DataFrame(graph.entity_records())
     """
     if columns is None:
-        return Records(_entity_record(entity) for entity in graph.entities)
+        return Records(_entity_record(entity) for entity in graph._entities.values())
     cols = list(columns)
     return Records(
-        _project(_entity_record(entity, deep_copy=False), cols) for entity in graph.entities
+        _project(_entity_record(entity, deep_copy=False), cols)
+        for entity in graph._entities.values()
     )
 
 
@@ -332,7 +333,9 @@ def entity_counts(graph: Graph, field: str) -> Records:
     counts each type membership, so totals may exceed the entity count.
     ``None``/absent values are skipped; rows are sorted count-descending.
     """
-    return _count_values((_entity_record(e, deep_copy=False) for e in graph.entities), field)
+    return _count_values(
+        (_entity_record(e, deep_copy=False) for e in graph._entities.values()), field
+    )
 
 
 def relationship_counts(graph: Graph, field: str) -> Records:

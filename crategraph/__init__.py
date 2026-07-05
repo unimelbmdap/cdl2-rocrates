@@ -81,7 +81,7 @@ class Crate(Graph):
         else:
             loaded = reader.read(paths[0])
             super().__init__(source=loaded.source, metadata=loaded.metadata)
-            for entity in loaded.entities:
+            for entity in loaded._entities.values():
                 self._add_node(entity)
             for rel in loaded.relationships:
                 self._add_edge(rel)
@@ -152,7 +152,7 @@ class Crate(Graph):
         """Add entities and relationships from *loaded* with prefixed IDs."""
         # Build ID mapping: raw_id -> prefixed_id
         id_map: dict[str, str] = {}
-        for entity in loaded.entities:
+        for entity in loaded._entities.values():
             prefixed_id = f"{prefix}/{entity.id}"
             id_map[entity.id] = prefixed_id
             new_props = dict(entity.properties)

@@ -126,7 +126,7 @@ class RdfReader(Reader):
             graph._add_node(entity)
 
         # Second pass: build relationships and track dangling targets.
-        existing_ids = {e.id for e in graph.entities}
+        existing_ids = {e.id for e in graph._entities.values()}
         relationships: list[Relationship] = []
         dangling_uris: set[str] = set()
         dangling_rel_count = 0

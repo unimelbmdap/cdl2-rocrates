@@ -294,8 +294,8 @@ class Graph:
     def to_networkx(self, *, copy: bool = True) -> nx.MultiDiGraph:
         """Return a NetworkX ``MultiDiGraph`` view of this graph.
 
-        The returned graph is rebuilt from ``self.entities`` and
-        ``self.relationships`` so callers receive a regular NetworkX graph
+        The returned graph is rebuilt from ``self._entities`` and
+        ``self._relationships`` so callers receive a regular NetworkX graph
         with one edge per :class:`Relationship`. Edge keys are assigned by
         ``MultiDiGraph`` so same-type parallel edges between the same
         endpoints survive.
@@ -310,7 +310,7 @@ class Graph:
         import dataclasses
 
         nxg = nx.MultiDiGraph()
-        for entity in self.entities:
+        for entity in self._entities.values():
             attached = (
                 dataclasses.replace(entity, properties=_copy_properties(entity.properties))
                 if copy
@@ -1285,7 +1285,13 @@ class Graph:
 
     def _coerce_entity(self, entity: Entity | str) -> Entity:
         """Resolve an entity object or ID string to an Entity."""
-        return self.get(entity) if isinstance(entity, str) else entity
+        if isinstance(entity, str):
+            try:
+                return self._entities[entity]
+            except KeyError:
+                msg = f'No entity with id "{entity}" in this graph.'
+                raise KeyError(msg) from None
+        return entity
 
     def _require_local_entity_file(self, entity: Entity, *, action: str) -> tuple[str, Path]:
         """Resolve and validate the local file path for an entity."""

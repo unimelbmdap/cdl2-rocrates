@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 def entities_by_source(graph: Graph) -> dict[str, list[Entity]]:
     """Group a graph's entities by source id, skipping root nodes."""
     by_source: dict[str, list[Entity]] = {}
-    for entity in graph.entities:
+    for entity in graph._entities.values():
         if entity.properties.get("_is_root"):
             continue
         sid = _source_id_for(entity, graph)

@@ -55,7 +55,7 @@ def _to_flat_networkx(graph: Graph) -> nx.MultiDiGraph:
     across the whole file.
     """
     flat = nx.MultiDiGraph()
-    for entity in graph.entities:
+    for entity in graph._entities.values():
         flat.add_node(entity.id, **flatten_node(entity))
     for i, rel in enumerate(graph.relationships):
         attrs = flatten_edge(rel)

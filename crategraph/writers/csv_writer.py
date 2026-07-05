@@ -77,7 +77,7 @@ class CsvWriter(Writer):
 
         # Iterate the domain lists so export follows Graph's public relationship
         # model rather than NetworkX-specific edge attributes.
-        node_rows = [flatten_node(e) for e in graph.entities]
+        node_rows = [flatten_node(e) for e in graph._entities.values()]
         edge_rows = [flatten_edge(r) for r in graph.relationships]
 
         _write_rows(target / "nodes.csv", node_rows, NODE_PROMOTED_COLUMNS)

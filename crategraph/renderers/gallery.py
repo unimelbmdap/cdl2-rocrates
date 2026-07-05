@@ -150,7 +150,7 @@ def _gallery_items(graph: Graph) -> list[tuple[Entity, Path, str]]:
         items.append((entity, path, media))
 
     # Pass 1: entities carrying a thumbnail property.
-    for entity in graph.entities:
+    for entity in graph._entities.values():
         thumb = entity.properties.get("thumbnail")
         if not thumb:
             continue
@@ -162,7 +162,7 @@ def _gallery_items(graph: Graph) -> list[tuple[Entity, Path, str]]:
         return items
 
     # Pass 2: data entities that are themselves image files.
-    for entity in graph.entities:
+    for entity in graph._entities.values():
         if not entity.has_data:
             continue
         path = resolve_entity_path(entity, fallback_source=entity.source or source)
