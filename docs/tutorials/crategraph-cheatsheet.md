@@ -136,7 +136,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     Look around: what does this graph contain?
 
     ```python
-    crate.entities          # list[Entity] of all nodes
+    crate.entities          # list[EntityView] of all nodes
     ```
 
     Explore a single entity. Index the list (`crate.entities[0]`), or find a specific one (filter by an exact property):
@@ -147,7 +147,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Entity('Regulations_and Statutes', 'UTR7.166 The Olga Lawless Ziegler Memorial Fund', id='#E001213')
+    EntityView('Regulations_and Statutes', 'UTR7.166 The Olga Lawless Ziegler Memorial Fund', id='#E001213')
     ```
 
     Get all file entities:
@@ -183,7 +183,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Entity('Regulations_and Statutes', 'UTR7.166 The Olga Lawless Ziegler Memorial Fund', id='#E001213')
+    EntityView('Regulations_and Statutes', 'UTR7.166 The Olga Lawless Ziegler Memorial Fund', id='#E001213')
     ```
 
     Most of what you need is in `.properties`:
@@ -200,23 +200,35 @@ relationships, filtering and transforming the graph, and visualising the result.
      ...}
     ```
 
-    Get a specific entity by id:
+    !!! warning "Properties are read-only"
+        `properties` on any accessor result is a read-only view: in-place
+        mutation (`e.properties["x"] = ...`) raises `TypeError`. crategraph
+        graphs are immutable; derive new fields with `annotate_entities(...)`
+        instead. (The raw dict is reachable via `e.entity.properties`, but
+        mutating it changes graph state in place; don't.)
+
+    Get a specific entity by id. Like every accessor, this returns a graph-aware
+    `EntityView`, so you can traverse straight from it:
 
     ```python
-    crate.get(e.id)
+    crate.get(e.id).related("...")
     ```
 
-    Get an entity together with its live reference to the graph. `EntityView` is what
-    `annotate_entities()` passes to your functions:
+    `crate.entity_view(e.id)` is a kept alias of `crate.get(e.id)`. For the bare,
+    immutable record (e.g. for `dataclasses.replace`), use `.entity`:
 
     ```python
-    e2 = crate.entity_view(e.id)
+    e.entity  # the underlying Entity
     ```
+
+    Views hold a live reference to their graph, so pickling one pickles the
+    whole graph with it. To persist a single record, pickle `e.entity` (or
+    pickle the `Graph` itself).
 
     If anything is unclear, call `help()` on an object:
 
     ```python
-    help(e2)
+    help(e)
     ```
 
     ### List all property keys
@@ -342,9 +354,9 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    [(Entity('Regulations_and Statutes', 'Chapter R6, Prizes, Exhibitions, Scholarships and Bursaries', id='#E000100'), 417),
-     (Entity('Function', 'Scholarship', id='#F000001'), 331),
-     (Entity('Regulations_and Statutes', 'Chapter R7, Endowments Other Than Those of Prizes, Exhibitions and Scholarships', id='#E001373'), 321)]
+    [(EntityView('Regulations_and Statutes', 'Chapter R6, Prizes, Exhibitions, Scholarships and Bursaries', id='#E000100'), 417),
+     (EntityView('Function', 'Scholarship', id='#F000001'), 331),
+     (EntityView('Regulations_and Statutes', 'Chapter R7, Endowments Other Than Those of Prizes, Exhibitions and Scholarships', id='#E001373'), 321)]
     ```
 
 ??? card card5 ":material-link-variant: Relationships (edges)"

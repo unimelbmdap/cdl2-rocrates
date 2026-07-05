@@ -486,7 +486,7 @@ example_csv = next(
 )
 
 print(example_recording.properties.get("name"), example_csv)
-example_speakers = crate.entity_view(example_recording.id).related("ldac:speaker")
+example_speakers = crate.get(example_recording.id).related("ldac:speaker")
 list(example_speakers)[:3]
 ```
 
@@ -516,7 +516,7 @@ for recording in recordings:
     if csv_name is None:
         continue
 
-    speakers_for_recording = crate.entity_view(recording.id).related("ldac:speaker")
+    speakers_for_recording = crate.get(recording.id).related("ldac:speaker")
     local_speakers = {
         speaker.get("identifier"): speaker
         for speaker in speakers_for_recording
