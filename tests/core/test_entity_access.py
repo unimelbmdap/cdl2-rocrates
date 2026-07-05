@@ -6,6 +6,7 @@ import pytest
 
 from crategraph.core.graph import Graph
 from crategraph.core.models import Entity
+from crategraph.core.views import EntityView
 
 
 class TestGet:
@@ -21,8 +22,9 @@ class TestGet:
         with pytest.raises(KeyError, match="No entity with id"):
             g.get("#nonexistent")
 
-    def test_get_returns_entity_not_graph(self):
+    def test_get_returns_view_not_graph(self):
         g = Graph()
         g._add_node(Entity(id="#a", types=["Person"]))
         result = g.get("#a")
-        assert isinstance(result, Entity)
+        assert isinstance(result, EntityView)
+        assert result.id == "#a"

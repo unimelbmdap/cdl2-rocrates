@@ -95,7 +95,7 @@ class TestToNetworkx:
         graph = _build_simple_graph()
         g = graph.to_networkx(copy=False)
         assert g is not graph.to_networkx(copy=False)
-        assert g.nodes["#alice"]["entity"] is graph.entities[0]
+        assert g.nodes["#alice"]["entity"] is graph.entities[0].entity
 
     def test_copy_true_returns_different_object(self):
         """copy=True (default) returns a distinct object on every call."""

@@ -126,7 +126,7 @@ class TestToNetworkxScopedCopy:
         g = Graph()
         g._add_node(Entity(id="#item", types=["Dataset"], properties={"k": "v"}))
         nxg = g.to_networkx(copy=False)
-        assert nxg.nodes["#item"]["entity"] is g.entities[0]
+        assert nxg.nodes["#item"]["entity"] is g.entities[0].entity
 
     def test_entity_valued_property_narrowed_contract(self):
         """Pin the deliberately narrowed contract for a pathological shape.

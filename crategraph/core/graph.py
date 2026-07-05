@@ -130,9 +130,18 @@ class Graph:
         return self._relationship_types_cache
 
     @property
-    def entities(self) -> list[Entity]:
-        """All entities in the graph."""
-        return list(self._entities.values())
+    def entities(self) -> list[EntityView]:
+        """All entities in the graph, as graph-aware :class:`EntityView`\\ s.
+
+        Each view carries a live reference to this graph, so you can
+        traverse straight from a result: ``crate.entities[0].related(...)``.
+        Views are fresh per call and compare by value (``==``) and hash by
+        id; they are not guaranteed to be the same object across calls. For
+        the bare record use ``.entity``.
+        """
+        from crategraph.core.views import EntityView
+
+        return [EntityView(e, self) for e in self._entities.values()]
 
     @property
     def relationships(self) -> list[Relationship]:
@@ -140,30 +149,30 @@ class Graph:
         return list(self._relationships)
 
     def entity_view(self, entity_id: str) -> EntityView:
-        """Return a graph-aware :class:`EntityView` for *entity_id*.
+        """Alias of :meth:`get` — kept as a soft path for existing code.
 
-        Useful in a REPL/notebook and for testing ``annotate_entities``
-        derivation functions on a single entity.
+        Both return a graph-aware :class:`EntityView` now, so
+        ``crate.entity_view(id)`` and ``crate.get(id)`` are interchangeable.
+        Not deprecated. Raises ``KeyError`` for an unknown id (same as
+        :meth:`get`).
+        """
+        return self.get(entity_id)
+
+    @property
+    def files(self) -> list[EntityView]:
+        """Data entities (files and directories) as graph-aware views.
+
+        Convenience for filtering to entities where ``has_data`` is
+        ``True``, sorted by ID. Returns :class:`EntityView`\\ s (use
+        ``.entity`` for the bare record).
         """
         from crategraph.core.views import EntityView
 
-        entity = self._entities.get(entity_id)
-        if entity is None:
-            msg = f"Entity {entity_id!r} not in graph."
-            raise ValueError(msg)
-        return EntityView(entity, self)
-
-    @property
-    def files(self) -> list[Entity]:
-        """Data entities (files and directories) in the graph.
-
-        Convenience for filtering to entities where ``has_data`` is
-        ``True``, sorted by ID.
-        """
-        return sorted(
+        ordered = sorted(
             (e for e in self._entities.values() if e.has_data),
             key=lambda e: e.properties.get("raw_id", e.id),
         )
+        return [EntityView(e, self) for e in ordered]
 
     def __len__(self) -> int:
         """Number of entities in the graph."""
@@ -278,16 +287,20 @@ class Graph:
 
         return text_pre(text)
 
-    def get(self, entity_id: str) -> Entity:
-        """Return a single ``Entity`` by its ID.
+    def get(self, entity_id: str) -> EntityView:
+        """Return a graph-aware :class:`EntityView` for a single entity by ID.
 
         Raises ``KeyError`` with a clear message if the ID doesn't exist.
+        Use ``.entity`` on the result for the bare :class:`Entity` record.
         """
+        from crategraph.core.views import EntityView
+
         try:
-            return self._entities[entity_id]
+            entity = self._entities[entity_id]
         except KeyError:
             msg = f'No entity with id "{entity_id}" in this graph.'
             raise KeyError(msg) from None
+        return EntityView(entity, self)
 
     # --- Public export methods ---
 
@@ -454,9 +467,16 @@ class Graph:
 
     def most_connected(
         self, *, n: int = 10, entity_types: list[str] | None = None
-    ) -> list[tuple[Entity, int]]:
-        """Return the top *n* entities by number of connections."""
-        return analysis.most_connected(self, n=n, entity_types=entity_types)
+    ) -> list[tuple[EntityView, int]]:
+        """Return the top *n* entities by number of connections, as views.
+
+        Each result is ``(EntityView, degree)``; use ``.entity`` on a view
+        for the bare record.
+        """
+        from crategraph.core.views import EntityView
+
+        ranked = analysis.most_connected(self, n=n, entity_types=entity_types)
+        return [(EntityView(entity, self), degree) for entity, degree in ranked]
 
     def profile(self) -> analysis.GraphProfile:
         """Return a structural profile with density, components, degree stats."""
@@ -565,11 +585,11 @@ class Graph:
             filepath=filepath,
         )
 
-    def inspect(self, entity: Entity | str) -> FileInfo:
+    def inspect(self, entity: Entity | str | EntityView) -> FileInfo:
         """Inspect the data file associated with an entity."""
         return presentation.inspect(self, entity)
 
-    def view(self, entity: Entity | str) -> ViewInfo:
+    def view(self, entity: Entity | str | EntityView) -> ViewInfo:
         """View the data file associated with an entity."""
         return presentation.view(self, entity)
 
@@ -1283,8 +1303,12 @@ class Graph:
             r.source for r in in_by_target.get(node_id, [])
         }
 
-    def _coerce_entity(self, entity: Entity | str) -> Entity:
-        """Resolve an entity object or ID string to an Entity."""
+    def _coerce_entity(self, entity: Entity | str | EntityView) -> Entity:
+        """Resolve an entity object, view, or ID string to a bare Entity."""
+        from crategraph.core.views import EntityView
+
+        if isinstance(entity, EntityView):
+            return entity.entity
         if isinstance(entity, str):
             try:
                 return self._entities[entity]

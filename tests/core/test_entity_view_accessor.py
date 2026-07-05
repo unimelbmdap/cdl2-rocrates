@@ -22,5 +22,5 @@ def test_entity_view_returns_graph_aware_view() -> None:
 
 def test_entity_view_unknown_id_raises() -> None:
     g = Crate(str(FIXTURE))
-    with pytest.raises(ValueError, match="not in graph"):
+    with pytest.raises(KeyError, match="No entity with id"):
         g.entity_view("#no-such-entity")

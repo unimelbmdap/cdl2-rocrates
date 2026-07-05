@@ -59,7 +59,7 @@ class TestNeighbours:
     def test_public_path_degree_unchanged(self):
         """most_connected consumes _neighbours; #b has degree 2 (deduped), #a 1.
 
-        most_connected returns list[tuple[Entity, int]] (graph.py:424-428).
+        most_connected returns list[tuple[EntityView, int]] (accessor boundary).
         """
         g = _build_topology_graph()
         top = g.most_connected(n=1)
