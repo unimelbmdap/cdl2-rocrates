@@ -475,6 +475,8 @@ Semantic search finds topically relevant recordings without any keyword match. T
 
 Section 4 profiled speakers from their RO-Crate properties alone. To analyse what they actually said, join their per-utterance speech (from each recording's `.csv`, columns `Person,Speech,events`) to those same `role`/`sex` properties. The `Person` codes in each CSV (`P1`, `C1`, `E1`...) are locally scoped to that recording. `C1` means a different real person in `Nat1` than in `Nat4`. So the join must be done per-recording, using that recording's own `ldac:speaker` list and each speaker's `identifier` property to build the local code to Person map, rather than a single global lookup table.
 
+Since `recordings_graph` is a select subgraph of only RepositoryObjects (defined at the start of section 5), it contains no relationships to speaker entities, so we look up each recording on the full `crate` instead, whose views carry the complete relationship set.
+
 ```python
 base_dir = Path(crate.source)
 leaked_speaker_tag = re.compile(r"^\[[^\]]+\]\s*")
