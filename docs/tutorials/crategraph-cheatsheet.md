@@ -53,7 +53,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(4270 entities, 12601 relationships, source='experiments/crates/UMPC')
+    Graph(4270 entities, 12601 relationships, source='data/ohrm/UMPC')
     ```
 
     A few load-time options:
@@ -74,7 +74,7 @@ relationships, filtering and transforming the graph, and visualising the result.
 
     ```
     === Graph Summary ===
-    Source: experiments/crates/UMPC
+    Source: data/ohrm/UMPC
     Entities: 4270 | Relationships: 12601
 
     Entity types:
@@ -94,7 +94,7 @@ relationships, filtering and transforming the graph, and visualising the result.
 
     ```
     === Graph Profile ===
-    Source: experiments/crates/UMPC
+    Source: data/ohrm/UMPC
     Entities: 4270 | Relationships: 12601
     Density: 0.0007
     Types: 54 entity, 17 relationship
@@ -279,7 +279,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(13 entities, 0 relationships, source='experiments/crates/UMPC')
+    Graph(13 entities, 0 relationships, source='data/ohrm/UMPC')
     ```
 
     Find all the entries within a date period (inclusive):
@@ -289,7 +289,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(70 entities, 130 relationships, source='experiments/crates/UMPC')
+    Graph(70 entities, 130 relationships, source='data/ohrm/UMPC')
     ```
 
     ### Enrich entities with derived properties
@@ -406,7 +406,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(10 entities, 15 relationships, source='experiments/crates/UMPC')
+    Graph(10 entities, 15 relationships, source='data/ohrm/UMPC')
     ```
 
     You can match several relationship types at once:
@@ -416,7 +416,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(2206 entities, 9767 relationships, source='experiments/crates/UMPC')
+    Graph(2206 entities, 9767 relationships, source='data/ohrm/UMPC')
     ```
 
     `pattern()` matches by the relationship type on the edge. Everything connected via a
@@ -427,7 +427,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(266 entities, 561 relationships, source='experiments/crates/UMPC')
+    Graph(266 entities, 561 relationships, source='data/ohrm/UMPC')
     ```
 
     ### Enrich relationships with derived properties
@@ -522,7 +522,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(907 entities, 721 relationships, source='experiments/crates/UMPC')
+    Graph(907 entities, 721 relationships, source='data/ohrm/UMPC')
     ```
 
     A time period:
@@ -532,7 +532,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(268 entities, 346 relationships, source='experiments/crates/UMPC')
+    Graph(268 entities, 346 relationships, source='data/ohrm/UMPC')
     ```
 
     The most connected entities:
@@ -542,7 +542,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(79 entities, 128 relationships, source='experiments/crates/UMPC')
+    Graph(79 entities, 128 relationships, source='data/ohrm/UMPC')
     ```
 
     You can also leave information out. Exclude a relationship type:
@@ -552,7 +552,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(3274 entities, 2858 relationships, source='experiments/crates/UMPC')
+    Graph(3274 entities, 2858 relationships, source='data/ohrm/UMPC')
     ```
 
     `drop()` removes the entities whose given property contains a value. Here we drop everything
@@ -564,7 +564,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(4122 entities, 11466 relationships, source='experiments/crates/UMPC')
+    Graph(4122 entities, 11466 relationships, source='data/ohrm/UMPC')
     ```
 
     `drop()` returns 4122 entities, while the opposite `where()` returns 148. Together they make
@@ -576,7 +576,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(148 entities, 300 relationships, source='experiments/crates/UMPC')
+    Graph(148 entities, 300 relationships, source='data/ohrm/UMPC')
     ```
 
     Take the entities of one graph out of another with `subtract()`:
@@ -586,7 +586,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(4122 entities, 11466 relationships, source='experiments/crates/UMPC')
+    Graph(4122 entities, 11466 relationships, source='data/ohrm/UMPC')
     ```
 
     Free-text search for an entity. The default minimum rapidfuzz match score is 80; both the
@@ -597,7 +597,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(120 entities, 73 relationships, source='experiments/crates/UMPC')
+    Graph(120 entities, 73 relationships, source='data/ohrm/UMPC')
     ```
 
     ```python
@@ -605,7 +605,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(8 entities, 0 relationships, source='experiments/crates/UMPC')
+    Graph(8 entities, 0 relationships, source='data/ohrm/UMPC')
     ```
 
     ### Transform: dates, merging, communities
@@ -637,7 +637,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(47 entities, 177 relationships, source='experiments/crates/UMPC')
+    Graph(47 entities, 177 relationships, source='data/ohrm/UMPC')
     ```
 
     ```python
@@ -669,7 +669,7 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```
 
     ```
-    Graph(772 entities, 2687 relationships, source='experiments/crates/UMPC')
+    Graph(772 entities, 2687 relationships, source='data/ohrm/UMPC')
     ```
 
     `expand()` grows a selection outward to include connected neighbours. Start from the 13

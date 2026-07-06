@@ -38,7 +38,7 @@ crate
 ```
 
 ```
-Graph(4270 entities, 12601 relationships, source='experiments/crates/UMPC')
+Graph(4270 entities, 12601 relationships, source='data/ohrm/UMPC')
 ```
 
 `select()` narrows the graph to a single type, and `summary()` reports what is in the result.
@@ -51,7 +51,7 @@ events.summary()
 
 ```
 === Graph Summary ===
-Source: experiments/crates/UMPC
+Source: data/ohrm/UMPC
 Entities: 32 | Relationships: 12
 
 Entity types:
@@ -59,6 +59,8 @@ Entity types:
 
 Relationship types:
   Related  12  ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+
+Most connected: Joining the Dots Working Group meeting, #2 (2), Joining the Dots Working Group meeting, #3 (2), Joining the Dots Working Group meeting, #4 (2), Joining the Dots Working Group meeting, #1 (1), Joining the Dots Working Group meeting, #5 (1)
 ```
 
 ## 2. Look at the date fields on one event
@@ -235,7 +237,7 @@ event's year came from:
 
 ```python
 df = pd.DataFrame(recovered.entity_records(columns=["label", "event_year", "year_source"]))
-df["event_year"].notna().sum(), df["year_source"].value_counts().to_dict()
+int(df["event_year"].notna().sum()), df["year_source"].value_counts().to_dict()
 ```
 
 ```

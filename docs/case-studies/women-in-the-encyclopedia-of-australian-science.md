@@ -65,7 +65,7 @@ crate
 ```
 
 ```
-Graph(43255 entities, 95052 relationships, source='data/EOASI2022-ro-crate')
+Graph(43255 entities, 95052 relationships, source='data/ohrm/EOASI2022-ro-crate')
 ```
 
 
@@ -700,7 +700,7 @@ women_plus_related
 ```
 
 ```
-Graph(1149 entities, 1581 relationships, source='data/EOASI2022-ro-crate')
+Graph(1149 entities, 1581 relationships, source='data/ohrm/EOASI2022-ro-crate')
 ```
 
 
@@ -756,7 +756,7 @@ honours
 ```
 
 ```
-Graph(118 entities, 220 relationships, source='data/EOASI2022-ro-crate')
+Graph(118 entities, 220 relationships, source='data/ohrm/EOASI2022-ro-crate')
 ```
 
 

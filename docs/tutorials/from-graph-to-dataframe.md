@@ -43,6 +43,8 @@ Entity types:
 Relationship types:
   knows        7  ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
   affiliation  5  ▒▒▒▒▒▒▒▒▒▒▒
+
+Most connected: Rita Okafor (5), Amelia Hoxha (4), Elena Marchetti (3), Tom Pereira (3), Heritage Studies Centre (3)
 ```
 
 Six people, two organisations, and two kinds of connection: `affiliation` from a person to their organisation, and `knows` between people.

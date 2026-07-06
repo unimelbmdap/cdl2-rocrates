@@ -34,7 +34,7 @@ crate
 ```
 
 ```
-Graph(763 entities, 1765 relationships, source='experiments/farms-to-freeways')
+Graph(763 entities, 1765 relationships, source='data/ldaca/farms-to-freeways')
 ```
 
 `gallery()` finds entities with images on its own: any entity that carries a `thumbnail`, or
@@ -78,7 +78,7 @@ docs
 ```
 
 ```
-Graph(9 entities, 1 relationships, source='experiments/farms-to-freeways')
+Graph(9 entities, 1 relationships, source='data/ldaca/farms-to-freeways')
 ```
 
 Deriving a boolean and filtering on it, rather than calling `where(originalFormat="Paper")`

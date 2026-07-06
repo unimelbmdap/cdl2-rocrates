@@ -54,7 +54,7 @@ crate
 ```
 
 ```
-Graph(452 entities, 918 relationships, source='data/talkback')
+Graph(452 entities, 918 relationships, source='data/ldaca/talkback')
 ```
 
 
@@ -64,7 +64,7 @@ crate.summary()
 
 ```
 === Graph Summary ===
-Source: data/talkback
+Source: data/ldaca/talkback
 Entities: 452 | Relationships: 918
 
 Entity types:
@@ -361,7 +361,7 @@ people_network
 ```
 
 ```
-Graph(352 entities, 450 relationships, source='data/talkback')
+Graph(352 entities, 450 relationships, source='data/ldaca/talkback')
 ```
 
 
