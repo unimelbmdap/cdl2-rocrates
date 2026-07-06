@@ -5,7 +5,6 @@ from __future__ import annotations
 import functools
 import warnings
 from pathlib import Path, PurePosixPath
-from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
@@ -17,6 +16,7 @@ from crategraph.core import (
     transforms,
 )
 from crategraph.core._files import entity_raw_id, is_contextual_entity, resolve_entity_path
+from crategraph.core._mapping import ReadOnlyMapping
 from crategraph.core.models import Entity, Relationship, _copy_properties
 from crategraph.core.types import TypeRegistry
 
@@ -197,7 +197,7 @@ class Graph:
         or ``None`` for an anonymous lambda). Distinguishes derived
         columns from native crate metadata for honest export.
         """
-        return MappingProxyType(self._derived_fields)
+        return ReadOnlyMapping(self._derived_fields)
 
     @property
     def relationship_derived_fields(self) -> Mapping[str, str | None]:
@@ -206,7 +206,7 @@ class Graph:
         Kept separate from entity ``derived_fields`` so edge and node
         property names can overlap without muddying provenance.
         """
-        return MappingProxyType(self._relationship_derived_fields)
+        return ReadOnlyMapping(self._relationship_derived_fields)
 
     @property
     def default_index_path(self) -> Path:
@@ -1364,7 +1364,11 @@ class Graph:
         derived._entities = (
             entities
             if entities is not None
-            else {nid: self._entities[nid] for nid in node_ids if nid in self._entities}
+            # Iterate the parent's ordered dict (not the unordered ``node_ids``
+            # set) so a derived graph preserves the source RO-Crate order. A
+            # set comprehension here would make entity order depend on the hash
+            # seed, so ``crate.select(...).entities[0]`` would vary per process.
+            else {nid: ent for nid, ent in self._entities.items() if nid in node_ids}
         )
         candidate_relationships = (
             relationships

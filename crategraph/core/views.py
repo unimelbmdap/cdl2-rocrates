@@ -18,9 +18,9 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from html import escape
-from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
+from crategraph.core._mapping import ReadOnlyMapping
 from crategraph.core._temporal import entity_temporal, parse_fields
 from crategraph.core.models import Entity, _derive_label
 
@@ -81,7 +81,7 @@ class EntityView:
     @property
     def properties(self) -> Mapping[str, Any]:
         """Shallow read-only view (top-level mutation raises ``TypeError``)."""
-        return MappingProxyType(self._entity.properties)
+        return ReadOnlyMapping(self._entity.properties)
 
     @property
     def has_data(self) -> bool:
@@ -269,7 +269,7 @@ class RelationshipView:
     @property
     def properties(self) -> Mapping[str, Any]:
         """Shallow read-only view (top-level mutation raises ``TypeError``)."""
-        return MappingProxyType(self._relationship.properties)
+        return ReadOnlyMapping(self._relationship.properties)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Shorthand for ``properties.get(key, default)`` — preferred in lambdas."""
