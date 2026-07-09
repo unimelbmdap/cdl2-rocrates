@@ -63,7 +63,7 @@ Save notebooks in the `notebooks/` directory — it's gitignored so scratch work
 
 ### Prerequisites
 
-- Python 3.11 or later
+- Python 3.12 or later
 - [uv](https://docs.astral.sh/uv/) package manager
 
 ### Installation
@@ -96,6 +96,10 @@ uv run ruff check .
 # Run formatter
 uv run ruff format .
 ```
+
+## Licence
+
+Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for the full terms.
 
 ## AI Attribution
 
