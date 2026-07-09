@@ -28,13 +28,14 @@ Read the linked documents before making changes.
 ```
 crategraph/
 ├── core/           # Graph facade, filtering, transforms, presentation, analysis, models
-├── readers/        # Data loaders (ROCrateReader, OHRMCsvReader, OHRMSqlReader)
+├── index/          # Text indexing and search (chunker, indexer, Searcher, store)
+├── readers/        # Data loaders (ROCrateReader, RdfReader, OKFReader, OHRMCsvReader, OHRMSqlReader, SimpleFolderReader)
 │   └── shared/     # Base classes (TabularGraphReader, CsvGraphReader, SqlGraphReader)
-├── renderers/      # Visualisation (Pyvis 2D, ForceGraph3D, SVG, Sigma.js)
+├── renderers/      # Visualisation (Pyvis 2D, ForceGraph3D, SVG, Sigma.js, Gallery)
 ├── inspectors/     # File inspection (MarkItDown)
 ├── validators/     # Data quality checks (planned)
 ├── viewers/        # Rich file previews (DefaultViewer)
-└── writers/        # Export/serialisation (GraphML + CSV shipped; RDF, RO-Crate planned)
+└── writers/        # Export/serialisation (GraphML, CSV, Text shipped; RDF, RO-Crate planned)
 tests/              # Mirrors source layout
 docs/               # MkDocs source (Material theme)
 design/             # Design documents and decision records
