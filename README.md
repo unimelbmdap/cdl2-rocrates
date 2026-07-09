@@ -8,7 +8,7 @@
 [![Milestones](https://img.shields.io/badge/milestones-view%20all-orange)](https://github.com/unimelbmdap/cdl2-rocrates/milestones)
 
 <p align="center">
-  <img src="docs/assets/umpc-hero.png" alt="The University of Melbourne Perpetual Calendar RO-Crate rendered as a network graph with crategraph" width="720">
+  <img src="docs/assets/umpc-hero.webp" alt="The University of Melbourne Perpetual Calendar RO-Crate rendered as a network graph with crategraph" width="720">
 </p>
 
 <p align="center"><em>The University of Melbourne Perpetual Calendar RO-Crate rendered as a network graph with crategraph.</em></p>
