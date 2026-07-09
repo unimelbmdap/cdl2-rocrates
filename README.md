@@ -7,6 +7,12 @@
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://unimelbmdap.github.io/cdl2-rocrates/)
 [![Milestones](https://img.shields.io/badge/milestones-view%20all-orange)](https://github.com/unimelbmdap/cdl2-rocrates/milestones)
 
+<p align="center">
+  <img src="docs/assets/umpc-hero.png" alt="The University of Melbourne Perpetual Calendar RO-Crate rendered as a network graph with crategraph" width="720">
+</p>
+
+<p align="center"><em>The University of Melbourne Perpetual Calendar RO-Crate rendered as a network graph with crategraph.</em></p>
+
 ## ARDC Community Data Lab Phase 2: Work Package 2
 
 Tools for analysing and visualising research data collections stored in RO-Crates.
