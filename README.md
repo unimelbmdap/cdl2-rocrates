@@ -96,3 +96,7 @@ uv run ruff check .
 # Run formatter
 uv run ruff format .
 ```
+
+## AI Attribution
+
+[![AI Attribution: Human-AI blend — content edits, new content, human-initiated, reviewed; models Opus, Codex](docs/assets/ai-attribution.svg)](https://aiattribution.github.io/statements/AIA-HAb-CeNc-Hin-R-?model=Opus%2C%20Codex)
