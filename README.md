@@ -65,6 +65,15 @@ uv run --all-extras --with jupyter jupyter notebook
 
 Save notebooks in the `notebooks/` directory — it's gitignored so scratch work won't end up in the repo.
 
+## Documentation
+
+Full documentation, guides, and API reference are published at **[unimelbmdap.github.io/cdl2-rocrates](https://unimelbmdap.github.io/cdl2-rocrates/)**.
+
+- **[Getting Started](https://unimelbmdap.github.io/cdl2-rocrates/getting-started/)** — install, load a crate, and take a first look.
+- **[Tutorials](https://unimelbmdap.github.io/cdl2-rocrates/tutorials/)** — task-focused guides, including [Visualising a Collection](https://unimelbmdap.github.io/cdl2-rocrates/tutorials/visualising-a-collection/), [From Graph to DataFrame](https://unimelbmdap.github.io/cdl2-rocrates/tutorials/from-graph-to-dataframe/), and [Searching a Collection](https://unimelbmdap.github.io/cdl2-rocrates/tutorials/searching-a-collection/). A one-page [cheat sheet](https://unimelbmdap.github.io/cdl2-rocrates/tutorials/crategraph-cheatsheet/) covers the common commands.
+- **[Case Studies](https://unimelbmdap.github.io/cdl2-rocrates/case-studies/)** — real collections explored end to end, such as [Navigating the Encyclopedia of Australian Science](https://unimelbmdap.github.io/cdl2-rocrates/case-studies/questions-for-a-collection-eoas/) and the [Australian Radio Talkback corpus](https://unimelbmdap.github.io/cdl2-rocrates/case-studies/australian-radio-talkback/).
+- **[API Reference](https://unimelbmdap.github.io/cdl2-rocrates/api/)** and **[Architecture](https://unimelbmdap.github.io/cdl2-rocrates/architecture/)** — for extending crategraph or understanding its internals.
+
 ## Development Setup
 
 ### Prerequisites
