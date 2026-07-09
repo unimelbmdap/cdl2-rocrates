@@ -8,9 +8,7 @@ Read the linked documents before making changes.
 | Document | Purpose |
 |----------|---------|
 | [docs/architecture.md](docs/architecture.md) | High-level design, plugin subsystems, data flow diagram |
-| [design/api-design.md](design/api-design.md) | Design principles, public API surface, directory layout |
-| [design/decisions.md](design/decisions.md) | Rationale behind backend, data model, and plugin contract choices |
-| [design/roadmap.md](design/roadmap.md) | Planned features and extensions |
+| [docs/decisions.md](docs/decisions.md) | Rationale behind backend, data model, and plugin contract choices (internal; excluded from the published site) |
 | [docs/getting-started.md](docs/getting-started.md) | Setup, installation, and quick-start examples |
 | [docs/api/](docs/api/) | Full API reference (Graph, models, types, interfaces) |
 
@@ -38,7 +36,6 @@ crategraph/
 └── writers/        # Export/serialisation (GraphML, CSV, Text shipped; RDF, RO-Crate planned)
 tests/              # Mirrors source layout
 docs/               # MkDocs source (Material theme)
-design/             # Design documents and decision records
 ```
 
 ## Testing

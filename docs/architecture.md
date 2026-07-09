@@ -202,10 +202,6 @@ A typical workflow moves data through the system like this:
 6. **Validate** *(planned)*: a `Validator` checks the graph against quality rules and returns a `ValidationReport`.
 7. **Export**: a `Writer` serialises the graph to a file. `graph.write(path, format="graphml")` and `graph.write(path, format="csv")` are available; RDF export is planned.
 
-## Design Decisions
-
-For the rationale behind key architectural choices — why NetworkX over RDFLib, why ABCs over Protocols, why Cypher over SPARQL, and more — see the [design decisions](https://github.com/unimelbmdap/cdl2-rocrates/blob/main/design/decisions.md) document.
-
 ## Where to Start
 
 | I want to...                        | Look at...                                                |

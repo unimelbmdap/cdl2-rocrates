@@ -1,6 +1,9 @@
 # Design Decisions
 
-Rationale behind key architectural choices in crategraph. Companion to [api-design.md](api-design.md).
+<!-- Internal working notes — excluded from the published docs site (see mkdocs.yml `exclude_docs`).
+     Partial and unpolished; to be expanded into a considered decisions log before publishing. -->
+
+Rationale behind key architectural choices in crategraph.
 
 ## Backend: NetworkX Direct
 
@@ -10,7 +13,7 @@ Rationale behind key architectural choices in crategraph. Companion to [api-desi
 
 **Why not RDFLib as a backend?** RDF export is a serialisation concern (Writer), not a storage concern. Forcing crates through RDF validation at load time would either drop data or hide quality issues — both unacceptable when surfacing data quality is a core use case.
 
-**Scaling:** NetworkX handles tens of thousands of nodes comfortably. If a specific algorithm becomes a bottleneck, rustworkx can be used locally within that function without a full backend abstraction. See [roadmap.md](roadmap.md) for requirements of a full backend abstraction if ever needed.
+**Scaling:** NetworkX handles tens of thousands of nodes comfortably. If a specific algorithm becomes a bottleneck, rustworkx can be used locally within that function without a full backend abstraction.
 
 ## Data Models: Dataclasses + Pydantic
 
@@ -53,5 +56,3 @@ The `glimpse()` method provides a one-call type-level overview by merging nodes 
 **Decision:** By default, all `@id` references in entity properties become edges in the graph (`inline_relations=True`). This can be turned off or restricted to specific properties.
 
 **Why default to True?** RO-Crates vary widely in how they encode relationships. Some use reified `Relationship` entities, others use inline `@id` references in properties like `author`, `location`, `memberOf`. Extracting all of these produces a richer, more connected graph. Users working with well-structured crates can restrict this.
-
-For planned features and future directions, see [roadmap.md](roadmap.md).

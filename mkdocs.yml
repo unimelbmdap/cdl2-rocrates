@@ -50,8 +50,8 @@ markdown_extensions:
 exclude_docs: |
   plans/
   tutorials/draft/
-  user-stories/
   superpowers/
+  decisions.md
 
 plugins:
   - search
