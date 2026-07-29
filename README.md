@@ -6,7 +6,7 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://unimelbmdap.github.io/cdl2-rocrates/)
 [![Milestones](https://img.shields.io/badge/milestones-view%20all-orange)](https://github.com/unimelbmdap/cdl2-rocrates/milestones)
-![Status: alpha](https://img.shields.io/badge/status-alpha-orange)
+![Status: beta](https://img.shields.io/badge/status-beta-yellow)
 
 <p align="center">
   <img src="docs/assets/umpc-hero.webp" alt="The University of Melbourne Perpetual Calendar RO-Crate rendered as a network graph with crategraph" width="720">
@@ -14,15 +14,13 @@
 
 <p align="center"><em>The University of Melbourne Perpetual Calendar RO-Crate rendered as a network graph with crategraph.</em></p>
 
-> [!IMPORTANT]
-> **Early development.** crategraph is in active early development and has not had a stable
-> release. The public API is still taking shape, so names, signatures, and behaviour can change
-> between commits, sometimes in ways that will break existing code.
+> [!NOTE]
+> **Early development.** crategraph is pre-1.0 and still evolving. The core API is settling and
+> no major redesigns are planned, but occasional breaking changes are still possible between
+> versions as details are refined.
 >
-> This follows [Semantic Versioning](https://semver.org/#spec-item-4): while the version number
-> begins with `0.`, anything may change at any time and the public API should not be considered
-> stable. If you rely on crategraph in your own work, pin a specific commit and re-run your own
-> checks before moving to a newer one.
+> If you rely on crategraph in your own work, pin a specific tag or commit so that upgrading is
+> always a deliberate step.
 
 ## ARDC Community Data Lab Phase 2: Work Package 2
 
