@@ -68,6 +68,22 @@ dev = [
     "ruff>=0.8",
 ]
 
+[tool.hatch.build.targets.sdist]
+# Ship only the package and its tests. Without an explicit allowlist, hatchling
+# walks the whole project directory and bundles local working data: chiefly the
+# generated graph exports under scripts/grids/crate-explorer/output*/, which are
+# hundreds of megabytes and include NonCommercial-licensed collections. Those
+# are ignored via the nested scripts/grids/.gitignore, but nested ignore files
+# are not honoured during sdist file selection, so list contents explicitly.
+# pyproject.toml, README.md and LICENSE are always included by hatchling.
+include = [
+    "crategraph/",
+    "tests/",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["crategraph"]
+
 [tool.ruff]
 target-version = "py312"
 line-length = 99
