@@ -12,6 +12,16 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
 
+  # Draft notebooks are scratch work; strip their outputs so re-runs don't churn
+  # megabytes of embedded images into git. Scoped to docs/tutorials/draft/ only:
+  # mkdocs-jupyter runs with execute: false, so published notebooks must keep
+  # their stored outputs or they would render empty.
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.9.1
+    hooks:
+      - id: nbstripout
+        files: ^docs/tutorials/draft/.*\.ipynb$
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.13.3
     hooks:
