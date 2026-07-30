@@ -1,6 +1,6 @@
 # Case Studies
 
-Where the [tutorials](../tutorials/index.md) each teach one capability (such as visualisation or search), these case studies explore collections end to end, from loading the crate to reporting on findings. They build on the techniques the tutorials, so if you are new to crategraph, start with the tutorials and come back here to see the pieces working together.
+Where the [tutorials](../tutorials/index.md) each teach one capability (such as visualisation or search), these case studies explore collections end to end, from loading the crate to reporting on findings. They build on the techniques in the tutorials, so if you are new to crategraph, start with the tutorials and come back here to see the pieces working together.
 
 ## Available case studies
 
