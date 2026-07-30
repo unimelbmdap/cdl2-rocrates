@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: If you use crategraph in your research, please cite it as below.
+title: "crategraph: Researcher-friendly tools for loading, exploring, and visualising RO-Crate data as network graphs"
+abstract: >-
+  A Python toolkit for analysing and visualising research data collections
+  stored in RO-Crates, with a focus on HASS and GLAM applications. crategraph
+  loads RO-Crates as network graphs, supports filtering and querying across one
+  or many crates, and renders interactive and static visualisations.
+
+
+  Developed as part of the ARDC Community Data Lab Phase 2, Work Package 2.
+  This project is supported by the Australian Research Data Commons (ARDC).
+  The ARDC is funded by NCRIS.
+type: software
+authors:
+  - name: Melbourne Data Analytics Platform, The University of Melbourne
+    website: https://mdap.unimelb.edu.au/
+repository-code: https://github.com/unimelbmdap/cdl2-rocrates
+url: https://unimelbmdap.github.io/cdl2-rocrates/
+license: Apache-2.0
+version: 0.1.0
+date-released: "2026-07-30"
+keywords:
+  - RO-Crate
+  - research data management
+  - network analysis
+  - graph visualisation
+  - digital humanities
+  - GLAM
+  - linked data
+  - metadata
