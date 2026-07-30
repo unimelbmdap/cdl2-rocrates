@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "crategraph"
-version = "0.1.0"
+version = "0.1.1"
 description = "Researcher-friendly tools for loading, exploring, and visualising RO-Crate data as network graphs"
 readme = "README.md"
 requires-python = ">=3.12"

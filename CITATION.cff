@@ -18,7 +18,7 @@ authors:
 repository-code: https://github.com/unimelbmdap/cdl2-rocrates
 url: https://unimelbmdap.github.io/cdl2-rocrates/
 license: Apache-2.0
-version: 0.1.0
+version: 0.1.1
 date-released: "2026-07-30"
 keywords:
   - RO-Crate
