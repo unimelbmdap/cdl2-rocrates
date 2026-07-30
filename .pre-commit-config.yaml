@@ -12,6 +12,14 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
 
+  # Local substitute for GitHub secret scanning and push protection, which are
+  # blocked for this repository by an enterprise policy. Scans staged changes
+  # and blocks the commit if a credential is detected.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
   # Draft notebooks are scratch work; strip their outputs so re-runs don't churn
   # megabytes of embedded images into git. Scoped to docs/tutorials/draft/ only:
   # mkdocs-jupyter runs with execute: false, so published notebooks must keep
