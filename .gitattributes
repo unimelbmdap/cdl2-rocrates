@@ -1,0 +1,7 @@
+# Kept out of GitHub/Zenodo source archives (git archive), since they exist
+# only to render the hosted docs site or are work in progress. The published
+# docs site and repository browsing are unaffected: both read the live tree,
+# not the archive. Unrelated to what ships on PyPI, which is governed
+# separately by [tool.hatch.build.targets.sdist] in pyproject.toml.
+docs/assets/ export-ignore
+docs/tutorials/draft/ export-ignore

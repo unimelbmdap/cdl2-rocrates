@@ -13,7 +13,7 @@ abstract: >-
   The ARDC is funded by NCRIS.
 type: software
 authors:
-  - name: Melbourne Data Analytics Platform, The University of Melbourne
+  - name: Melbourne Data Analytics Platform
     website: https://mdap.unimelb.edu.au/
 doi: 10.5281/zenodo.21696059
 identifiers:
@@ -26,7 +26,7 @@ identifiers:
 repository-code: https://github.com/unimelbmdap/cdl2-rocrates
 url: https://unimelbmdap.github.io/cdl2-rocrates/
 license: Apache-2.0
-version: 0.1.1
+version: v0.1.2
 date-released: "2026-07-30"
 keywords:
   - RO-Crate
