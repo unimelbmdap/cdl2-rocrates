@@ -15,6 +15,14 @@ type: software
 authors:
   - name: Melbourne Data Analytics Platform, The University of Melbourne
     website: https://mdap.unimelb.edu.au/
+doi: 10.5281/zenodo.21696059
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.21696059
+    description: Concept DOI resolving to the latest version
+  - type: doi
+    value: 10.5281/zenodo.21696060
+    description: DOI for version 0.1.1
 repository-code: https://github.com/unimelbmdap/cdl2-rocrates
 url: https://unimelbmdap.github.io/cdl2-rocrates/
 license: Apache-2.0

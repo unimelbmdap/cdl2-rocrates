@@ -1,5 +1,6 @@
 # RO-Crate Analysis and Visualisation Tools
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21696059.svg)](https://doi.org/10.5281/zenodo.21696059)
 [![Tests](https://github.com/unimelbmdap/cdl2-rocrates/actions/workflows/test.yml/badge.svg)](https://github.com/unimelbmdap/cdl2-rocrates/actions/workflows/test.yml)
 ![Python Version](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
