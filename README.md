@@ -50,6 +50,12 @@ The project focuses on use-case driven development, prioritising specific resear
 
 This work builds on existing University of Melbourne projects and external collaborations that have developed specialised RO-Crate tools and workflows, including work derived from former Online Heritage Resource Manager projects.
 
+## Survey
+
+We are excited to collaborate with researchers from various backgrounds. By taking this short survey, you're helping us co-design something that reflects and supports the way researchers work. We encourage you to share this survey with colleagues and research networks beyond your institution. 
+
+[Feedback on WP2: working with RO Crate](https://q.surveys.unimelb.edu.au/jfe/form/SV_3rc5LLpCErEMpn0)
+
 ## Quick Start
 
 After cloning the repo, you can start exploring immediately — no manual install step needed. `uv run` creates an isolated environment and installs the package automatically on first use.
