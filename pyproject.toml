@@ -50,7 +50,10 @@ Issues = "https://github.com/unimelbmdap/cdl2-rocrates/issues"
 [project.optional-dependencies]
 pyvis = ["pyvis>=0.3"]
 rdf = ["rdflib>=7.0"]
-inspect = ["markitdown[all]>=0.1"]
+inspect = [
+    "cryptography>=50.0.0",
+    "markitdown[audio-transcription,docx,outlook,pdf,pptx,xls,xlsx]>=0.1.7",
+]
 ohrm = ["pandas>=2.0"]
 okf = [
     "markdown-it-py>=3.0",
