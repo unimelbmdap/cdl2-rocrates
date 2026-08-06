@@ -1,0 +1,101 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Verify tag matches package version
+        shell: bash
+        run: |
+          package_version="$(uv run --no-project --python 3.12 python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          if [ "${{ github.event.release.tag_name }}" != "v${package_version}" ]; then
+            echo "Release tag ${{ github.event.release.tag_name }} does not match package version v${package_version}."
+            exit 1
+          fi
+          citation_version="$(sed -n 's/^version: //p' CITATION.cff)"
+          if [ "${{ github.event.release.tag_name }}" != "${citation_version}" ]; then
+            echo "Release tag ${{ github.event.release.tag_name }} does not match CITATION.cff version ${citation_version}."
+            exit 1
+          fi
+
+      - name: Build wheel and source distribution
+        run: uv build
+
+      - name: Check distribution metadata
+        run: uvx twine check dist/*
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+          if-no-files-found: error
+
+  verify:
+    name: Verify wheel on Python ${{ matrix.python-version }}
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Download distributions
+        uses: actions/download-artifact@v5
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Create clean environment
+        run: uv venv --python ${{ matrix.python-version }} .venv
+
+      - name: Install wheel
+        run: uv pip install --python .venv/bin/python dist/*.whl
+
+      - name: Smoke-test installed package
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: .venv/bin/python -c "import os; from importlib.metadata import version; from crategraph import Crate; assert version('crategraph') == os.environ['RELEASE_TAG'].removeprefix('v'); assert Crate"
+
+  publish:
+    name: Publish distributions
+    needs: [build, verify]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/crategraph
+    permissions:
+      id-token: write
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v5
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

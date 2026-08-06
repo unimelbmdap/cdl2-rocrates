@@ -17,11 +17,11 @@ metadata layer is what fuzzy search matches; the transcripts are what semantic s
 
 ## Running this tutorial
 
-Launch from the repository root with `uv run`. Semantic search needs the `[index]` extra, so
-pull in all extras plus Jupyter:
+Semantic search needs the `[index]` extra. Install it with Jupyter, then launch a notebook:
 
 ```bash
-uv run --all-extras --with jupyter jupyter notebook
+python -m pip install "crategraph[index]" jupyter
+jupyter notebook
 ```
 
 The first semantic search builds an index, which downloads a small (~50 MB) embedding model

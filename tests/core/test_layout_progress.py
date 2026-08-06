@@ -110,7 +110,7 @@ class TestNxFallback:
         with pytest.warns(UserWarning) as record:
             pos = _build_graph(_LARGE).layout(progress=True)
         messages = [str(warning.message) for warning in record]
-        assert any("slow without the forceatlas extra" in m for m in messages)
+        assert any("slow NetworkX fallback" in m for m in messages)
         assert len(pos) == _LARGE
         assert "2,000" in capsys.readouterr().err  # the size line still appears
 

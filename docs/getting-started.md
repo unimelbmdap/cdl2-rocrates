@@ -7,13 +7,13 @@ This guide walks you through installing crategraph and using it to explore an RO
 Install crategraph using pip:
 
 ```bash
-pip install crategraph
+python -m pip install crategraph
 ```
 
 If you want to extract text content from files in the crate (PDFs, Word documents, spreadsheets, etc.), install the optional inspection support:
 
 ```bash
-pip install crategraph[inspect]
+python -m pip install "crategraph[inspect]"
 ```
 
 !!! tip "Using Jupyter notebooks"

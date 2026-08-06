@@ -10,7 +10,7 @@
 ![Status: beta](https://img.shields.io/badge/status-beta-yellow)
 
 <p align="center">
-  <img src="docs/assets/umpc-hero.webp" alt="The University of Melbourne Perpetual Calendar RO-Crate rendered as a network graph with crategraph" width="720">
+  <img src="https://unimelbmdap.github.io/cdl2-rocrates/assets/umpc-hero.webp" alt="The University of Melbourne Perpetual Calendar RO-Crate rendered as a network graph with crategraph" width="720">
 </p>
 
 <p align="center"><em>The University of Melbourne Perpetual Calendar RO-Crate rendered as a network graph with crategraph.</em></p>
@@ -52,23 +52,27 @@ This work builds on existing University of Melbourne projects and external colla
 
 ## Survey
 
-We are excited to collaborate with researchers from various backgrounds. By taking this short survey, you're helping us co-design something that reflects and supports the way researchers work. We encourage you to share this survey with colleagues and research networks beyond your institution. 
+We are excited to collaborate with researchers from various backgrounds. By taking this short survey, you're helping us co-design something that reflects and supports the way researchers work. We encourage you to share this survey with colleagues and research networks beyond your institution.
 
 [Feedback on WP2: working with RO Crate](https://q.surveys.unimelb.edu.au/jfe/form/SV_3rc5LLpCErEMpn0)
 
 ## Quick Start
 
-After cloning the repo, you can start exploring immediately — no manual install step needed. `uv run` creates an isolated environment and installs the package automatically on first use.
+Install crategraph from PyPI:
+
+```bash
+python -m pip install crategraph
+```
 
 **Interactive Python shell:**
 
 ```bash
-uv run --all-extras python
+python
 ```
 
 ```python
 >>> from crategraph import Crate
->>> crate = Crate("tests/fixtures/minimal-crate/")
+>>> crate = Crate("path/to/my-collection/")
 >>> crate.entities
 >>> crate.relationships
 ```
@@ -76,10 +80,9 @@ uv run --all-extras python
 **Jupyter notebook:**
 
 ```bash
-uv run --all-extras --with jupyter jupyter notebook
+python -m pip install jupyter
+jupyter notebook
 ```
-
-Save notebooks in the `notebooks/` directory — it's gitignored so scratch work won't end up in the repo.
 
 ## Documentation
 
@@ -100,6 +103,10 @@ Full documentation, guides, and API reference are published at **[unimelbmdap.gi
 ### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/unimelbmdap/cdl2-rocrates.git
+cd cdl2-rocrates
+
 # Install dependencies
 uv sync
 
@@ -130,8 +137,8 @@ uv run ruff format .
 
 ## Licence
 
-Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for the full terms.
+Licensed under the Apache License, Version 2.0. See the [LICENSE](https://github.com/unimelbmdap/cdl2-rocrates/blob/main/LICENSE) file for the full terms.
 
 ## AI Attribution
 
-[![AI Attribution: Human-AI blend — content edits, new content, human-initiated, reviewed; models Opus, Codex](docs/assets/ai-attribution.svg)](https://aiattribution.github.io/statements/AIA-HAb-CeNc-Hin-R-?model=Opus%2C%20Codex)
+[![AI Attribution: Human-AI blend — content edits, new content, human-initiated, reviewed; models Opus, Codex](https://unimelbmdap.github.io/cdl2-rocrates/assets/ai-attribution.svg)](https://aiattribution.github.io/statements/AIA-HAb-CeNc-Hin-R-?model=Opus%2C%20Codex)

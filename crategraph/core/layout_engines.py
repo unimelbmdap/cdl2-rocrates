@@ -11,8 +11,8 @@ Two engines ship out of the box:
   ``crategraph_forceatlas2`` package — fast, deterministic (seeded), the
   preferred default.
 - ``NxFallbackEngine`` ("nx"): pure-Python fallback using NetworkX's own
-  ``forceatlas2_layout`` (present from NetworkX 3.5), used when the rust
-  package is not installed.
+  ``forceatlas2_layout`` (present from NetworkX 3.5), retained as a defensive
+  fallback if the required rust package is unexpectedly unavailable.
 
 Both engines operate on integer node indices ``[0, n_nodes)`` and undirected
 edge pairs; callers own the mapping between graph entity IDs and indices.
@@ -28,7 +28,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any
 
-_FORCEATLAS_INSTALL_HINT = 'pip install "crategraph[forceatlas]"'
+_FORCEATLAS_REPAIR_HINT = 'reinstall crategraph to restore "crategraph-forceatlas2"'
 _NX_LARGE_GRAPH_THRESHOLD = 2000
 
 
@@ -80,7 +80,7 @@ class ForceAtlas2RustEngine(LayoutEngine):
         try:
             import crategraph_forceatlas2 as cfa2
         except ImportError:
-            return False, f"not installed — {_FORCEATLAS_INSTALL_HINT}"
+            return False, f"required dependency unavailable — {_FORCEATLAS_REPAIR_HINT}"
         return True, cfa2.__version__
 
     def compute(
@@ -140,7 +140,7 @@ class NxFallbackEngine(LayoutEngine):
         if getattr(nx, "forceatlas2_layout", None) is None:
             return False, (
                 "this NetworkX version has no forceatlas2_layout — upgrade "
-                f"NetworkX, or install the fast backend: {_FORCEATLAS_INSTALL_HINT}"
+                f"NetworkX; the fast backend is also unavailable, so {_FORCEATLAS_REPAIR_HINT}"
             )
         return True, nx.__version__
 
@@ -175,7 +175,8 @@ class NxFallbackEngine(LayoutEngine):
 
         if n_nodes >= _NX_LARGE_GRAPH_THRESHOLD:
             warnings.warn(
-                f"layout will be slow without the forceatlas extra: {_FORCEATLAS_INSTALL_HINT}",
+                "layout is using the slow NetworkX fallback because the required "
+                f"ForceAtlas2 dependency is unavailable; {_FORCEATLAS_REPAIR_HINT}",
                 UserWarning,
                 stacklevel=2,
             )

@@ -411,9 +411,10 @@ wheels = [
 
 [[package]]
 name = "crategraph"
-version = "0.1.2"
+version = "0.1.3"
 source = { editable = "." }
 dependencies = [
+    { name = "crategraph-forceatlas2" },
     { name = "grand-cypher" },
     { name = "markupsafe" },
     { name = "networkx" },
@@ -424,9 +425,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-forceatlas = [
-    { name = "crategraph-forceatlas2" },
-]
 index = [
     { name = "fastembed" },
     { name = "markitdown", extra = ["all"] },
@@ -453,7 +451,6 @@ rdf = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "crategraph-forceatlas2" },
     { name = "hypothesis" },
     { name = "mkdocs-jupyter" },
     { name = "mkdocs-material" },
@@ -467,7 +464,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "crategraph", extras = ["inspect"], marker = "extra == 'index'" },
-    { name = "crategraph-forceatlas2", marker = "extra == 'forceatlas'", specifier = ">=0.1" },
+    { name = "crategraph-forceatlas2", specifier = ">=0.1" },
     { name = "fastembed", marker = "extra == 'index'", specifier = ">=0.3" },
     { name = "grand-cypher", specifier = ">=1.0" },
     { name = "markdown-it-py", marker = "extra == 'okf'", specifier = ">=3.0" },
@@ -486,11 +483,10 @@ requires-dist = [
     { name = "tokenizers", marker = "extra == 'index'", specifier = ">=0.15" },
     { name = "tqdm", marker = "extra == 'index'", specifier = ">=4.65" },
 ]
-provides-extras = ["pyvis", "forceatlas", "rdf", "inspect", "ohrm", "okf", "index"]
+provides-extras = ["pyvis", "rdf", "inspect", "ohrm", "okf", "index"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "crategraph-forceatlas2", specifier = ">=0.1" },
     { name = "hypothesis", specifier = ">=6.0" },
     { name = "mkdocs-jupyter", specifier = ">=0.25" },
     { name = "mkdocs-material", specifier = ">=9.6.21" },

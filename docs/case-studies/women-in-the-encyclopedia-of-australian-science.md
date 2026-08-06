@@ -42,11 +42,11 @@ and **§4 backgrounds**, closing with a bonus network of shared honours.
 
 ## Running this tutorial
 
-While `crategraph` is pre-release, launch from the repository root with `uv run`, pulling in the
-project plus the plotting dependencies:
+Install crategraph with Jupyter and the plotting dependencies, then launch a notebook:
 
 ```bash
-uv run --all-extras --with jupyter,pandas,plotly,kaleido jupyter notebook
+python -m pip install crategraph jupyter pandas plotly kaleido
+jupyter notebook
 ```
 
 ## 1. Building a community of women

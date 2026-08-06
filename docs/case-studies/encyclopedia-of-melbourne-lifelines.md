@@ -29,11 +29,11 @@ explore what analysis we can take from it.
 
 ## Running this tutorial
 
-While `crategraph` is pre-release, launch from the repository root with `uv run`, pulling in the
-project plus the plotting dependencies:
+Install crategraph with Jupyter and the plotting dependencies, then launch a notebook:
 
 ```bash
-uv run --all-extras --with jupyter,pandas,plotly,kaleido jupyter notebook
+python -m pip install crategraph jupyter pandas plotly kaleido
+jupyter notebook
 ```
 
 ## 1. Load the crate and get an overview

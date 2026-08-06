@@ -21,15 +21,15 @@ their keep.
 
 ## Running this tutorial
 
-While `crategraph` is pre-release, launch from the repository root with `uv run`, pulling in
-the project's visualisation extras plus Jupyter:
+Install crategraph with Jupyter, then launch a notebook:
 
 ```bash
-uv run --all-extras --with jupyter jupyter notebook
+python -m pip install crategraph jupyter
+jupyter notebook
 ```
 
-`--all-extras` installs the ForceAtlas2 layout engine the renderers use for larger graphs. The
-3D view loads its JavaScript from a CDN, so viewing it needs a network connection.
+crategraph includes the fast ForceAtlas2 layout engine used for larger graphs. The 3D view
+loads its JavaScript from a CDN, so viewing it needs a network connection.
 
 ## 1. Load the crate and glimpse its shape
 

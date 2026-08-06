@@ -32,7 +32,8 @@ sits behind PARADISEC's access conditions. Metadata is all we need to find the o
 This tutorial uses Jupyter, Plotly, and Shapely alongside `crategraph`:
 
 ```bash
-uv run --all-extras --with jupyter,plotly,shapely jupyter notebook
+python -m pip install crategraph jupyter plotly shapely
+jupyter notebook
 ```
 
 ## 1. Load several crates at once

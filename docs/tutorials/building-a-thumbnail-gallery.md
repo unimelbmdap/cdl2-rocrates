@@ -17,11 +17,11 @@ transcripts, and other paperwork.
 
 ## Running this tutorial
 
-While `crategraph` is pre-release, launch from the repository root with `uv run`, pulling in
-the project plus Jupyter:
+Install crategraph and Jupyter, then launch a notebook:
 
 ```bash
-uv run --all-extras --with jupyter jupyter notebook
+python -m pip install crategraph jupyter
+jupyter notebook
 ```
 
 ## 1. Load the crate

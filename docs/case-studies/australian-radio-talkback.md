@@ -26,17 +26,18 @@ what NLP `crategraph` makes possible itself, as well as what it can hand off to 
 
 ## Running this tutorial
 
-This notebook hands off to third-party NLP tools in Sections 8 to 10, so it needs a few extra
-packages alongside `crategraph`. Launch from the repository root with `uv run`:
+This notebook hands off to third-party NLP tools in Sections 8 to 10, so install the semantic
+search extra and the additional packages before launching Jupyter:
 
 ```bash
-uv run --all-extras --with jupyter,pandas,plotly,transformers,torch,spacy jupyter notebook
+python -m pip install "crategraph[index]" jupyter pandas plotly transformers torch spacy
+jupyter notebook
 ```
 
 Then download the small spaCy English model once, in an environment that includes spaCy:
 
 ```bash
-uv run --all-extras --with spacy python -m spacy download en_core_web_sm
+python -m spacy download en_core_web_sm
 ```
 
 ## 1. Load the crate

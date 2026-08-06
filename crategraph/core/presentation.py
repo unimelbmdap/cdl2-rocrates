@@ -158,11 +158,9 @@ def layout(
     """Compute 2D node positions for visualisation.
 
     Runs ForceAtlas2 through a pluggable layout engine: the compiled
-    ``crategraph_forceatlas2`` package when available (fast, and seeded so
-    layouts are reproducible run-to-run), otherwise NetworkX's pure-Python
-    ``forceatlas2_layout``. Install the fast backend with::
-
-        pip install "crategraph[forceatlas]"
+    ``crategraph_forceatlas2`` package (fast, and seeded so layouts are
+    reproducible run-to-run), with NetworkX's pure-Python
+    ``forceatlas2_layout`` retained as a defensive fallback.
 
     Args:
         engine: Layout engine name (``"forceatlas2"`` or ``"nx"``).

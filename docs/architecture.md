@@ -122,7 +122,7 @@ Renderers take a `Graph` and produce a visual output. Common parameters include 
 - `SigmaRenderer` (`renderers/sigma.py`) — default (`"2d"`). WebGL-accelerated rendering via sigma.js with ForceAtlas2 client-side layout. Handles large graphs efficiently. No extra Python dependencies.
 - `SvgRenderer` (`renderers/svg.py`) — static SVG with a custom Fruchterman–Reingold force layout. Includes post-layout overlap removal. Also used by `glimpse()`.
 - `ForceGraph3DRenderer` (`renderers/forcegraph3d.py`) — 3D interactive via a bundled HTML template using the 3d-force-graph (Three.js) library.
-- `PyvisRenderer` (`renderers/pyvis.py`) — interactive 2D HTML network using pyvis/vis.js. Requires `pip install crategraph[pyvis]`.
+- `PyvisRenderer` (`renderers/pyvis.py`) — interactive 2D HTML network using pyvis/vis.js. Requires `python -m pip install "crategraph[pyvis]"`.
 
 All renderers share colour assignment via `_colours.py:resolve_colour_map()`, which supports colouring by any entity attribute and automatic community detection.
 

@@ -36,11 +36,12 @@ who built it, Gavan among them.
 
 ## Running this tutorial
 
-While `crategraph` is pre-release, launch from the repository root with `uv run`, pulling in the
-project plus the plotting and text dependencies used below:
+Install crategraph with Jupyter and the plotting and text dependencies used below, then launch
+a notebook:
 
 ```bash
-uv run --all-extras --with jupyter,pandas,plotly,kaleido,wordcloud,matplotlib jupyter notebook
+python -m pip install crategraph jupyter pandas plotly kaleido wordcloud matplotlib
+jupyter notebook
 ```
 
 ## 1. Load the collection and get an overview

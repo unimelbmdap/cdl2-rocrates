@@ -25,11 +25,12 @@ street addresses where interviews were recorded.
 
 ## Running this tutorial
 
-While `crategraph` is pre-release, launch from the repository root with `uv run`, pulling
-in the project plus the plotting and geocoding dependencies:
+Install crategraph with Jupyter and the plotting and geocoding dependencies, then launch a
+notebook:
 
 ```bash
-uv run --all-extras --with jupyter,pandas,plotly,shapely,geopy jupyter notebook
+python -m pip install crategraph jupyter pandas plotly shapely geopy
+jupyter notebook
 ```
 
 ## 1. Load the crate and find the places
