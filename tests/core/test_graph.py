@@ -34,6 +34,14 @@ class TestTitle:
         g = Graph(metadata={"name": "TheName", "title": "TheTitle"})
         assert g.title == "TheName"
 
+    def test_unwraps_single_item_list_name(self):
+        g = Graph(metadata={"name": ["My Crate"]})
+        assert g.title == "My Crate"
+
+    def test_unwraps_single_item_list_title(self):
+        g = Graph(metadata={"title": ["Other"]})
+        assert g.title == "Other"
+
     def test_fallback_when_metadata_empty(self):
         assert Graph().title == "Untitled RO-Crate"
 

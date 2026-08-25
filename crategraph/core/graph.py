@@ -39,6 +39,11 @@ def _source_name(source: str) -> str:
     return PurePosixPath(source).name
 
 
+def _first(value: Any) -> Any:
+    """Unwrap a property crategraph returns as a list when multi-valued."""
+    return value[0] if isinstance(value, list) else value
+
+
 class Graph:
     """The central object for loading, querying, and visualising graphs.
 
@@ -100,7 +105,7 @@ class Graph:
         per-crate names are joined with commas.
         """
         for key in ("name", "title"):
-            value = self.metadata.get(key)
+            value = _first(self.metadata.get(key))
             if isinstance(value, str) and value:
                 return value
         # Multi-crate shape only: every top-level value is a per-crate
@@ -111,7 +116,7 @@ class Graph:
             nested_titles = []
             for value in self.metadata.values():
                 for key in ("name", "title"):
-                    sub = value.get(key)
+                    sub = _first(value.get(key))
                     if isinstance(sub, str) and sub:
                         nested_titles.append(sub)
                         break
