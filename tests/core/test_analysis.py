@@ -50,6 +50,38 @@ class TestSummary:
         assert s.relationship_type_counts["memberOf"] == 2
         assert s.relationship_type_counts["attended"] == 2
 
+    def test_entity_type_counts_sorted_descending(self):
+        g = Graph()
+        g._add_node(Entity(id="#r1", types=["Rare"]))
+        g._add_node(Entity(id="#m1", types=["Mid"]))
+        g._add_node(Entity(id="#m2", types=["Mid"]))
+        g._add_node(Entity(id="#c1", types=["Common"]))
+        g._add_node(Entity(id="#c2", types=["Common"]))
+        g._add_node(Entity(id="#c3", types=["Common"]))
+        s = g.summary()
+        assert list(s.entity_type_counts.items()) == [
+            ("Common", 3),
+            ("Mid", 2),
+            ("Rare", 1),
+        ]
+
+    def test_relationship_type_counts_sorted_descending(self):
+        g = Graph()
+        g._add_node(Entity(id="#a", types=["Person"]))
+        g._add_node(Entity(id="#b", types=["Person"]))
+        g._add_edge(Relationship(source="#a", target="#b", type="rare"))
+        g._add_edge(Relationship(source="#a", target="#b", type="mid"))
+        g._add_edge(Relationship(source="#a", target="#b", type="mid"))
+        g._add_edge(Relationship(source="#a", target="#b", type="common"))
+        g._add_edge(Relationship(source="#a", target="#b", type="common"))
+        g._add_edge(Relationship(source="#a", target="#b", type="common"))
+        s = g.summary()
+        assert list(s.relationship_type_counts.items()) == [
+            ("common", 3),
+            ("mid", 2),
+            ("rare", 1),
+        ]
+
     def test_summary_has_most_connected(self):
         g = _build_graph()
         s = g.summary()

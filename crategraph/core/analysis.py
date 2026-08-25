@@ -61,8 +61,8 @@ def summary(graph: Graph) -> GraphSummary:
     return GraphSummary(
         entity_count=len(graph._entities),
         relationship_count=len(graph._relationships),
-        entity_type_counts=dict(Counter(e.type for e in graph._entities.values())),
-        relationship_type_counts=dict(Counter(r.type for r in graph._relationships)),
+        entity_type_counts=dict(Counter(e.type for e in graph._entities.values()).most_common()),
+        relationship_type_counts=dict(Counter(r.type for r in graph._relationships).most_common()),
         source=graph.source,
         sources=graph.sources,
         most_connected=[(entity.name, degree) for entity, degree in top],
