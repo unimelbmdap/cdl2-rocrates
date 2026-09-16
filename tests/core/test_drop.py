@@ -96,13 +96,13 @@ class TestDropByProperty:
         assert "#bob" not in result._entities
         assert "#acme" not in result._entities
 
-    def test_list_valued_property_dropped_on_membership(self):
+    def test_scoped_list_valued_property_dropped_on_membership(self):
         g = _build_graph()
         result = g.drop("Melbourne", property="tags")
         assert "#event" not in result._entities
         assert "#alice" in result._entities
 
-    def test_list_valued_property_without_match_kept(self):
+    def test_scoped_list_valued_property_without_match_kept(self):
         g = _build_graph()
         result = g.drop("Sydney", property="tags")
         assert "#event" in result._entities

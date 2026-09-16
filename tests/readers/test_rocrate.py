@@ -392,7 +392,7 @@ class TestReadIAEACrate:
 
 
 class TestUnwrapLiteralSingleton:
-    """Rule table from the 2026-09-16 spec, one assertion per row."""
+    """Covers every row of the rule table in the 2026-09-16 spec."""
 
     def test_string_singleton_unwrapped(self):
         from crategraph.readers.rocrate import _unwrap_literal_singleton
