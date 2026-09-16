@@ -1181,7 +1181,11 @@ class Graph:
         )
 
     def drop(self, values: str | list[str], *, property: str | None = None) -> Graph:
-        """Remove entities whose properties contain any of the given values."""
+        """Remove entities whose properties contain any of the given values.
+
+        A list- or tuple-valued property counts as containing a value when
+        any of its elements equals it.
+        """
         return filtering.drop(self, values, property=property)
 
     def subtract(self, other: Graph) -> Graph:
@@ -1189,7 +1193,13 @@ class Graph:
         return filtering.subtract(self, other)
 
     def where(self, **kwargs: Any) -> Graph:
-        """Filter by entity property values."""
+        """Filter by entity property values.
+
+        Scalar values are matched exactly. Tuple ``(low, high)`` values
+        match entities whose property falls within the inclusive range.
+        A list-valued property matches when any of its elements satisfies
+        the filter (or when the whole list equals the expected value).
+        """
         return filtering.where(self, **kwargs)
 
     def search(
