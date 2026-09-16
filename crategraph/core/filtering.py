@@ -185,6 +185,9 @@ def drop(
 ) -> Graph:
     """Remove entities whose properties contain any of the given values.
 
+    A list- or tuple-valued property counts as containing a value when
+    any of its elements equals it.
+
     Args:
         values: A single value or list of values to drop.
         property: If given, only check this property key. If omitted,
@@ -199,18 +202,39 @@ def drop(
     node_ids = set(graph._entities.keys())
     for eid, entity in graph._entities.items():
         if property is not None:
-            if entity.properties.get(property) in value_set:
+            if _contains_any(entity.properties.get(property), value_set):
                 node_ids.discard(eid)
         else:
             for v in entity.properties.values():
-                try:
-                    if v in value_set:
-                        node_ids.discard(eid)
-                        break
-                except TypeError:
-                    continue
+                if _contains_any(v, value_set):
+                    node_ids.discard(eid)
+                    break
 
     return graph._build_derived_graph(node_ids=node_ids)
+
+
+def _contains_any(value: Any, value_set: set[Any]) -> bool:
+    """True if *value*, or any element of a list/tuple *value*, is in *value_set*.
+
+    Unhashable values (dicts, nested lists) never match.
+    """
+    for item in _elements(value):
+        try:
+            if item in value_set:
+                return True
+        except TypeError:
+            continue
+    return False
+
+
+def _elements(value: Any) -> list[Any]:
+    """Explode a list/tuple property into its non-``None`` elements.
+
+    Scalars become a one-item list. Mirrors how ``entity_counts`` tallies
+    list-valued columns, so filters and counts agree on what is present.
+    """
+    items = value if isinstance(value, (list, tuple)) else [value]
+    return [item for item in items if item is not None]
 
 
 def subtract(graph: Graph, other: Graph) -> Graph:
@@ -224,6 +248,8 @@ def where(graph: Graph, **kwargs: Any) -> Graph:
 
     Scalar values are matched exactly.  Tuple ``(low, high)`` values
     match entities whose property falls within the inclusive range.
+    A list-valued property matches when any of its elements satisfies
+    the filter (or when the whole list equals the expected value).
 
     Returns a new ``Graph`` containing only the matching entities.
     """
@@ -243,17 +269,22 @@ def _entity_matches_where(entity: Entity, filters: dict[str, Any]) -> bool:
         if value is None:
             return False
         if isinstance(expected, tuple) and len(expected) == 2:
-            # Range filter.
-            low, high = expected
-            try:
-                numeric = float(value) if not isinstance(value, (int, float)) else value
-                if not (low <= numeric <= high):
-                    return False
-            except (ValueError, TypeError):
+            # Range filter: any element of a multi-valued property may fall inside.
+            if not any(_in_range(item, expected) for item in _elements(value)):
                 return False
-        elif value != expected:
+        elif value != expected and expected not in _elements(value):
             return False
     return True
+
+
+def _in_range(value: Any, bounds: tuple[Any, Any]) -> bool:
+    """Whether a scalar falls within the inclusive ``(low, high)`` range."""
+    low, high = bounds
+    try:
+        numeric = float(value) if not isinstance(value, (int, float)) else value
+        return low <= numeric <= high
+    except (ValueError, TypeError):
+        return False
 
 
 _SEARCH_TOP_N = 10
