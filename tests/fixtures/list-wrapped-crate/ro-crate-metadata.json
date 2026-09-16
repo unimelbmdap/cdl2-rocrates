@@ -1,0 +1,75 @@
+{
+    "@context": "https://w3id.org/ro/crate/1.1/context",
+    "@graph": [
+        {
+            "@id": "ro-crate-metadata.json",
+            "@type": "CreativeWork",
+            "about": {"@id": "./"},
+            "conformsTo": {"@id": "https://w3id.org/ro/crate/1.1"}
+        },
+        {
+            "@id": "./",
+            "@type": "Dataset",
+            "name": ["Wrapped Crate"],
+            "description": ["A producer that kept singleton arrays"],
+            "datePublished": ["2024-01-01"],
+            "license": [{"@id": "https://creativecommons.org/licenses/by/4.0/"}],
+            "hasPart": [{"@id": "data/file.txt"}]
+        },
+        {
+            "@id": "data/file.txt",
+            "@type": "File",
+            "name": ["A file"],
+            "encodingFormat": ["text/plain"],
+            "contentSize": [42],
+            "isPublic": [true],
+            "emptyName": [""],
+            "zero": [0],
+            "flag": [false],
+            "tags": ["a", "b"],
+            "nested": [["a"]],
+            "nothing": [],
+            "nulls": [null],
+            "mixed": ["a", {"@id": "#alice"}],
+            "geo": [{"@type": "GeoCoordinates", "latitude": -37.8}],
+            "structured": [{"@value": "A", "@language": "en"}],
+            "author": [{"@id": "#alice"}],
+            "contributor": [{"@id": "#Bob%20Smith"}]
+        },
+        {
+            "@id": "images/a.png",
+            "@type": "File",
+            "name": ["A picture"],
+            "encodingFormat": ["image/png"],
+            "thumbnail": ["images/a.png"]
+        },
+        {
+            "@id": "#alice",
+            "@type": "Person",
+            "name": ["Alice"],
+            "affiliation": {"@id": "#acme"}
+        },
+        {
+            "@id": "#Bob%20Smith",
+            "@type": "Person",
+            "name": ["Bob Smith"]
+        },
+        {
+            "@id": "#acme",
+            "@type": "Organization",
+            "name": ["ACME"]
+        },
+        {
+            "@id": "https://creativecommons.org/licenses/by/4.0/",
+            "@type": "CreativeWork",
+            "name": ["CC BY 4.0"]
+        },
+        {
+            "@id": "#rel1",
+            "@type": "Relationship",
+            "source": {"@id": "#alice"},
+            "target": {"@id": "#acme"},
+            "role": ["Director"]
+        }
+    ]
+}

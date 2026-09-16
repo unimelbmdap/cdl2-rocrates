@@ -13,6 +13,7 @@ FIXTURES = Path(__file__).parent.parent / "fixtures"
 MINIMAL = FIXTURES / "minimal-crate"
 QUIRKY = FIXTURES / "quirky-crate"
 ARCP_ROOT = FIXTURES / "arcp-root-crate"
+LIST_WRAPPED = FIXTURES / "list-wrapped-crate"
 
 
 class TestCanRead:
@@ -444,3 +445,179 @@ class TestUnwrapLiteralSingleton:
         assert _unwrap_literal_singleton(None) is None
         d = {"@id": "#x"}
         assert _unwrap_literal_singleton(d) is d
+
+
+class TestListWrappedCrate:
+    """Singleton literal arrays are unwrapped at the reader boundary."""
+
+    def _load(self, **kwargs) -> Crate:
+        return Crate(str(LIST_WRAPPED), **kwargs)
+
+    def test_entity_literal_singletons_become_scalars(self):
+        g = self._load()
+        f = g._entities["data/file.txt"]
+        assert f.properties["name"] == "A file"
+        assert f.properties["encodingFormat"] == "text/plain"
+        assert f.properties["contentSize"] == 42
+        assert f.properties["isPublic"] is True
+
+    def test_falsy_literal_singletons_preserved(self):
+        f = self._load()._entities["data/file.txt"]
+        assert f.properties["emptyName"] == ""
+        assert f.properties["zero"] == 0
+        assert f.properties["flag"] is False
+
+    def test_non_literal_lists_keep_shape(self):
+        f = self._load()._entities["data/file.txt"]
+        assert f.properties["tags"] == ["a", "b"]
+        assert f.properties["nested"] == [["a"]]
+        assert f.properties["nothing"] == []
+        assert f.properties["nulls"] == [None]
+        assert f.properties["mixed"] == ["a", "#alice"]
+        assert f.properties["geo"] == [{"@type": "GeoCoordinates", "latitude": -37.8}]
+        assert f.properties["structured"] == [{"@value": "A", "@language": "en"}]
+
+    def test_reference_singletons_stay_lists_of_ids(self):
+        f = self._load()._entities["data/file.txt"]
+        assert f.properties["author"] == ["#alice"]
+        assert f.properties["contributor"] == ["#Bob Smith"]
+
+    def test_bare_reference_still_collapses_to_id(self):
+        alice = self._load()._entities["#alice"]
+        assert alice.properties["affiliation"] == "#acme"
+
+    def test_root_metadata_literal_singletons_become_scalars(self):
+        g = self._load()
+        assert g.metadata["name"] == "Wrapped Crate"
+        assert g.metadata["description"] == "A producer that kept singleton arrays"
+        assert g.metadata["datePublished"] == "2024-01-01"
+
+    def test_root_metadata_reference_lists_stay_lists(self):
+        g = self._load()
+        assert g.metadata["license"] == ["https://creativecommons.org/licenses/by/4.0/"]
+        assert g.metadata["hasPart"] == ["data/file.txt"]
+
+    def test_root_excluded_by_default(self):
+        assert "./" not in self._load()._entities
+
+    def test_include_root_true_gives_root_entity_scalar_name(self):
+        g = self._load(include_root=True)
+        root = g._entities["./"]
+        assert root.properties["name"] == "Wrapped Crate"
+        assert root.properties["license"] == ["https://creativecommons.org/licenses/by/4.0/"]
+        assert g.metadata["name"] == "Wrapped Crate"
+
+    def test_reified_relationship_properties_unwrapped(self):
+        g = self._load()
+        rel = next(r for r in g.relationships if r.id == "#rel1")
+        assert rel.properties["role"] == "Director"
+
+
+class TestListWrappedCrateEdges:
+    """Relationship extraction reads raw items; the unwrap must not change edges."""
+
+    def _edges(self, **kwargs) -> set[tuple[str, str, str]]:
+        g = Crate(str(LIST_WRAPPED), **kwargs)
+        return {(r.source, r.target, r.type) for r in g.relationships}
+
+    def test_default_inline_relations(self):
+        assert self._edges() == {
+            ("data/file.txt", "#alice", "author"),
+            ("data/file.txt", "#alice", "mixed"),
+            ("data/file.txt", "#Bob Smith", "contributor"),
+            ("#alice", "#acme", "affiliation"),
+            ("#alice", "#acme", "Relationship"),
+        }
+
+    def test_inline_relations_false_keeps_only_reified(self):
+        assert self._edges(inline_relations=False) == {("#alice", "#acme", "Relationship")}
+
+    def test_inline_relations_allowlist(self):
+        assert self._edges(inline_relations=["author"]) == {
+            ("data/file.txt", "#alice", "author"),
+            ("#alice", "#acme", "Relationship"),
+        }
+
+    def test_include_root_adds_root_and_descriptor_edges(self):
+        # Singleton ``hasPart`` and ``license`` reference lists on the root
+        # still produce edges once the root is kept.
+        assert self._edges(include_root=True) == {
+            ("data/file.txt", "#alice", "author"),
+            ("data/file.txt", "#alice", "mixed"),
+            ("data/file.txt", "#Bob Smith", "contributor"),
+            ("#alice", "#acme", "affiliation"),
+            ("#alice", "#acme", "Relationship"),
+            ("./", "data/file.txt", "hasPart"),
+            ("./", "https://creativecommons.org/licenses/by/4.0/", "license"),
+            ("ro-crate-metadata.json", "./", "about"),
+        }
+
+
+class TestListWrappedCrateConsumers:
+    """The unwrap must be visible through every public surface, not just .properties."""
+
+    def _load(self) -> Crate:
+        return Crate(str(LIST_WRAPPED))
+
+    def test_entity_name_and_label_are_plain_strings(self):
+        alice = self._load()._entities["#alice"]
+        assert alice.name == "Alice"
+        assert alice.label == "Alice"
+
+    def test_graph_title_and_metadata_are_scalar(self):
+        g = self._load()
+        assert g.title == "Wrapped Crate"
+        # ``Graph.title`` already tolerates a singleton list via ``_first``;
+        # the stored metadata value itself must be a str.
+        assert isinstance(g.metadata["name"], str)
+
+    def test_entity_records_carry_scalar_name_and_label(self):
+        g = self._load()
+        row = next(r for r in g.entity_records() if r["id"] == "#alice")
+        assert row["name"] == "Alice"
+        assert row["label"] == "Alice"
+
+    def test_where_on_name_matches(self):
+        g = self._load()
+        assert {e.id for e in g.where(name="Alice").entities} == {"#alice"}
+
+    def test_entity_counts_and_where_agree(self):
+        g = self._load()
+        counted = {row["name"] for row in g.entity_counts("name")}
+        for value in counted:
+            assert len(g.where(name=value)) >= 1, value
+
+    def test_csv_writer_label_and_name_columns(self, tmp_path: Path):
+        import csv
+
+        g = self._load()
+        out = tmp_path / "csv"
+        g.write(str(out), format="csv")
+        with (out / "nodes.csv").open(newline="", encoding="utf-8") as fh:
+            rows = {row["id"]: row for row in csv.DictReader(fh)}
+        assert rows["#alice"]["label"] == "Alice"
+        assert rows["#alice"]["name"] == "Alice"
+        assert rows["data/file.txt"]["label"] == "A file"
+
+    def test_svg_renders_plain_labels(self):
+        from crategraph.renderers.svg import SvgRenderer
+
+        svg = SvgRenderer().render(self._load())
+        text = svg.data if hasattr(svg, "data") else str(svg)
+        assert "Alice" in text
+        assert "[&#x27;" not in text
+
+    def test_sigma_renders_to_file(self, tmp_path: Path):
+        from crategraph.renderers.sigma import SigmaRenderer
+
+        target = tmp_path / "sigma.html"
+        SigmaRenderer().render(self._load(), filepath=str(target))
+        assert target.exists()
+
+    def test_gallery_caption_is_plain_label(self):
+        from crategraph.renderers.gallery import GalleryRenderer
+
+        html = GalleryRenderer().render(self._load()).data
+        assert html.count("<img") == 1
+        assert '<figcaption class="cg-caption">A picture</figcaption>' in html
+        assert "[&#x27;" not in html

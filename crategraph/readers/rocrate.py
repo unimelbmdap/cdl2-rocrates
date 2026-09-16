@@ -233,8 +233,10 @@ class ROCrateReader(Reader):
         for key, value in item.items():
             if key in skip:
                 continue
-            # Flatten single @id references to just the ID string.
-            props[key] = self._simplify_value(value)
+            # Unwrap literal singletons on the RAW value first, so a
+            # reference singleton ``[{"@id": x}]`` (a list of one dict, not
+            # a literal) is left alone, then flatten ``{"@id": x}`` to ``x``.
+            props[key] = self._simplify_value(_unwrap_literal_singleton(value))
         return props
 
     def _simplify_value(self, value: Any) -> Any:
@@ -299,7 +301,7 @@ class ROCrateReader(Reader):
 
         rel_type = ", ".join(self._normalise_types(raw_type))
         properties = {
-            k: self._simplify_value(v)
+            k: self._simplify_value(_unwrap_literal_singleton(v))
             for k, v in item.items()
             if k not in {"@id", "@type", "source", "target"}
         }
