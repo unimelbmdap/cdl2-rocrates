@@ -42,6 +42,18 @@ class TestTitle:
         g = Graph(metadata={"title": ["Other"]})
         assert g.title == "Other"
 
+    def test_empty_list_name_falls_back_to_title(self):
+        g = Graph(metadata={"name": [], "title": "Other"})
+        assert g.title == "Other"
+
+    def test_empty_list_name_and_title_fall_back_to_default(self):
+        g = Graph(metadata={"name": [], "title": []})
+        assert g.title == "Untitled RO-Crate"
+
+    def test_multi_crate_skips_empty_list_names(self):
+        g = Graph(metadata={"a": {"name": []}, "b": {"name": ["B"]}})
+        assert g.title == "B"
+
     def test_fallback_when_metadata_empty(self):
         assert Graph().title == "Untitled RO-Crate"
 

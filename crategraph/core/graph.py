@@ -40,8 +40,14 @@ def _source_name(source: str) -> str:
 
 
 def _first(value: Any) -> Any:
-    """Unwrap a property crategraph returns as a list when multi-valued."""
-    return value[0] if isinstance(value, list) else value
+    """Unwrap a property crategraph returns as a list when multi-valued.
+
+    An empty list yields ``None`` so callers fall through to their next
+    fallback instead of raising ``IndexError``.
+    """
+    if isinstance(value, list):
+        return value[0] if value else None
+    return value
 
 
 class Graph:

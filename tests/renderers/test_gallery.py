@@ -316,3 +316,19 @@ class TestGraphGallery:
         with pytest.warns(UserWarning, match="first 48 of 130"):
             result = g.gallery()
         assert result.data.count("<img ") == 48
+
+
+class TestFirstHelperEmptyList:
+    def test_first_returns_none_for_empty_list(self):
+        from crategraph.renderers.gallery import _first
+
+        assert _first([]) is None
+
+    def test_caption_from_empty_list_property_is_blank(self):
+        from crategraph.core.views import EntityView
+        from crategraph.renderers.gallery import _resolve_caption
+
+        g = Graph()
+        entity = Entity(id="#o", types=["RepositoryObject"], properties={"place": []})
+        g._add_node(entity)
+        assert _resolve_caption(EntityView(entity, g), "place") == ""

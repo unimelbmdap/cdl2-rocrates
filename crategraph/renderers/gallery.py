@@ -233,8 +233,14 @@ def _is_image(path: Path, media: str) -> bool:
 
 
 def _first(value: Any) -> Any:
-    """Unwrap a property crategraph returns as a list when multi-valued."""
-    return value[0] if isinstance(value, list) else value
+    """Unwrap a property crategraph returns as a list when multi-valued.
+
+    An empty list yields ``None`` so callers fall through to their next
+    fallback instead of raising ``IndexError``.
+    """
+    if isinstance(value, list):
+        return value[0] if value else None
+    return value
 
 
 def _resolve_caption(view: EntityView, caption: str | None) -> str:
