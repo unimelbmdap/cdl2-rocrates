@@ -19,6 +19,23 @@ from crategraph.core.models import Entity, Relationship
 
 _METADATA_FILENAME = "ro-crate-metadata.json"
 
+# JSON literal types. ``bool`` is an ``int`` subclass; listed for readability.
+_LITERAL_TYPES = (str, int, float, bool)
+
+
+def _unwrap_literal_singleton(value: Any) -> Any:
+    """Collapse a one-item list of a JSON literal to the literal itself.
+
+    RO-Crate 1.1 says single-element arrays SHOULD be unpacked in the
+    compacted form, but some producers (notably LDACA metadata-only
+    exports) keep them, so ``name`` arrives as ``["Foo"]``. This is
+    applied only to raw top-level property values, so nested lists,
+    ``@id`` reference lists and structured objects are left alone.
+    """
+    if isinstance(value, list) and len(value) == 1 and isinstance(value[0], _LITERAL_TYPES):
+        return value[0]
+    return value
+
 
 class ROCrateReader(Reader):
     """Read an RO-Crate directory into a Graph."""
