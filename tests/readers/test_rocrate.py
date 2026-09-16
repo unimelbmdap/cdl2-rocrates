@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from crategraph import Crate
-from crategraph.readers.rocrate import ROCrateReader
+from crategraph.readers.rocrate import ROCrateReader, _unwrap_literal_singleton
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 MINIMAL = FIXTURES / "minimal-crate"
@@ -395,51 +395,35 @@ class TestUnwrapLiteralSingleton:
     """Covers every row of the rule table in the 2026-09-16 spec."""
 
     def test_string_singleton_unwrapped(self):
-        from crategraph.readers.rocrate import _unwrap_literal_singleton
-
         assert _unwrap_literal_singleton(["Foo"]) == "Foo"
 
     def test_numeric_and_bool_singletons_unwrapped(self):
-        from crategraph.readers.rocrate import _unwrap_literal_singleton
-
         assert _unwrap_literal_singleton([42]) == 42
         assert _unwrap_literal_singleton([1.5]) == 1.5
         assert _unwrap_literal_singleton([True]) is True
 
     def test_falsy_literals_preserved_not_dropped(self):
-        from crategraph.readers.rocrate import _unwrap_literal_singleton
-
         assert _unwrap_literal_singleton([""]) == ""
         assert _unwrap_literal_singleton([0]) == 0
         assert _unwrap_literal_singleton([False]) is False
 
     def test_multi_item_list_untouched(self):
-        from crategraph.readers.rocrate import _unwrap_literal_singleton
-
         assert _unwrap_literal_singleton(["A", "B"]) == ["A", "B"]
 
     def test_reference_singleton_untouched(self):
-        from crategraph.readers.rocrate import _unwrap_literal_singleton
-
         ref = [{"@id": "#x"}]
         assert _unwrap_literal_singleton(ref) is ref
 
     def test_nested_object_singleton_untouched(self):
-        from crategraph.readers.rocrate import _unwrap_literal_singleton
-
         obj = [{"@type": "GeoCoordinates", "latitude": -37.8}]
         assert _unwrap_literal_singleton(obj) is obj
 
     def test_null_empty_and_nested_lists_untouched(self):
-        from crategraph.readers.rocrate import _unwrap_literal_singleton
-
         assert _unwrap_literal_singleton([None]) == [None]
         assert _unwrap_literal_singleton([]) == []
         assert _unwrap_literal_singleton([["a"]]) == [["a"]]
 
     def test_scalars_and_dicts_pass_through(self):
-        from crategraph.readers.rocrate import _unwrap_literal_singleton
-
         assert _unwrap_literal_singleton("Foo") == "Foo"
         assert _unwrap_literal_singleton(7) == 7
         assert _unwrap_literal_singleton(None) is None
@@ -584,6 +568,7 @@ class TestListWrappedCrateConsumers:
     def test_entity_counts_and_where_agree(self):
         g = self._load()
         counted = {row["name"] for row in g.entity_counts("name")}
+        assert counted
         for value in counted:
             assert len(g.where(name=value)) >= 1, value
 
