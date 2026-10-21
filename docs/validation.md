@@ -94,6 +94,7 @@ crategraph's validator is a Python port of the [ro-crate-masp](https://github.co
 - A property rule with no name produces one warning per rule.
 - A class rule with no types (no `prov:specializationOf`) produces a warning.
 - A malformed `sh:minCount` or `sh:maxCount` produces a warning and falls back to the default.
+- Literal ranges are matched against both the expanded range IRI and the range name as written (as the JavaScript validator does), so a profile that remaps a bare range name such as `Text` in its own context still accepts values of the original schema.org type.
 
 ## Known limitations
 
