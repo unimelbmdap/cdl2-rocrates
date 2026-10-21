@@ -19,11 +19,3 @@
 ## SelectOptions
 
 ::: crategraph.core.models.SelectOptions
-
-## ValidationReport
-
-::: crategraph.core.models.ValidationReport
-
-## ValidationIssue
-
-::: crategraph.core.models.ValidationIssue

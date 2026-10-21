@@ -55,11 +55,11 @@ class TestValidatorABC:
             Validator()  # type: ignore[abstract]
 
     def test_complete_subclass(self):
-        from crategraph.core.models import ValidationReport
+        from crategraph.validators.report import ValidationReport
 
         class DummyValidator(Validator):
             def validate(self, graph) -> ValidationReport:
-                return ValidationReport(issues=[])
+                return ValidationReport()
 
         validator = DummyValidator()
         report = validator.validate(None)

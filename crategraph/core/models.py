@@ -6,7 +6,7 @@ import copy as _copy_module
 from dataclasses import dataclass, field
 from html import escape as _escape_html
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -215,25 +215,6 @@ class SelectOptions(BaseModel):
     max_connections: int | None = None
     source: str | None = None
     id: str | None = None
-
-
-class ValidationIssue(BaseModel):
-    """A single issue found during validation."""
-
-    severity: Literal["error", "warning", "info"]
-    entity_id: str | None = None
-    message: str
-
-
-class ValidationReport(BaseModel):
-    """Result of running a validator against a graph."""
-
-    issues: list[ValidationIssue]
-
-    @property
-    def is_valid(self) -> bool:
-        """A report is valid when it contains no error-level issues."""
-        return not any(i.severity == "error" for i in self.issues)
 
 
 # --- Inspector result model ---

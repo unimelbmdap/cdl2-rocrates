@@ -8,8 +8,6 @@ from crategraph.core.models import (
     Entity,
     Relationship,
     SelectOptions,
-    ValidationIssue,
-    ValidationReport,
 )
 
 # --- Entity ---
@@ -202,45 +200,3 @@ class TestSelectOptions:
     def test_with_time_range(self):
         opts = SelectOptions(time_range=(2000, 2020))
         assert opts.time_range == (2000, 2020)
-
-
-# --- ValidationIssue ---
-
-
-class TestValidationIssue:
-    def test_error_issue(self):
-        issue = ValidationIssue(severity="error", message="Missing @id")
-        assert issue.severity == "error"
-        assert issue.entity_id is None
-        assert issue.message == "Missing @id"
-
-    def test_warning_with_entity(self):
-        issue = ValidationIssue(severity="warning", entity_id="#x", message="No name")
-        assert issue.entity_id == "#x"
-
-
-# --- ValidationReport ---
-
-
-class TestValidationReport:
-    def test_empty_report_is_valid(self):
-        report = ValidationReport(issues=[])
-        assert report.is_valid is True
-
-    def test_report_with_warning_is_valid(self):
-        report = ValidationReport(issues=[ValidationIssue(severity="warning", message="minor")])
-        assert report.is_valid is True
-
-    def test_report_with_error_is_not_valid(self):
-        report = ValidationReport(issues=[ValidationIssue(severity="error", message="bad")])
-        assert report.is_valid is False
-
-    def test_report_with_mixed_issues(self):
-        report = ValidationReport(
-            issues=[
-                ValidationIssue(severity="info", message="ok"),
-                ValidationIssue(severity="error", message="bad"),
-                ValidationIssue(severity="warning", message="meh"),
-            ]
-        )
-        assert report.is_valid is False

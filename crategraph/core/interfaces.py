@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
-    from crategraph.core.models import FileInfo, ValidationReport, ViewInfo
+    from crategraph.core.models import FileInfo, ViewInfo
+    from crategraph.validators.report import ValidationReport
 
 
 class Reader(ABC):
