@@ -71,6 +71,7 @@ plugins:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - Validating Against a Profile: validation.md
   - Tutorials:
     - Overview: tutorials/index.md
     - From Graph to DataFrame: tutorials/from-graph-to-dataframe.md
@@ -93,6 +94,7 @@ nav:
     - Overview: api/index.md
     - Graph & Crate: api/graph.md
     - Data Models: api/models.md
+    - Validation: api/validation.md
     - Type Discovery: api/types.md
     - Plugin Interfaces: api/interfaces.md
   - Resources: resources.md

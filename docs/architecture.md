@@ -85,7 +85,7 @@ crategraph/
 ├── viewers/               # Rich file previews
 │   ├── __init__.py        # Viewer registry and find_viewer()
 │   └── default.py         # DefaultViewer — images, CSV tables, audio, etc.
-├── validators/            # Data quality checks (planned, ABC only)
+├── validators/            # Validator registry, ValidationReport, MASP profile validator (masp/)
 └── writers/               # Export/serialisation (GraphML, CSV, text shipped; RDF planned)
 ```
 
@@ -158,11 +158,13 @@ The viewer registry (`viewers/__init__.py`) works like the inspector registry: `
 
 **ABC:** `Validator` — `validate(graph) -> ValidationReport`
 
-Validators check a graph for data quality issues and return a report of problems found.
+Validators check a crate for data quality issues and return a `ValidationReport`, a `Records` subclass (`validators/report.py`) with one row per check. The registry (`validators/__init__.py`) offers `register_validator`, `get_validator` and `list_kinds`, and `Graph.validate(profile, kind="masp")` dispatches through it.
 
-**Current status:** the ABC and data models (`ValidationReport`, `ValidationIssue`) exist, but there are no concrete implementations yet.
+**Current implementations:**
 
-**Contribution ideas:** schema.org conformance checking, RO-Crate profile validation, broken-link detection, completeness checks (e.g. entities missing required properties).
+- `MaspValidator` (`validators/masp/`) — validates the raw `ro-crate-metadata.json` against a MASP profile, a Python port of the ro-crate-masp JavaScript validator. It needs the `validate` extra (`rdflib` and `validators`) and reads the file on disk, not the in-memory graph. See [Validating Against a Profile](validation.md).
+
+**Contribution ideas:** schema.org conformance checking, broken-link detection, completeness checks that do not need a profile.
 
 ### Writers
 
@@ -199,7 +201,7 @@ A typical workflow moves data through the system like this:
 3. **Visualise:** a `Renderer` takes the current graph and produces output (HTML, SVG, or in-memory object).
 4. **View:** a `Viewer` produces a rich HTML preview of a file (images, tables, audio players).
 5. **Inspect:** an `Inspector` examines a file referenced by an entity and returns a `FileInfo` with content and metadata.
-6. **Validate** *(planned)*: a `Validator` checks the graph against quality rules and returns a `ValidationReport`.
+6. **Validate**: a `Validator` checks the crate against a profile and returns a `ValidationReport`. `graph.validate("path/to/profile")` runs the MASP validator.
 7. **Export**: a `Writer` serialises the graph to a file. `graph.write(path, format="graphml")` and `graph.write(path, format="csv")` are available; RDF export is planned.
 
 ## Where to Start
@@ -210,7 +212,7 @@ A typical workflow moves data through the system like this:
 | Build a new visualisation           | `core/interfaces.py:Renderer`, then any file in `renderers/` |
 | Add a file inspector                | `core/interfaces.py:Inspector`, then `inspectors/markitdown.py` |
 | Add a file viewer                   | `core/interfaces.py:Viewer`, then `viewers/default.py`    |
-| Implement validation                | `core/interfaces.py:Validator` and `core/models.py:ValidationReport` |
+| Implement validation                | `core/interfaces.py:Validator`, then `validators/masp/validator.py` and `validators/report.py:ValidationReport` |
 | Add an export format                | `core/interfaces.py:Writer`, then `writers/graphml.py` as a reference |
 | Add analytical features             | `core/analysis.py`                                        |
 | Add filtering or query methods      | `core/filtering.py`                                       |

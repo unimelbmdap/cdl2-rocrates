@@ -31,7 +31,7 @@ crategraph/
 │   └── shared/     # Base classes (TabularGraphReader, CsvGraphReader, SqlGraphReader)
 ├── renderers/      # Visualisation (Pyvis 2D, ForceGraph3D, SVG, Sigma.js, Gallery)
 ├── inspectors/     # File inspection (MarkItDown)
-├── validators/     # Data quality checks (planned)
+├── validators/     # Validator registry, ValidationReport, MASP profile validator (masp/)
 ├── viewers/        # Rich file previews (DefaultViewer)
 └── writers/        # Export/serialisation (GraphML, CSV, Text shipped; RDF, RO-Crate planned)
 tests/              # Mirrors source layout

@@ -17,11 +17,11 @@ Rationale behind key architectural choices in crategraph.
 
 ## Data Models: Dataclasses + Pydantic
 
-**Decision:** Frozen dataclasses for internal models (`Entity`, `Relationship`) and result types (`FileInfo`, `ViewInfo`). Pydantic for user-facing models where validation and serialisation matter (`ValidationReport`, `SelectOptions`).
+**Decision:** Frozen dataclasses for internal models (`Entity`, `Relationship`) and result types (`FileInfo`, `ViewInfo`). Pydantic for user-facing models where validation and serialisation matter (`SelectOptions`). `ValidationReport` is a `Records` subclass in `crategraph/validators/report.py`, so it displays and converts to a DataFrame like other record lists.
 
 **Why frozen dataclasses?** The immutable-results principle means entities and relationships should not be mutated after creation. `frozen=True` enforces this at the language level. Dataclasses are stdlib, lightweight, and sufficient for simple containers. Inspection and viewer results (`FileInfo`, `ViewInfo`) also use frozen dataclasses — they're immutable result objects, not configuration.
 
-**Why Pydantic for validation and configuration models?** Automatic validation, type coercion, and JSON serialisation. Useful for validation reports and structured option types. Pydantic is already a dependency (used in the core), so there's no cost to using it where it adds value.
+**Why Pydantic for validation and configuration models?** Automatic validation, type coercion, and JSON serialisation. Useful for structured option types. Pydantic is already a dependency (used in the core), so there's no cost to using it where it adds value.
 
 ## Plugin Contracts: ABCs not Protocols
 

@@ -16,6 +16,12 @@ If you want to extract text content from files in the crate (PDFs, Word document
 python -m pip install "crategraph[inspect]"
 ```
 
+To check crates against a MASP profile (see [Validating Against a Profile](validation.md)), install the validation extra:
+
+```bash
+python -m pip install "crategraph[validate]"
+```
+
 !!! tip "Using Jupyter notebooks"
     crategraph is designed to work well in [Jupyter notebooks](https://jupyter.org/), where results display as rich HTML. Everything in this guide also works in plain Python scripts.
 
