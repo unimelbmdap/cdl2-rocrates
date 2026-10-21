@@ -89,6 +89,7 @@ class ROCrateReader(Reader):
 
         # Store root ID after promotion so it can't be overwritten.
         graph.metadata["_root_id"] = root_id
+        graph.metadata["_source_format"] = "ro-crate"
 
         # First pass: create all entities.
         for item in items:

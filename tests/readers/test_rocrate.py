@@ -288,6 +288,10 @@ class TestRootIdDetection:
         g = reader.read(str(MINIMAL))
         assert g.metadata["_root_id"] == "./"
 
+    def test_source_format_marker_set(self):
+        g = ROCrateReader().read(str(MINIMAL))
+        assert g.metadata["_source_format"] == "ro-crate"
+
     def test_arcp_root_id_detected(self):
         reader = ROCrateReader(include_root=True)
         g = reader.read(str(ARCP_ROOT))

@@ -61,6 +61,10 @@ class TestRootEntity:
         g = SimpleFolderReader().read(str(SIMPLE))
         assert g.source == str(SIMPLE.resolve())
 
+    def test_no_source_format_marker(self):
+        g = SimpleFolderReader().read(str(SIMPLE))
+        assert "_source_format" not in g.metadata
+
     def test_metadata_root_id(self):
         g = SimpleFolderReader().read(str(SIMPLE))
         assert g.metadata["_root_id"] == "./"
