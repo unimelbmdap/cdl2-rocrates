@@ -1,4 +1,7 @@
 import json
+import random
+import time
+from itertools import chain
 from pathlib import Path
 
 import pytest
@@ -248,6 +251,71 @@ def test_ancestor_ids_survive_cycles():
     assert p.ancestor_class_ids("#Self") == []
     assert p.ancestor_class_ids("#missing") == []
     assert p.classes["#A"].property_rules == ()
+
+
+def _enumerated_ancestors(profile: Profile, class_id: str) -> list[str]:
+    """The original path-enumerating algorithm (JS ``parentClasses``), kept as an oracle."""
+
+    def paths(current: str, visited: frozenset[str]) -> list[list[str]]:
+        if current in visited:
+            return []
+        visited = visited | {current}
+        parents = profile._parent_class_ids(current)
+        if not parents:
+            return [[]]
+        return [[parent, *sub] for parent in parents for sub in paths(parent, visited)]
+
+    return list(dict.fromkeys(chain.from_iterable(paths(class_id, frozenset()))))
+
+
+def _random_hierarchy(rng: random.Random) -> list[dict]:
+    size = rng.randint(1, 7)
+    ids = [f"#{i}" for i in range(size)]
+    targets = [*ids, "#undeclared", "https://schema.org/Enumeration"]
+    classes = []
+    for class_id in ids:
+        parents = [{"@id": rng.choice(targets)} for _ in range(rng.choice((0, 1, 1, 2, 2, 3)))]
+        entity = {"@id": class_id, "@type": "rdfs:Class"}
+        if parents:
+            entity["rdfs:subClassOf"] = parents if len(parents) > 1 else parents[0]
+        classes.append(entity)
+    return classes
+
+
+def test_ancestor_ids_match_path_enumeration_on_random_hierarchies():
+    rng = random.Random(20261021)
+    for _ in range(200):
+        classes = _random_hierarchy(rng)
+        p = parse(*classes)
+        queries = [c["@id"] for c in classes] + ["#undeclared"]
+        rng.shuffle(queries)  # the memo must not depend on query order
+        for class_id in queries:
+            expected = _enumerated_ancestors(p, class_id)
+            assert p.ancestor_class_ids(class_id) == expected, (classes, class_id)
+
+
+def test_layered_diamond_ancestors_are_fast():
+    # 18 layers of 2 classes, each a subclass of both classes in the layer
+    # above: 131,072 paths from the bottom, which the old enumeration walked.
+    layers = 18
+    classes = []
+    for layer in range(layers):
+        for side in "ab":
+            entity = {"@id": f"#L{layer}{side}", "@type": "rdfs:Class"}
+            if layer + 1 < layers:
+                entity["rdfs:subClassOf"] = [
+                    {"@id": f"#L{layer + 1}a"},
+                    {"@id": f"#L{layer + 1}b"},
+                ]
+            classes.append(entity)
+    data = make_profile(*classes)
+    start = time.perf_counter()
+    p = Profile.from_json(data, source="profile.json")
+    ancestors = p.ancestor_class_ids("#L0a")
+    elapsed = time.perf_counter() - start
+    assert len(ancestors) == 2 * (layers - 1)
+    assert ancestors[:3] == ["#L1a", "#L2a", "#L3a"]
+    assert elapsed < 0.1
 
 
 def test_enumeration_detection_through_subclass_chain():

@@ -12,7 +12,6 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, replace
-from itertools import chain
 from typing import TYPE_CHECKING, Any
 
 from crategraph.validators.masp.context import normalise_iri
@@ -123,7 +122,8 @@ class Profile:
         self.warnings: list[dict] = []
         self._item_list_nodes: dict[str, Node] = {}
         self._loose_property_rules: dict[str, PropertyRule] = {}
-        self._ancestors: dict[str, list[str]] = {}
+        self._cycles: dict[str, frozenset[str]] | None = None
+        self._summaries: dict[tuple[str, frozenset[str]], tuple[bool, tuple[str, ...]]] = {}
         self._vocabulary_values: dict[str, list[str]] = {}
         self._domain_members: dict[str, list[str]] = {}
         self._parse()
@@ -375,30 +375,63 @@ class Profile:
             return []
         return _ids(node.properties.get("rdfs:subClassOf"))
 
-    def _parent_paths(self, class_id: str, visited: frozenset[str]) -> list[list[str]]:
-        """Every ancestor path up to a root class (JS ``parentClasses``, l.1560-1576).
+    def _cycle_members(self) -> dict[str, frozenset[str]]:
+        """Each class in an ``rdfs:subClassOf`` cycle, mapped to its whole cycle.
 
-        A path that runs back into a class already on it yields no path at
-        all, exactly as in the JS.
+        Precisely: the strongly connected components with more than one class.
+        """
+        if self._cycles is None:
+            import networkx as nx
+
+            graph = nx.DiGraph()
+            for node in self.document.nodes.values():
+                graph.add_edges_from((node.id, p) for p in self._parent_class_ids(node.id))
+            self._cycles = {
+                member: frozenset(component)
+                for component in nx.strongly_connected_components(graph)
+                if len(component) > 1
+                for member in component
+            }
+        return self._cycles
+
+    def _ancestor_summary(
+        self, class_id: str, visited: frozenset[str]
+    ) -> tuple[bool, tuple[str, ...]]:
+        """Summarise the JS ``parentClasses`` paths (l.1560-1576) without listing them.
+
+        The JS lists every ancestor path from *class_id* up to a root class; a
+        path that runs back into a class already on it yields no path at all.
+        Returns whether any path survives, and the classes on the surviving
+        paths in first-seen order (``dict.fromkeys`` over the concatenated
+        paths). Memoised on the class and the visited classes in its own
+        cycle, the only ones that can affect the result, so outside
+        ``rdfs:subClassOf`` cycles the work grows with the number of classes
+        rather than the number of paths.
         """
         if class_id in visited:
-            return []
-        visited = visited | {class_id}
-        parents = self._parent_class_ids(class_id)
-        if not parents:
-            return [[]]
-        return [
-            [parent, *sub_path]
-            for parent in parents
-            for sub_path in self._parent_paths(parent, visited)
-        ]
+            return False, ()
+        key = (class_id, visited & self._cycle_members().get(class_id, frozenset()))
+        if key not in self._summaries:
+            parents = self._parent_class_ids(class_id)
+            if not parents:
+                summary: tuple[bool, tuple[str, ...]] = (True, ())
+            else:
+                inner = visited | {class_id}
+                alive = False
+                order: dict[str, None] = {}
+                for parent in parents:
+                    parent_alive, parent_order = self._ancestor_summary(parent, inner)
+                    if parent_alive:
+                        alive = True
+                        order[parent] = None
+                        order.update(dict.fromkeys(parent_order))
+                summary = (alive, tuple(order))
+            self._summaries[key] = summary
+        return self._summaries[key]
 
     def ancestor_class_ids(self, class_id: str) -> list[str]:
         """All ancestor class ids, nearest first, de-duplicated (JS l.1583-1585)."""
-        if class_id not in self._ancestors:
-            paths = self._parent_paths(class_id, frozenset())
-            self._ancestors[class_id] = list(dict.fromkeys(chain.from_iterable(paths)))
-        return list(self._ancestors[class_id])
+        return list(self._ancestor_summary(class_id, frozenset())[1])
 
     def is_enumeration_class(self, class_id: str) -> bool:
         """True for ``schema.org/Enumeration`` or any subclass of it (JS l.1593-1597)."""
