@@ -223,6 +223,30 @@ def test_inherited_property_rules_follow_subclass_chain():
     assert p.classes["#C"].property_rules[1] is p.properties["#c1"]
 
 
+def test_ancestors_absent_from_the_profile_contribute_no_property_rules():
+    # JS l.303-308: getEntity(ancestorId) is null for an ancestor the profile
+    # does not describe, so its domainIncludes members are never collected.
+    rules = (
+        {
+            "@id": "#C",
+            "@type": "rdfs:Class",
+            "rdfs:subClassOf": {"@id": "https://schema.org/Thing"},
+        },
+        {"@id": "#c1", "@type": "rdf:Property", "name": "c1", "domainIncludes": {"@id": "#C"}},
+        {
+            "@id": "#t1",
+            "@type": "rdf:Property",
+            "name": "t1",
+            "domainIncludes": {"@id": "https://schema.org/Thing"},
+        },
+    )
+    absent = parse(*rules)
+    assert absent.ancestor_class_ids("#C") == ["https://schema.org/Thing"]
+    assert [r.id for r in absent.classes["#C"].property_rules] == ["#c1"]
+    present = parse(*rules, {"@id": "https://schema.org/Thing", "@type": "rdfs:Class"})
+    assert [r.id for r in present.classes["#C"].property_rules] == ["#c1", "#t1"]
+
+
 def test_property_rules_include_entities_outside_the_schema_descriptor():
     # The JS builds a property rule from every entity whose domainIncludes
     # names the class, listed in the schema descriptor or not.

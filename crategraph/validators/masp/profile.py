@@ -355,10 +355,13 @@ class Profile:
 
         As in the JS, every profile entity whose ``domainIncludes`` names the
         class (or an ancestor) becomes a property rule, whether or not the
-        schema descriptor lists it.
+        schema descriptor lists it. Ancestors the profile does not describe
+        contribute nothing (JS l.303-308); they stay in ``ancestor_class_ids``
+        because enumeration detection needs them.
         """
         rules: dict[str, PropertyRule] = {}
-        for owner in (class_id, *self.ancestor_class_ids(class_id)):
+        ancestors = [a for a in self.ancestor_class_ids(class_id) if self.document.get(a)]
+        for owner in (class_id, *ancestors):
             for member_id in self._domain_members.get(owner, ()):
                 if member_id not in rules:
                     rules[member_id] = self._property_rule_by_id(member_id)
