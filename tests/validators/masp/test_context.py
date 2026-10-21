@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import email.message
 import io
 import json
+import socket
 import urllib.error
 import urllib.request
+import urllib.response
 from pathlib import Path
 
 import pytest
@@ -53,6 +56,36 @@ def _clear_fetch_cache():
     context_module._FETCH_CACHE.clear()
 
 
+PUBLIC_ADDRESS = "93.184.215.14"
+
+
+def _resolve_to(monkeypatch, addresses: dict[str, list[str]] | list[str], lookups=None):
+    """Make host lookups return *addresses* (per host, or the same for every host)."""
+
+    def getaddrinfo(host, port, *args, **kwargs):
+        if lookups is not None:
+            lookups.append(host)
+        found = addresses.get(host, [PUBLIC_ADDRESS]) if isinstance(addresses, dict) else addresses
+        return [
+            (
+                socket.AF_INET6 if ":" in a else socket.AF_INET,
+                socket.SOCK_STREAM,
+                6,
+                "",
+                (a, port or 0),
+            )
+            for a in found
+        ]
+
+    monkeypatch.setattr(socket, "getaddrinfo", getaddrinfo)
+
+
+@pytest.fixture(autouse=True)
+def _public_dns(monkeypatch):
+    """Every host resolves to a public address unless a test says otherwise."""
+    _resolve_to(monkeypatch, [PUBLIC_ADDRESS])
+
+
 def _strings_anywhere(value):
     """Yield every string value (not dict keys) nested in *value*."""
     if isinstance(value, str):
@@ -69,7 +102,7 @@ def _strings_anywhere(value):
 
 
 def test_bundled_ro_crate_context_inlines_without_network(monkeypatch):
-    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(context_module, "_open", _boom)
     res = resolve_context(
         ["https://w3id.org/ro/crate/1.2/context", {"@vocab": "http://schema.org/"}]
     )
@@ -79,7 +112,7 @@ def test_bundled_ro_crate_context_inlines_without_network(monkeypatch):
 
 @pytest.mark.parametrize("url", sorted(BUNDLED_CONTEXTS))
 def test_every_bundled_context_loads(monkeypatch, url):
-    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(context_module, "_open", _boom)
     res = resolve_context(url)
     assert res.unresolved == ()
     assert len(res.context) == 1
@@ -95,7 +128,7 @@ def test_every_bundled_context_loads(monkeypatch, url):
     ],
 )
 def test_bundled_lookup_ignores_trailing_slash_and_scheme(monkeypatch, variant):
-    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(context_module, "_open", _boom)
     res = resolve_context(variant, fetch=True)
     assert res.unresolved == ()
     assert TermExpander(res.context).expand("Dataset") == "http://schema.org/Dataset"
@@ -114,7 +147,7 @@ def test_single_dict_and_none_contexts():
 
 
 def test_unknown_url_unresolved_without_fetch(monkeypatch):
-    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(context_module, "_open", _boom)
     res = resolve_context(["https://example.org/ctx.jsonld"])
     assert res.unresolved == ("https://example.org/ctx.jsonld",)
     assert res.context == []
@@ -123,8 +156,8 @@ def test_unknown_url_unresolved_without_fetch(monkeypatch):
 def test_fetch_true_uses_fetched_document(monkeypatch):
     calls = []
     monkeypatch.setattr(
-        urllib.request,
-        "urlopen",
+        context_module,
+        "_open",
         _fake_response({"@context": {"ex": "http://ex.org/"}}, calls),
     )
     res = resolve_context(["https://example.org/ctx.jsonld"], fetch=True)
@@ -140,8 +173,8 @@ def test_fetch_true_uses_fetched_document(monkeypatch):
 def test_fetched_document_is_cached_per_process(monkeypatch):
     calls = []
     monkeypatch.setattr(
-        urllib.request,
-        "urlopen",
+        context_module,
+        "_open",
         _fake_response({"@context": {"ex": "http://ex.org/"}}, calls),
     )
     resolve_context("https://example.org/ctx.jsonld", fetch=True)
@@ -161,7 +194,7 @@ def test_fetch_failure_is_unresolved_not_raised(monkeypatch, error):
     def failing(*args, **kwargs):
         raise error
 
-    monkeypatch.setattr(urllib.request, "urlopen", failing)
+    monkeypatch.setattr(context_module, "_open", failing)
     res = resolve_context(["https://example.org/ctx.jsonld", {"ex": "http://ex.org/"}], fetch=True)
     assert res.unresolved == ("https://example.org/ctx.jsonld",)
     assert res.context == [{"ex": "http://ex.org/"}]
@@ -170,37 +203,182 @@ def test_fetch_failure_is_unresolved_not_raised(monkeypatch, error):
 @pytest.mark.parametrize("document", ["not json at all", {"no": "context"}, ["a", "list"]])
 def test_fetched_document_without_context_is_unresolved(monkeypatch, document):
     if isinstance(document, str):
-        monkeypatch.setattr(
-            urllib.request, "urlopen", lambda *a, **k: _Response(document.encode())
-        )
+        monkeypatch.setattr(context_module, "_open", lambda *a, **k: _Response(document.encode()))
     else:
-        monkeypatch.setattr(urllib.request, "urlopen", _fake_response(document))
+        monkeypatch.setattr(context_module, "_open", _fake_response(document))
     res = resolve_context("https://example.org/ctx.jsonld", fetch=True)
     assert res.unresolved == ("https://example.org/ctx.jsonld",)
 
 
 def test_relative_url_with_fetch_is_unresolved_not_raised(monkeypatch):
-    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(context_module, "_open", _boom)
     assert resolve_context(["ctx.jsonld"], fetch=True).unresolved == ("ctx.jsonld",)
 
 
 @pytest.mark.parametrize("url", ["file:///etc/hosts", "ftp://example.org/x"])
 def test_non_http_schemes_are_never_fetched(monkeypatch, url):
-    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(context_module, "_open", _boom)
     assert resolve_context([url], fetch=True).unresolved == (url,)
 
 
 def test_malformed_url_with_fetch_is_unresolved_not_raised(monkeypatch):
-    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(context_module, "_open", _boom)
     assert resolve_context(["http://[abc"], fetch=True).unresolved == ("http://[abc",)
 
 
 def test_malformed_nested_url_is_unresolved_not_raised(monkeypatch):
     document = {"@context": ["//[abc/x", {"ex": "http://ex.org/"}]}
-    monkeypatch.setattr(urllib.request, "urlopen", _fake_response(document))
+    monkeypatch.setattr(context_module, "_open", _fake_response(document))
     res = resolve_context("https://example.org/ctx.jsonld", fetch=True)
     assert res.unresolved == ("//[abc/x",)
     assert res.context == [{"ex": "http://ex.org/"}]
+
+
+PRIVATE_LITERAL_URLS = [
+    "http://127.0.0.1:8080/admin",
+    "http://10.0.0.5/ctx.jsonld",
+    "http://169.254.169.254/latest/meta-data/",
+    "http://[::1]/ctx.jsonld",
+    "http://[fe80::1]/ctx.jsonld",
+    "http://0.0.0.0/ctx.jsonld",
+    "http://[::ffff:127.0.0.1]/ctx.jsonld",
+]
+
+
+@pytest.mark.parametrize("url", PRIVATE_LITERAL_URLS)
+def test_private_literal_addresses_are_never_fetched(monkeypatch, url):
+    monkeypatch.setattr(context_module, "_open", _boom)
+    monkeypatch.setattr(socket, "getaddrinfo", _boom)  # a literal address needs no lookup
+    assert resolve_context([url], fetch=True).unresolved == (url,)
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        "127.0.0.1",
+        "10.1.2.3",
+        "192.168.1.1",
+        "169.254.169.254",
+        "100.64.0.1",
+        "224.0.0.1",
+        "0.0.0.0",
+        "::1",
+        "fe80::1%en0",
+        "::ffff:10.0.0.1",
+    ],
+)
+def test_hosts_resolving_to_private_addresses_are_never_fetched(monkeypatch, address):
+    _resolve_to(monkeypatch, [address])
+    monkeypatch.setattr(context_module, "_open", _boom)
+    url = "https://internal.example.org/ctx.jsonld"
+    assert resolve_context([url], fetch=True).unresolved == (url,)
+
+
+def test_one_private_address_among_several_refuses_the_host(monkeypatch):
+    _resolve_to(monkeypatch, [PUBLIC_ADDRESS, "10.0.0.1"])
+    monkeypatch.setattr(context_module, "_open", _boom)
+    url = "https://mixed.example.org/ctx.jsonld"
+    assert resolve_context([url], fetch=True).unresolved == (url,)
+
+
+def test_unresolvable_host_is_unresolved_not_raised(monkeypatch):
+    def getaddrinfo(*args, **kwargs):
+        raise socket.gaierror("no such host")
+
+    monkeypatch.setattr(socket, "getaddrinfo", getaddrinfo)
+    monkeypatch.setattr(context_module, "_open", _boom)
+    url = "https://nowhere.example.org/ctx.jsonld"
+    assert resolve_context([url], fetch=True).unresolved == (url,)
+
+
+def test_public_address_is_checked_then_fetched(monkeypatch):
+    lookups: list[str] = []
+    _resolve_to(monkeypatch, [PUBLIC_ADDRESS], lookups)
+    monkeypatch.setattr(
+        context_module, "_open", _fake_response({"@context": {"ex": "http://ex.org/"}})
+    )
+    res = resolve_context("https://example.org/ctx.jsonld", fetch=True)
+    assert res.unresolved == ()
+    assert lookups == ["example.org"]
+
+
+class _FakeWeb(urllib.request.BaseHandler):
+    """Serve canned responses for http(s) URLs: ``url -> (status, location or document)``."""
+
+    handler_order = 50  # ahead of urllib's real handlers and any proxy handler
+
+    def __init__(self, routes: dict[str, tuple[int, object]]) -> None:
+        self.routes = routes
+        self.requested: list[str] = []
+
+    def _serve(self, request):
+        url = request.full_url
+        self.requested.append(url)
+        status, payload = self.routes[url]
+        headers = email.message.Message()
+        if status in (301, 302, 303, 307, 308):
+            headers["Location"] = payload
+            body = b""
+        else:
+            body = json.dumps(payload).encode()
+        response = urllib.response.addinfourl(io.BytesIO(body), headers, url, status)
+        response.msg = "canned"
+        return response
+
+    http_open = _serve
+    https_open = _serve
+
+
+def _serve_web(monkeypatch, routes) -> _FakeWeb:
+    """Route the real opener ``_open`` builds through a :class:`_FakeWeb`."""
+    web = _FakeWeb(routes)
+    real_build_opener = urllib.request.build_opener
+    monkeypatch.setattr(
+        urllib.request, "build_opener", lambda *handlers: real_build_opener(*handlers, web)
+    )
+    return web
+
+
+DOCUMENT = {"@context": {"ex": "http://ex.org/"}}
+
+
+def test_redirect_to_public_host_is_followed(monkeypatch):
+    start = "https://example.org/ctx.jsonld"
+    final = "https://cdn.example.net/ctx.jsonld"
+    web = _serve_web(monkeypatch, {start: (302, final), final: (200, DOCUMENT)})
+    res = resolve_context(start, fetch=True)
+    assert res.unresolved == ()
+    assert web.requested == [start, final]
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "http://169.254.169.254/latest/meta-data/",
+        "http://127.0.0.1:8080/admin",
+        "http://[::1]/ctx.jsonld",
+        "https://internal.example.org/ctx.jsonld",
+        "ftp://example.org/ctx.jsonld",
+        "file:///etc/hosts",
+    ],
+)
+def test_redirect_to_refused_address_is_unresolved(monkeypatch, target):
+    _resolve_to(monkeypatch, {"internal.example.org": ["10.0.0.1"]})
+    start = "https://example.org/ctx.jsonld"
+    web = _serve_web(monkeypatch, {start: (302, target), target: (200, DOCUMENT)})
+    res = resolve_context(start, fetch=True)
+    assert res.unresolved == (start,)
+    assert web.requested == [start]
+
+
+def test_too_many_redirects_is_unresolved(monkeypatch):
+    hops = [f"https://example.org/hop{i}.jsonld" for i in range(8)]
+    routes = {url: (302, hops[i + 1]) for i, url in enumerate(hops[:-1])}
+    routes[hops[-1]] = (200, DOCUMENT)
+    web = _serve_web(monkeypatch, routes)
+    res = resolve_context(hops[0], fetch=True)
+    assert res.unresolved == (hops[0],)
+    assert len(web.requested) <= 6
 
 
 def test_nested_remote_contexts_resolve_recursively_against_their_document(monkeypatch):
@@ -214,7 +392,7 @@ def test_nested_remote_contexts_resolve_recursively_against_their_document(monke
     def urlopen(request, timeout=None):
         return _Response(json.dumps(documents[request.full_url]).encode())
 
-    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(context_module, "_open", urlopen)
     res = resolve_context("https://example.org/a/outer.jsonld", fetch=True)
     assert res.unresolved == ()
     assert not any(isinstance(c, str) for c in res.context)
@@ -236,7 +414,7 @@ def test_context_cycle_terminates(monkeypatch):
     def urlopen(request, timeout=None):
         return _Response(json.dumps(documents[request.full_url]).encode())
 
-    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(context_module, "_open", urlopen)
     res = resolve_context("https://example.org/a.jsonld", fetch=True)
     assert not any(isinstance(c, str) for c in res.context)
     exp = TermExpander(res.context)
@@ -264,14 +442,14 @@ def test_at_import_terms_lose_to_the_importing_dict():
 
 
 def test_unresolved_at_import_is_dropped_and_reported(monkeypatch):
-    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(context_module, "_open", _boom)
     res = resolve_context([{"@import": "https://example.org/imp.jsonld", "ex": "http://ex.org/"}])
     assert res.unresolved == ("https://example.org/imp.jsonld",)
     assert res.context == [{"ex": "http://ex.org/"}]
 
 
 def test_scoped_context_urls_are_inlined(monkeypatch):
-    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(context_module, "_open", _boom)
     res = resolve_context(
         [
             {
@@ -289,7 +467,7 @@ def test_scoped_context_urls_are_inlined(monkeypatch):
 
 
 def test_unresolved_urls_are_reported_once_in_order(monkeypatch):
-    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(context_module, "_open", _boom)
     res = resolve_context(
         [
             "https://example.org/b.jsonld",
@@ -307,7 +485,7 @@ def test_tutorial_nt1_context_fully_bundled(monkeypatch):
             "LDaC contexts are not bundled (their hosting repositories are GPL-3.0; "
             f"see crategraph/validators/masp/contexts/README.md): {missing}"
         )
-    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(context_module, "_open", _boom)
     data = json.loads(
         (REPO / "docs/tutorials/data/paradisec/NT1/ro-crate-metadata.json").read_text()
     )
@@ -315,7 +493,7 @@ def test_tutorial_nt1_context_fully_bundled(monkeypatch):
 
 
 def test_tutorial_nt1_reports_only_the_unbundled_ldac_contexts(monkeypatch):
-    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(context_module, "_open", _boom)
     data = json.loads(
         (REPO / "docs/tutorials/data/paradisec/NT1/ro-crate-metadata.json").read_text()
     )

@@ -13,8 +13,11 @@ Whatever cannot be resolved is dropped and reported.
 from __future__ import annotations
 
 import copy
+import ipaddress
 import json
 import re
+import socket
+import urllib.error
 import urllib.parse
 import urllib.request
 from importlib import resources
@@ -30,6 +33,7 @@ BUNDLED_CONTEXTS: dict[str, str] = {
 }
 
 _FETCH_TIMEOUT = 30
+_MAX_REDIRECTS = 5
 _ACCEPT = "application/ld+json, application/json"
 _IMPORT = "@import"
 _CONTEXT = "@context"
@@ -64,20 +68,77 @@ def _load_bundled(name: str) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _refused_address(address: str) -> bool:
+    """True for an address that is not on the public internet."""
+    try:
+        ip = ipaddress.ip_address(address)
+    except ValueError:
+        return True
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
+        ip = ip.ipv4_mapped
+    return (
+        ip.is_loopback
+        or ip.is_private
+        or ip.is_link_local
+        or ip.is_multicast
+        or ip.is_reserved
+        or ip.is_unspecified
+        or not ip.is_global
+    )
+
+
+def _fetch_allowed(url: str) -> bool:
+    """True when *url* is an http(s) URL whose host has only public addresses.
+
+    Crate data chooses the URLs, so fetching must never reach local files or
+    loopback, private, link-local or other non-public network addresses. A
+    host that does not resolve is refused too.
+    """
+    try:
+        parts = urllib.parse.urlsplit(url)
+        if parts.scheme.lower() not in ("http", "https") or not parts.hostname:
+            return False
+        host = parts.hostname
+        try:
+            ipaddress.ip_address(host)
+        except ValueError:
+            addresses = [info[4][0] for info in socket.getaddrinfo(host, None)]
+        else:
+            addresses = [host]
+    except (OSError, ValueError, UnicodeError):
+        return False
+    return bool(addresses) and not any(_refused_address(a) for a in addresses)
+
+
+class _GuardedRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Follow at most a few redirects, and only to addresses we may fetch."""
+
+    max_redirections = _MAX_REDIRECTS
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not _fetch_allowed(newurl):
+            raise urllib.error.HTTPError(newurl, code, "redirect refused", headers, fp)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _open(request: urllib.request.Request, timeout: float) -> Any:
+    opener = urllib.request.build_opener(_GuardedRedirectHandler)
+    return opener.open(request, timeout=timeout)
+
+
 def _fetch(url: str) -> Any | None:
     """Fetch the document at *url*, or return ``None`` on any failure."""
     if url in _FETCH_CACHE:
         return _FETCH_CACHE[url]
+    if not _fetch_allowed(url):
+        return None
     try:
-        # Only web URLs: crate data must never make the validator read local files.
-        if urllib.parse.urlsplit(url).scheme.lower() not in ("http", "https"):
-            return None
         request = urllib.request.Request(url, headers={"Accept": _ACCEPT})
-        with urllib.request.urlopen(request, timeout=_FETCH_TIMEOUT) as response:
+        with _open(request, timeout=_FETCH_TIMEOUT) as response:
             document = json.loads(response.read())
     except (OSError, ValueError):
-        # URLError, HTTPError and timeouts are OSErrors; a malformed URL or bad
-        # JSON is a ValueError.
+        # URLError, HTTPError (including a refused redirect) and timeouts are
+        # OSErrors; a malformed URL or bad JSON is a ValueError.
         return None
     _FETCH_CACHE[url] = document
     return document

@@ -63,7 +63,7 @@ The two Language Data Commons (LDaC) contexts are **not** bundled: `http://purl.
 report = crate.validate("path/to/ldac-profile/", fetch_contexts=True)
 ```
 
-Fetched contexts are cached for the rest of the Python session.
+Fetched contexts are cached for the rest of the Python session. Because the crate chooses which URLs are fetched, `fetch_contexts` only fetches `http` and `https` URLs on the public internet: it refuses hosts that resolve to private or local network addresses (loopback, private ranges, link-local and similar), applies the same check to every redirect, and follows at most five redirects. A refused context is reported as unresolved.
 
 ## Differences from the JavaScript validator
 
