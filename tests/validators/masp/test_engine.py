@@ -1,5 +1,7 @@
 from collections import Counter
 
+import pytest
+
 from crategraph.validators.masp import engine
 from crategraph.validators.masp.document import CrateDocument
 from crategraph.validators.masp.engine import CardinalityOutcome, ValidationRun
@@ -536,3 +538,104 @@ def test_odd_shapes_do_not_crash():
     assert not name["passed"] and '{"inline":"no id"}' in name["message"]
     assert not only_row(rows, "#Person", "#p2", "knows")["passed"]
     assert valid_counts(run) == {"#Person": 1}
+
+
+def count_evaluations(monkeypatch):
+    calls = []
+    original = ValidationRun._evaluate
+
+    def counting(self, node, class_rule):
+        calls.append((node.id, class_rule.id))
+        return original(self, node, class_rule)
+
+    monkeypatch.setattr(ValidationRun, "_evaluate", counting)
+    return calls
+
+
+KNOWS_RULES = (cls("#P", {"@id": "Person"}), prop("#knows", "knows", "#P", ["#P"]))
+
+
+def test_dense_cycle_checks_each_pair_once(monkeypatch):
+    calls = count_evaluations(monkeypatch)
+    ids = [f"#p{i}" for i in range(12)]
+    people = [
+        {"@id": i, "@type": "Person", "knows": [{"@id": j} for j in ids if j != i]} for i in ids
+    ]
+    run, rows = validate(KNOWS_RULES, *people)
+    assert valid_counts(run) == {"#P": 12}
+    assert len(calls) == 12
+    assert_rows_unique(rows)
+
+
+def test_dense_cycle_with_one_failure_is_invalid_throughout(monkeypatch):
+    calls = count_evaluations(monkeypatch)
+    rules = (*KNOWS_RULES, prop("#name", "name", "#P", min_count=1))
+    ids = [f"#p{i}" for i in range(12)]
+    people = [
+        {"@id": i, "@type": "Person", "name": i, "knows": [{"@id": j} for j in ids if j != i]}
+        for i in ids
+    ]
+    del people[7]["name"]
+    run, rows = validate(rules, *people)
+    # Everyone knows #p7, who has no name, so nobody is valid.
+    assert valid_counts(run) == {"#P": 0}
+    assert len(calls) < 12 * 12
+    assert_rows_unique(rows)
+
+
+def chain(length, *, ring=False, name_last=True):
+    people = []
+    for i in range(length):
+        knows = [{"@id": f"#p{i + 1}"}] if i + 1 < length else []
+        if ring:
+            knows.append({"@id": f"#p{(i - 1) % length}"})
+            knows.append({"@id": f"#p{(i + 1) % length}"})
+        person = {"@id": f"#p{i}", "@type": "Person", "knows": knows}
+        if i + 1 < length or name_last:
+            person["name"] = f"P{i}"
+        people.append(person)
+    return people
+
+
+def test_long_reference_chains_do_not_exhaust_the_stack():
+    rules = (*KNOWS_RULES, prop("#name", "name", "#P", min_count=1))
+    for length in (1000, 5000):
+        run, rows = validate(rules, *chain(length))
+        assert valid_counts(run) == {"#P": length}
+    # The last entity lacks a name, so every entity before it fails too.
+    run, rows = validate(rules, *chain(5000, name_last=False))
+    assert valid_counts(run) == {"#P": 0}
+    first = only_row(rows, "#P", "#p0", "knows")
+    assert first["message"].startswith("Property `knows`: value `#p1` is not a valid #P")
+    assert len(first["message"]) < 1000  # nested reasons are cut short
+    run, _ = validate(rules, *chain(5000, ring=True))
+    assert valid_counts(run) == {"#P": 5000}
+
+
+def test_recursion_error_becomes_value_error(monkeypatch):
+    def too_deep(self, node, prule):
+        raise RecursionError
+
+    monkeypatch.setattr(ValidationRun, "check_property", too_deep)
+    with pytest.raises(ValueError, match="nest too deeply"):
+        validate(KNOWS_RULES, {"@id": "#p1", "@type": "Person"})
+
+
+def test_null_and_empty_string_count_as_missing():
+    rules = (cls("#Person", {"@id": "Person"}), prop("#name", "name", "#Person", min_count=1))
+    for empty in ("", None, [None, ""]):
+        _, rows = validate(rules, {"@id": "#p1", "@type": "Person", "name": empty})
+        row = only_row(rows, "#Person", "#p1", "name")
+        assert row["severity"] == "info", empty
+        assert row["message"].endswith("missing required property"), empty
+
+
+def test_zero_and_false_count_as_present():
+    rules = (
+        cls("#Person", {"@id": "Person"}),
+        prop("#flag", "flag", "#Person", ["Boolean"], min_count=1),
+        prop("#count", "count", "#Person", ["Integer"], min_count=1),
+    )
+    _, rows = validate(rules, {"@id": "#p1", "@type": "Person", "flag": False, "count": 0})
+    assert only_row(rows, "#Person", "#p1", "flag")["passed"]
+    assert only_row(rows, "#Person", "#p1", "count")["passed"]

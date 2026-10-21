@@ -5,24 +5,34 @@ Ports the class, property and value checks of ``masp-validator.js``
 ``validatePropertyConstraints``, ``validateEntity`` and
 ``validatePropertyValue``), with the deliberate differences numbered as in
 the user docs.
+
+Entity checks that follow references run on an explicit stack: the property
+and value checks are generators that yield an ``(entity, class rule)`` request
+whenever a value must be checked against a class rule, so a long chain of
+references never deepens the Python call stack.
 """
 
 from __future__ import annotations
 
-import json
 import re
+import sys
+from collections.abc import Generator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 from crategraph.validators.masp.context import normalise_iri
+from crategraph.validators.masp.rows import (
+    cardinality_row,
+    js_string,
+    property_row,
+    regex_flag_warnings,
+)
 from crategraph.validators.masp.values import (
     check_literal,
     matches_item_list,
     matches_property_value,
     matches_template,
-    parse_regex_literal,
 )
-from crategraph.validators.report import make_row
 
 if TYPE_CHECKING:
     from crategraph.validators.masp.document import CrateDocument, Node
@@ -30,11 +40,10 @@ if TYPE_CHECKING:
 
 Key = tuple[str, str]  # (entity id, class rule id)
 
-_SCHEMA = "http://schema.org/"
-_URL_RANGES = frozenset({_SCHEMA + "URL", "URL"})
+_URL_RANGES = frozenset({"http://schema.org/URL", "URL"})
 _WEB_IRI = re.compile(r"^https?://[^\s/?#]+", re.IGNORECASE)
-_NO_DEPS: frozenset[Key] = frozenset()
-_NEAR_MISS_LIMIT = 5
+_FREE = sys.maxsize  # "rests on no assumption" (see ``_Result.low``)
+_MAX_DETAIL = 500  # longest nested reason kept in a reference chain
 
 
 class PropertyOutcome(NamedTuple):
@@ -53,7 +62,9 @@ class CardinalityOutcome(NamedTuple):
 
 class _Result(NamedTuple):
     ok: bool
-    assumed: frozenset[Key]
+    # Discovery index of the earliest still-open pair this result assumed
+    # valid, or ``_FREE`` when it rests on no assumption.
+    low: int
 
 
 @dataclass(frozen=True)
@@ -78,27 +89,18 @@ class _Record:
         ]
 
 
+# A property or value check: yields (entity, class rule) requests, receives
+# each one's ``_Result``, and returns its own outcome.
+_Steps = Generator[tuple["Node", "ClassRule"], _Result, Any]
+
+
 def _property_name(rule: PropertyRule) -> str:
     return rule.name or rule.id
 
 
-def _js_string(value: Any) -> str:
-    """Describe a value the way JS ``String()`` / ``JSON.stringify`` would."""
-    if isinstance(value, str):
-        return value
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if value is None:
-        return "null"
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
-    if isinstance(value, (dict, list)):
-        return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
-    return str(value)
-
-
-def _compact(iri: str) -> str:
-    return iri[len(_SCHEMA) :] if iri.startswith(_SCHEMA) else iri
+def _is_empty(value: Any) -> bool:
+    """JSON ``null`` and ``""`` count as no value (difference 14); ``0`` and ``false`` do not."""
+    return value is None or (isinstance(value, str) and value == "")
 
 
 class ValidationRun:
@@ -117,26 +119,36 @@ class ValidationRun:
         self.outcomes: list[PropertyOutcome] = []
         self.cardinalities: list[CardinalityOutcome] = []
         self._final: dict[Key, _Record] = {}
-        self._in_progress: set[Key] = set()
+        # Pairs assumed valid for now: in progress, or provisionally valid and
+        # waiting on their strongly connected component. Maps to discovery index.
+        self._open: dict[Key, int] = {}
+        self._pending: list[tuple[Key, _Record]] = []
+        self._discovered = 0
         self._order: list[tuple[Node, ClassRule]] = []
         self._seen: set[Key] = set()
 
     def run(self) -> list[dict]:
         self._reset()
-        rows = self._regex_flag_warnings()
-        for class_rule in self.profile.classes.values():
-            if not class_rule.type_iris:
-                continue  # warned at parse time
-            valid, near_misses = 0, []
-            for node in self.crate.nodes.values():
-                if not self._types_match(node, class_rule):
-                    continue
-                if self.evaluate(node, class_rule).ok:
-                    valid += 1
-                else:
-                    near_misses.append(node.id)
-            rows.append(self._cardinality_row(class_rule, valid, near_misses))
-        rows.extend(self._property_rows())
+        try:
+            rows = regex_flag_warnings(self.profile)
+            for class_rule in self.profile.classes.values():
+                if not class_rule.type_iris:
+                    continue  # warned at parse time
+                valid, near_misses = 0, []
+                for node in self.crate.nodes.values():
+                    if not self._types_match(node, class_rule):
+                        continue
+                    if self.evaluate(node, class_rule).ok:
+                        valid += 1
+                    else:
+                        reasons = self._final[(node.id, class_rule.id)].reasons()
+                        near_misses.append((node.id, reasons))
+                row = cardinality_row(class_rule, valid, near_misses, self.crate.source)
+                self.cardinalities.append(CardinalityOutcome(class_rule.id, row["passed"], valid))
+                rows.append(row)
+            rows.extend(self._property_rows())
+        except RecursionError as exc:
+            raise ValueError(f"{self.crate.source}: entities nest too deeply to validate") from exc
         return rows
 
     # -- entities -----------------------------------------------------------
@@ -145,67 +157,107 @@ class ValidationRun:
         # The JS rejects an entity with no @type even for a rule with no types.
         return bool(node.types) and class_rule.type_iris <= self.crate.type_iris(node)
 
-    def evaluate(self, node: Node, class_rule: ClassRule) -> _Result:
-        """Greatest-fixed-point check of *node* against *class_rule* (difference 4).
-
-        A pair already in progress is assumed to pass. ``False`` is always
-        final; ``True`` is final only when it rests on no open assumption,
-        otherwise it is evaluated again once that assumption has settled.
-        """
+    def _lookup(self, node: Node, class_rule: ClassRule) -> _Result | None:
+        """The pair's result if known without checking it, else ``None``."""
         if not self._types_match(node, class_rule):
-            return _Result(False, _NO_DEPS)
+            return _Result(False, _FREE)
         key = (node.id, class_rule.id)
         record = self._final.get(key)
         if record is not None:
-            return _Result(record.ok, _NO_DEPS)
-        if key in self._in_progress:
-            return _Result(True, frozenset({key}))
+            return _Result(record.ok, _FREE)
+        index = self._open.get(key)
+        if index is not None:  # optimistic assumption (difference 4)
+            return _Result(True, index)
+        return None
+
+    def evaluate(self, node: Node, class_rule: ClassRule) -> _Result:
+        """Greatest-fixed-point check of *node* against *class_rule* (difference 4).
+
+        A pair already open is assumed valid. ``False`` is always final, and
+        the provisionally valid pairs that its check created are dropped and
+        checked again later. ``True`` becomes final when the strongly connected
+        component it belongs to completes (Tarjan's algorithm), so each pair
+        of a cycle is checked once rather than once per path.
+        """
+        result = self._lookup(node, class_rule)
+        return result if result is not None else self._drive(self._evaluate(node, class_rule))
+
+    def _drive(self, steps: _Steps) -> Any:
+        """Run *steps* to completion, checking requested pairs on an explicit stack."""
+        stack = [steps]
+        reply: _Result | None = None
+        while True:
+            try:
+                node, class_rule = stack[-1].send(reply)  # type: ignore[arg-type]
+            except StopIteration as done:
+                stack.pop()
+                if not stack:
+                    return done.value
+                reply = done.value
+                continue
+            reply = self._lookup(node, class_rule)
+            if reply is None:
+                stack.append(self._evaluate(node, class_rule))
+
+    def _evaluate(self, node: Node, class_rule: ClassRule) -> _Steps:
+        key = (node.id, class_rule.id)
         if key not in self._seen:
             self._seen.add(key)
             self._order.append((node, class_rule))
+        index = self._discovered
+        self._discovered += 1
+        self._open[key] = index
+        mark = len(self._pending)
 
-        self._in_progress.add(key)
         checks: list[_Check] = []
-        assumed: set[Key] = set()
+        low = _FREE
         for prule in class_rule.property_rules:
-            passed, severity, reason, deps = self.check_property(node, prule)
-            checks.append(_Check(prule, passed, severity, reason, bool(deps)))
-            assumed |= deps
-        self._in_progress.discard(key)
-        assumed.discard(key)
+            passed, severity, reason, dep_low = yield from self.check_property(node, prule)
+            checks.append(_Check(prule, passed, severity, reason, dep_low != _FREE))
+            low = min(low, dep_low)
+        record = _Record(all(check.passed for check in checks), tuple(checks))
 
-        ok = all(check.passed for check in checks)
-        if not ok or not assumed:
-            self._final[key] = _Record(ok, tuple(checks))
-        return _Result(ok, frozenset(assumed))
+        if record.ok and low < index:
+            # Valid so far, but resting on a pair opened earlier: wait for it.
+            self._pending.append((key, record))
+            return _Result(True, low)
+        settled = self._pending[mark:]
+        del self._pending[mark:]
+        for pending_key, pending_record in settled:
+            del self._open[pending_key]
+            if record.ok:  # the component is valid as a whole
+                self._final[pending_key] = pending_record
+        del self._open[key]
+        self._final[key] = record
+        return _Result(record.ok, _FREE)
 
     # -- properties ---------------------------------------------------------
 
-    def check_property(
-        self, node: Node, prule: PropertyRule
-    ) -> tuple[bool, str | None, str | None, frozenset[Key]]:
+    def check_property(self, node: Node, prule: PropertyRule) -> _Steps:
         """Port of ``validatePropertyConstraints`` (JS l.375-543).
 
-        Returns ``(passed, severity, reason, assumptions)``.
+        A generator (see ``_Steps``) returning ``(passed, severity, reason,
+        low)``, where *low* is as in ``_Result``.
         """
         if prule.name is None:
-            return False, "warning", f"property rule {prule.id} does not have a name", _NO_DEPS
+            return False, "warning", f"property rule {prule.id} does not have a name", _FREE
         values = self.crate.values_for(node, prule.name, prule.iri)
-        if not values:
-            # Difference 14: an empty list counts as missing.
+        if not values or all(_is_empty(value) for value in values):
+            # Difference 14: an empty list, null or "" counts as missing.
+            # Difference 15: 0 and false count as present.
             if prule.min_count > 0:
-                return False, "info", "missing required property", _NO_DEPS
-            return True, None, None, _NO_DEPS
+                return False, "info", "missing required property", _FREE
+            return True, None, None, _FREE
         count = len(values)
         if count < prule.min_count:
             reason = f"has {count} value(s), requires at least {prule.min_count}"
-            return False, "info", reason, _NO_DEPS
+            return False, "info", reason, _FREE
         if prule.max_count is not None and count > prule.max_count:
             # Difference 2: an error tied to the entity and property.
             reason = f"has {count} value(s), allows at most {prule.max_count}"
-            return False, "error", reason, _NO_DEPS
+            return False, "error", reason, _FREE
         if not prule.ranges:
-            return True, None, None, _NO_DEPS
+            return True, None, None, _FREE
 
         value_rules = [
             self.profile.property_values[r]
@@ -220,42 +272,42 @@ class ValidationRun:
                     f"value constraint {rule.id} requires at least {rule.min_count} "
                     f"match(es), found {matched}"
                 )
-                return False, "info", reason, _NO_DEPS
+                return False, "info", reason, _FREE
             if rule.max_count is not None and matched > rule.max_count:
                 reason = (
                     f"value constraint {rule.id} allows at most {rule.max_count} "
                     f"match(es), found {matched}"
                 )
-                return False, "info", reason, _NO_DEPS
+                return False, "info", reason, _FREE
         if not other_ranges:
-            return True, None, None, _NO_DEPS
+            return True, None, None, _FREE
 
-        deps: set[Key] = set()
+        low = _FREE
         for value in values:
             if any(matches_property_value(value, rule) for rule in value_rules):
                 continue  # JS l.503-514
-            reason, value_deps = self.check_value(value, other_ranges)
+            reason, value_low = yield from self.check_value(value, other_ranges)
             if reason is not None:
-                return False, "info", reason, _NO_DEPS
-            deps |= value_deps
-        return True, None, None, frozenset(deps)
+                return False, "info", reason, _FREE
+            low = min(low, value_low)
+        return True, None, None, low
 
-    def check_value(self, value: Any, ranges: list[str]) -> tuple[str | None, frozenset[Key]]:
+    def check_value(self, value: Any, ranges: list[str]) -> _Steps:
         """Port of ``validatePropertyValue`` (JS l.1866-1986).
 
-        Returns ``(None, assumptions)`` when *value* fits a range, else
-        ``(reason, ∅)``.
+        A generator (see ``_Steps``) returning ``(None, low)`` when *value*
+        fits a range, else ``(reason, _FREE)``.
         """
         range_desc = ", ".join(ranges)
         ref_id = value.get("@id") if isinstance(value, dict) else None
         if not ref_id:
             for range_id in ranges:
                 if any(check_literal(value, form) for form in self._range_forms(range_id)):
-                    return None, _NO_DEPS
+                    return None, _FREE
             return (
-                f'value "{_js_string(value)}" did not match any of the expected ranges: '
+                f'value "{js_string(value)}" did not match any of the expected ranges: '
                 f"{range_desc}",
-                _NO_DEPS,
+                _FREE,
             )
 
         target = self.crate.get(ref_id) if isinstance(ref_id, str) else None
@@ -266,11 +318,11 @@ class ValidationRun:
                 and _WEB_IRI.match(ref_id)
                 and any(self._is_url_range(r) for r in ranges)
             ):
-                return None, _NO_DEPS
+                return None, _FREE
             return (
-                f'value "{_js_string(ref_id)}" references an entity that does not exist '
+                f'value "{js_string(ref_id)}" references an entity that does not exist '
                 "in the crate",
-                _NO_DEPS,
+                _FREE,
             )
 
         chains: list[str] = []
@@ -278,32 +330,34 @@ class ValidationRun:
             if self.profile.is_enumeration_class(
                 range_id
             ) and target.id in self.profile.enumeration_value_ids(range_id):
-                return None, _NO_DEPS
+                return None, _FREE
             class_rule = self.profile.classes.get(range_id)
             if class_rule is not None:
-                result = self.evaluate(target, class_rule)
+                result = yield (target, class_rule)
                 if result.ok:
-                    return None, result.assumed
+                    return None, result.low
                 record = self._final.get((target.id, class_rule.id))
                 if record is not None:  # the types matched, so the failure has reasons
+                    detail = "; ".join(record.reasons())
+                    if len(detail) > _MAX_DETAIL:
+                        detail = detail[:_MAX_DETAIL] + "..."
                     chains.append(
-                        f"value `{target.id}` is not a valid {class_rule.name}: "
-                        + "; ".join(record.reasons())
+                        f"value `{target.id}` is not a valid {class_rule.name}: {detail}"
                     )
             elif range_id in self.profile.item_lists:
                 if matches_item_list(target, self.profile.item_lists[range_id]):
-                    return None, _NO_DEPS
+                    return None, _FREE
             else:
                 template = self.profile.document.get(range_id)
                 if template is not None and matches_template(target, template):
-                    return None, _NO_DEPS
+                    return None, _FREE
         if chains:
-            return " or ".join(chains), _NO_DEPS
+            return " or ".join(chains), _FREE
         types = ", ".join(target.types) or "none"
         return (
             f'value "{target.id}" (types: {types}) did not match any of the expected '
             f"ranges: {range_desc}",
-            _NO_DEPS,
+            _FREE,
         )
 
     def _range_forms(self, range_id: str) -> tuple[str, ...]:
@@ -324,71 +378,6 @@ class ValidationRun:
 
     # -- rows ---------------------------------------------------------------
 
-    def _regex_flag_warnings(self) -> list[dict]:
-        """One warning per PropertyValue rule whose regexes use unsupported flags."""
-        rows = []
-        for rule in self.profile.property_values.values():
-            flags: dict[str, None] = {}
-            for value in rule.values:
-                parsed = parse_regex_literal(value)
-                if parsed is not None:
-                    flags.update(dict.fromkeys(parsed[1]))
-            if flags:
-                rows.append(
-                    make_row(
-                        passed=False,
-                        severity="warning",
-                        rule="profile",
-                        entity_id=rule.id,
-                        property=None,
-                        message=(
-                            f"PropertyValue rule {rule.id} uses unsupported regex flags "
-                            f"{''.join(flags)!r}; they are ignored"
-                        ),
-                        source=self.profile.source,
-                    )
-                )
-        return rows
-
-    def _cardinality_row(self, rule: ClassRule, valid: int, near_misses: list[str]) -> dict:
-        types = ", ".join(sorted(_compact(t) for t in rule.type_iris))
-        label = f"{rule.name} ({types})"
-        passed = False
-        if valid < rule.min_count:
-            # Difference 1: explain each candidate that matched the types and failed.
-            message = (
-                f"Expected at least {rule.min_count} instances of {label}, found {valid} valid."
-            )
-            if near_misses:
-                entries = [
-                    f"{node_id}: {'; '.join(self._final[(node_id, rule.id)].reasons())}"
-                    for node_id in near_misses[:_NEAR_MISS_LIMIT]
-                ]
-                message += " Near misses: " + " | ".join(entries)
-                if len(near_misses) > _NEAR_MISS_LIMIT:
-                    message += f" (+{len(near_misses) - _NEAR_MISS_LIMIT} more)"
-        elif rule.max_count is not None and valid > rule.max_count:
-            message = (
-                f"Expected at most {rule.max_count} instances of {label}, found {valid} valid."
-            )
-        else:
-            passed = True
-            maximum = "unbounded" if rule.max_count is None else rule.max_count
-            message = (
-                f"Found {valid} valid instances of {label} "
-                f"(expected between {rule.min_count} and {maximum})"
-            )
-        self.cardinalities.append(CardinalityOutcome(rule.id, passed, valid))
-        return make_row(
-            passed=passed,
-            severity=None if passed else "error",
-            rule=rule.id,
-            entity_id=None,
-            property=None,
-            message=message,
-            source=self.crate.source,
-        )
-
     def _property_rows(self) -> list[dict]:
         """Rows for every evaluated pair, once each, in first-evaluation order."""
         rows = []
@@ -404,25 +393,25 @@ class ValidationRun:
                 if not record.ok and check.passed and check.assumed:
                     # The pair failed for another reason while this check rested
                     # on an assumption; recheck it now that every pair has settled.
-                    passed, severity, reason, _ = self.check_property(node, check.rule)
+                    passed, severity, reason, _ = self._drive(
+                        self.check_property(node, check.rule)
+                    )
                     check = _Check(check.rule, passed, severity, reason, False)
-                rows.append(self._property_row(class_rule, node, check))
+                name = _property_name(check.rule)
+                self.outcomes.append(
+                    PropertyOutcome(
+                        class_rule.id, node.id, check.rule.id, check.passed, check.severity
+                    )
+                )
+                rows.append(
+                    property_row(
+                        class_rule.id,
+                        node.id,
+                        name,
+                        check.passed,
+                        check.severity,
+                        check.reason,
+                        self.crate.source,
+                    )
+                )
         return rows
-
-    def _property_row(self, class_rule: ClassRule, node: Node, check: _Check) -> dict:
-        name = _property_name(check.rule)
-        self.outcomes.append(
-            PropertyOutcome(class_rule.id, node.id, check.rule.id, check.passed, check.severity)
-        )
-        message = (
-            f"Property `{name}` is valid" if check.passed else f"Property `{name}`: {check.reason}"
-        )
-        return make_row(
-            passed=check.passed,
-            severity=check.severity,
-            rule=class_rule.id,
-            entity_id=node.id,
-            property=name,
-            message=message,
-            source=self.crate.source,
-        )
