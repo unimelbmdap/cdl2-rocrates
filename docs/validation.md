@@ -101,5 +101,6 @@ crategraph's validator is a Python port of the [ro-crate-masp](https://github.co
 - `DefinedTermSet` vocabularies are not checked.
 - There are no domain checks and no checks for undeclared properties.
 - Profiles must be local paths, not URLs.
+- Scoped contexts are not applied. When a term definition in the crate's or profile's context has its own `@context` (a type-scoped or property-scoped context), or an entity in `@graph` carries its own `@context`, terms are still matched using the top-level context only, and the report has one `context` warning for that crate or profile saying so.
 
 Contributors can regenerate the JavaScript comparison corpus with the harness in `scripts/masp-parity/`.

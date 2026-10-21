@@ -36,6 +36,20 @@ def _as_list(value: Any) -> list[Any]:
     return list(value) if isinstance(value, list) else [value]
 
 
+def _has_scoped_contexts(context: list[Any], graph: list[Any]) -> bool:
+    """True when a term definition or a top-level ``@graph`` node has its own ``@context``.
+
+    Such type-scoped, property-scoped or node-level contexts are not applied.
+    """
+    for item in context:
+        if isinstance(item, dict) and any(
+            isinstance(definition, dict) and "@context" in definition
+            for definition in item.values()
+        ):
+            return True
+    return any(isinstance(node, dict) and "@context" in node for node in graph)
+
+
 @dataclass(frozen=True)
 class Node:
     id: str
@@ -53,11 +67,14 @@ class CrateDocument:
         duplicate_ids: tuple[str, ...],
         unresolved_contexts: tuple[str, ...],
         expander: TermExpander,
+        *,
+        has_scoped_contexts: bool = False,
     ) -> None:
         self.source = source
         self.nodes = nodes
         self.duplicate_ids = duplicate_ids
         self.unresolved_contexts = unresolved_contexts
+        self.has_scoped_contexts = has_scoped_contexts
         self.expander = expander
         self._expansions: dict[str, str | None] = {}
 
@@ -106,6 +123,7 @@ class CrateDocument:
             duplicate_ids=tuple(duplicates),
             unresolved_contexts=resolution.unresolved,
             expander=expander,
+            has_scoped_contexts=_has_scoped_contexts(resolution.context, graph),
         )
 
     @classmethod

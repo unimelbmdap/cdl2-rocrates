@@ -219,3 +219,60 @@ def test_duplicate_id_warning_says_values_are_merged(tmp_path: Path):
     (row,) = [r for r in report if r["rule"] == "duplicate-id"]
     assert "merged and validated together" in row["message"]
     assert "first is used" not in row["message"]
+
+
+def _scoped_rows(report) -> list[dict]:
+    return [r for r in report if r["rule"] == "context" and "scoped" in r["message"]]
+
+
+TYPE_SCOPED = {
+    "Person": {"@id": "http://schema.org/Person", "@context": {"name": "http://ex.org/n"}}
+}
+PROPERTY_SCOPED = {
+    "author": {"@id": "http://schema.org/author", "@context": {"x": "http://ex.org/x"}}
+}
+
+
+@pytest.mark.parametrize(
+    "scoped", [TYPE_SCOPED, PROPERTY_SCOPED, {**TYPE_SCOPED, **PROPERTY_SCOPED}]
+)
+def test_scoped_term_context_in_crate_gives_one_warning(profile_dir: Path, tmp_path: Path, scoped):
+    data = _crate_data()
+    data["@context"] = [*data["@context"], scoped]
+    path = _write(tmp_path / "c", data)
+    rows = _scoped_rows(MaspValidator(profile_dir).validate_files([path]))
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["severity"] == "warning" and row["passed"] is False
+    assert row["source"] == str(path) and row["entity_id"] is None
+    assert "top-level context only" in row["message"]
+
+
+def test_node_level_context_in_crate_gives_one_warning(profile_dir: Path, tmp_path: Path):
+    data = _crate_data()
+    data["@graph"].extend(
+        [
+            {"@id": "#a", "@type": "Person", "@context": {"name": "http://ex.org/n"}},
+            {"@id": "#b", "@type": "Person", "@context": {"name": "http://ex.org/n"}},
+        ]
+    )
+    path = _write(tmp_path / "c", data)
+    rows = _scoped_rows(MaspValidator(profile_dir).validate_files([path]))
+    assert [r["source"] for r in rows] == [str(path)]
+
+
+def test_plain_crate_has_no_scoped_context_warning(profile_dir: Path, tmp_path: Path):
+    path = _write(tmp_path / "c", _crate_data())
+    report = MaspValidator(profile_dir).validate_files([path])
+    assert [r for r in report if r["rule"] == "context"] == []
+
+
+def test_scoped_context_in_profile_warns_once(tmp_path: Path):
+    data = _profile_data()
+    data["@context"] = [*data["@context"], TYPE_SCOPED]
+    _write(tmp_path / "profile", data)
+    validator = MaspValidator(tmp_path / "profile")
+    a = _write(tmp_path / "a", _crate_data())
+    b = _write(tmp_path / "b", _crate_data())
+    rows = _scoped_rows(validator.validate_files([a, b]))
+    assert [r["source"] for r in rows] == [validator.profile.source]

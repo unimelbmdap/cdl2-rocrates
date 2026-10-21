@@ -9,7 +9,7 @@ from crategraph.core.interfaces import Validator
 from crategraph.validators._extra import require_validate_extra
 from crategraph.validators.masp.document import CrateDocument, is_reference
 from crategraph.validators.masp.engine import ValidationRun
-from crategraph.validators.masp.profile import Profile
+from crategraph.validators.masp.profile import SCOPED_CONTEXT_WARNING, Profile
 from crategraph.validators.report import ValidationReport, make_row
 from crategraph.validators.sources import crate_metadata_paths
 
@@ -72,6 +72,12 @@ class MaspValidator(Validator):
 
     def _context_rows(self, crate: CrateDocument) -> list[dict[str, Any]]:
         hint = "" if self.fetch_contexts else "; pass fetch_contexts=True to fetch it"
+        messages = [
+            f"The terms of context {url} could not be resolved{hint}"
+            for url in crate.unresolved_contexts
+        ]
+        if crate.has_scoped_contexts:
+            messages.append(f"This crate {SCOPED_CONTEXT_WARNING}")
         return [
             make_row(
                 passed=False,
@@ -79,10 +85,10 @@ class MaspValidator(Validator):
                 rule="context",
                 entity_id=None,
                 property=None,
-                message=f"The terms of context {url} could not be resolved{hint}",
+                message=message,
                 source=crate.source,
             )
-            for url in crate.unresolved_contexts
+            for message in messages
         ]
 
     @staticmethod

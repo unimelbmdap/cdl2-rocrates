@@ -25,6 +25,11 @@ SCHEMA_ROLE = "http://www.w3.org/ns/dx/prof/role/schema"
 VOCABULARY_ROLE = "http://www.w3.org/ns/dx/prof/role/vocabulary"
 CONFORMANCE_INDICATOR_ROLES = frozenset({"https://w3id.org/ro/conformance-indicators"})
 ENUMERATION_IRI = "http://schema.org/Enumeration"
+# Completes "This crate ..." or "The profile ..." in a ``context`` warning row.
+SCOPED_CONTEXT_WARNING = (
+    "uses scoped contexts (a term definition or an entity with its own @context); "
+    "they are not applied, so terms are matched using the top-level context only"
+)
 
 # Compact type name -> expanded IRI; a node matches on either.
 _CLASS = ("rdfs:Class", "http://www.w3.org/2000/01/rdf-schema#Class")
@@ -163,6 +168,8 @@ class Profile:
                 None,
                 rule="context",
             )
+        if self.document.has_scoped_contexts:
+            self._warn(f"The profile {SCOPED_CONTEXT_WARNING}", None, rule="context")
 
         root = self.document.root()
         if root is None:
