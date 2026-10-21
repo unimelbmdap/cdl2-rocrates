@@ -166,3 +166,48 @@ def test_no_rdflib_gives_install_message(monkeypatch, profile_dir: Path):
     monkeypatch.setitem(sys.modules, "rdflib", None)
     with pytest.raises(ImportError, match=r"crategraph\[validate\]"):
         MaspValidator(profile_dir)
+
+
+def _ordered_case(tmp_path: Path):
+    from .test_engine import cls, prop, pv
+
+    profile = make_profile(
+        cls("#Person", {"@id": "Person"}),
+        prop("#kind", "kind", "#Person", ["#pv"]),
+        pv("#pv", "/a/x"),
+        context=[*make_profile()["@context"], "https://example.org/profile-ctx.json"],
+    )
+    profile["@graph"][1]["@id"] = PROFILE_URI
+    profile["@graph"][0]["about"] = {"@id": PROFILE_URI}
+    _write(tmp_path / "profile", profile)
+    crate = _crate_data(PROFILE_URI)
+    crate["@context"] = [*crate["@context"], "https://example.org/crate-ctx.json"]
+    crate["@graph"].extend(
+        [
+            {"@id": "#p", "@type": "Person", "kind": "a"},
+            {"@id": "#p", "@type": "Person", "kind": "a"},
+        ]
+    )
+    path = _write(tmp_path / "crate", crate)
+    return MaspValidator(tmp_path / "profile"), path
+
+
+def test_warning_rows_keep_emission_order(tmp_path: Path):
+    validator, path = _ordered_case(tmp_path)
+    report = validator.validate_files([path])
+    warnings = [r for r in report if not r["passed"] and r["severity"] == "warning"]
+    assert [r["rule"] for r in warnings] == ["context", "context", "duplicate-id", "profile"]
+    assert "crate-ctx" in warnings[0]["message"] and warnings[0]["source"] == str(path)
+    assert "profile-ctx" in warnings[1]["message"]
+    assert warnings[1]["source"] == validator.profile.source
+
+
+def test_profile_rows_are_copied_per_report(tmp_path: Path):
+    validator, path = _ordered_case(tmp_path)
+    first = validator.validate_files([path])
+    for row in first:
+        if row["rule"] in ("context", "profile"):
+            row["message"] = "mutated"
+    second = validator.validate_files([path])
+    assert all(r["message"] != "mutated" for r in second)
+    assert not any(r is s for r in first for s in validator.profile.warnings)

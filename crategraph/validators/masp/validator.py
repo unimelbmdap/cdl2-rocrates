@@ -55,13 +55,13 @@ class MaspValidator(Validator):
             while leading < len(engine_rows) and engine_rows[leading]["rule"] == "profile":
                 leading += 1
             first = index == 0
-            if first:
-                rows.extend(profile_context)
             rows.extend(self._context_rows(crate))
+            if first:
+                rows.extend(dict(r) for r in profile_context)
             rows.extend(self._duplicate_rows(crate))
             if first:
-                rows.extend(profile_other)
-                rows.extend(engine_rows[:leading])
+                rows.extend(dict(r) for r in profile_other)
+                rows.extend(dict(r) for r in engine_rows[:leading])
             rows.extend(engine_rows[leading:])
             rows.append(self._conformance_row(crate))
         return ValidationReport(
