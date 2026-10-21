@@ -205,3 +205,59 @@ def test_item_list_reference_does_not_equal_string():
     assert matches_item_list(node("#e", about=["#x"]), rule) is False
     template = node("#e", about=[{"@id": "#x"}])
     assert matches_template(node("#e", about=["#x"]), template) is True
+
+
+def test_item_list_dict_element_without_id_is_no_match():
+    rule = ItemListRule(id="#l", elements=({"@value": "x"},))
+    assert matches_item_list(node("#e"), rule) is False
+
+
+def test_item_list_and_template_compare_types_as_written():
+    actual = Node("#e", ("Thing",), {})
+    assert matches_template(actual, Node("#e", ("Language",), {})) is False
+    assert matches_template(actual, Node("#e", ("Thing",), {})) is True
+    assert matches_template(Node("#e", ("Thing", "X"), {}), Node("#e", ("X",), {})) is True
+    resolved = ItemListRule(id="#l", elements=(Node("#e", ("Language",), {}),))
+    assert matches_item_list(actual, resolved) is False
+    bare = ItemListRule(id="#l", elements=({"@id": "#e", "@type": "Language"},))
+    assert matches_item_list(actual, bare) is False
+    assert matches_item_list(Node("#e", ("Language",), {}), bare) is True
+
+
+@pytest.mark.parametrize("range_iri", ["Integer", "Number", "Date"])
+def test_non_ascii_digits_rejected(range_iri):
+    value = "2024" if range_iri == "Date" else "42"
+    assert check_literal(value, range_iri) is True
+    arabic = value.translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
+    assert check_literal(arabic, range_iri) is False
+
+
+def test_date_accepts_integral_float_not_bool():
+    assert check_literal(2024.0, "Date") is True
+    assert check_literal(2024.5, "Date") is False
+    assert check_literal(True, "Date") is False
+
+
+def test_dicts_without_id_never_equivalent():
+    assert values_equivalent({"@value": "x"}, {"@value": "x"}) is False
+    rule = ItemListRule(id="#l", elements=(node("#e", p=[{"@value": "x"}]),))
+    assert matches_item_list(node("#e", p=[{"@value": "x"}]), rule) is False
+
+
+def test_https_rdfs_literal_range():
+    assert check_literal("a", "https://www.w3.org/2000/01/rdf-schema#Literal") is True
+
+
+@pytest.mark.parametrize(
+    "value,ok",
+    [
+        ("0000-02-29", True),
+        ("1900-02-29", False),
+        ("2000-02-29", True),
+        ("2024-01-01T12:00:00+24:00", False),
+        ("2024-01-01T12:00:00+10:60", False),
+        ("2024-01-01T12:00:00+10:00", True),
+    ],
+)
+def test_calendar_decisions(value, ok):
+    assert check_literal(value, "Date") is ok

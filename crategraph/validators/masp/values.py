@@ -17,11 +17,11 @@ from crategraph.validators.masp.document import Node, is_reference, literal_of
 from crategraph.validators.masp.profile import ItemListRule, PropertyValueRule
 
 _RDFS_LITERAL = "http://www.w3.org/2000/01/rdf-schema#Literal"
-_INTEGER_RE = re.compile(r"^[+-]?\d+$")
-_NUMBER_RE = re.compile(r"^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$")
+_INTEGER_RE = re.compile(r"^[+-]?[0-9]+$")
+_NUMBER_RE = re.compile(r"^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]+)?$")
 _DATE_RE = re.compile(
-    r"^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?"
-    r"(?:T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-](\d{2}):(\d{2}))?)?$"
+    r"^([0-9]{4})(?:-([0-9]{2})(?:-([0-9]{2}))?)?"
+    r"(?:T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.[0-9]+)?(?:Z|[+-]([0-9]{2}):([0-9]{2}))?)?$"
 )
 _DAYS_IN_MONTH = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 _FLAG_MAP = {"i": re.I, "m": re.M, "s": re.S}
@@ -74,6 +74,10 @@ def _is_date(value: Any) -> bool:
         return False
     if isinstance(value, int):
         text = str(value)
+    elif isinstance(value, float):
+        if not value.is_integer():
+            return False
+        text = str(int(value))
     elif isinstance(value, str):
         text = _strip_quotes(value)
     else:
@@ -101,6 +105,9 @@ def check_literal(value: Any, range_iri: str) -> bool:
     """True when the literal *value* is acceptable for the range *range_iri*."""
     value = literal_of(value)
     iri = normalise_iri(range_iri)
+    # JS l.1913-1914: any leading https: is compared as http:.
+    if iri.startswith("https:"):
+        iri = "http:" + iri[len("https:") :]
 
     def is_type(name: str) -> bool:
         return iri == f"http://schema.org/{name}" or iri == name
@@ -152,6 +159,8 @@ def _same(a: Any, b: Any) -> bool:
     """Strict equality like JS ``===`` (a bool never equals a number)."""
     if isinstance(a, bool) != isinstance(b, bool):
         return False
+    if isinstance(a, (dict, list)) or isinstance(b, (dict, list)):
+        return False  # distinct JS objects are never ===
     return a == b
 
 
@@ -204,28 +213,32 @@ def matches_property_value(value: Any, rule: PropertyValueRule) -> bool:
     )
 
 
-def _expected_properties(element: Node | dict) -> tuple[str, dict[str, list[Any]]]:
+def _expected_properties(
+    element: Node | dict,
+) -> tuple[Any, tuple[Any, ...], dict[str, list[Any]]]:
     if isinstance(element, Node):
-        return element.id, element.properties
+        return element.id, element.types, element.properties
     props = {
         key: list(val) if isinstance(val, list) else [val]
         for key, val in element.items()
         if key not in ("@id", "@type")
     }
-    return element["@id"], props
+    raw_type = element.get("@type", [])
+    types = tuple(raw_type) if isinstance(raw_type, list) else (raw_type,)
+    return element.get("@id"), types, props
 
 
 def _item_values_equal(expected: Any, actual: Any) -> bool:
     if is_reference(expected) and expected["@id"] and is_reference(actual) and actual["@id"]:
         return expected["@id"] == actual["@id"]
-    if isinstance(expected, dict) or isinstance(actual, dict):
-        return expected == actual
     return _same(expected, actual)
 
 
 def _matches_item(actual: Node, element: Node | dict) -> bool:
-    element_id, expected_props = _expected_properties(element)
-    if element_id != actual.id:
+    element_id, expected_types, expected_props = _expected_properties(element)
+    if element_id is None or element_id != actual.id:
+        return False
+    if any(t not in actual.types for t in expected_types):
         return False
     for prop, expected_values in expected_props.items():
         actual_values = actual.properties.get(prop)
@@ -248,6 +261,8 @@ def matches_item_list(actual: Node, rule: ItemListRule) -> bool:
 def matches_template(actual: Node, template: Node) -> bool:
     """True when *actual* has the template's id and every template value."""
     if actual.id != template.id:
+        return False
+    if any(t not in actual.types for t in template.types):
         return False
     for prop, expected_values in template.properties.items():
         actual_values = actual.properties.get(prop)
