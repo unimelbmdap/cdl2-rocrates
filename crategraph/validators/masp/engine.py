@@ -312,11 +312,13 @@ class ValidationRun:
 
         target = self.crate.get(ref_id) if isinstance(ref_id, str) else None
         if target is None:
-            # Difference 12: an external http(s) IRI satisfies a URL range.
+            # Difference 12: an external http(s) IRI satisfies a URL range,
+            # provided it passes the same check as a URL literal.
             if (
                 isinstance(ref_id, str)
                 and _WEB_IRI.match(ref_id)
                 and any(self._is_url_range(r) for r in ranges)
+                and check_literal(ref_id, "URL")
             ):
                 return None, _FREE
             return (

@@ -82,7 +82,7 @@ crategraph's validator is a Python port of the [ro-crate-masp](https://github.co
 | 9 | Property matching | By expanded IRI, so a key matches however the crate's context spells it (see below) | By compact string, ignoring `@vocab` |
 | 10 | Context that cannot be resolved | A `context` warning row | Silently dropped |
 | 11 | Duplicate `@id` | One `warning` row per id; values of the duplicates are merged and validated | Not reported |
-| 12 | External IRI references | A reference such as `{"@id": "https://creativecommons.org/licenses/by/4.0/"}` with no entity in the crate satisfies a range that includes `URL`; a dangling relative id still fails | Fails as "references an entity that does not exist" |
+| 12 | External IRI references | A reference such as `{"@id": "https://creativecommons.org/licenses/by/4.0/"}` with no entity in the crate satisfies a range that includes `URL`, if its `@id` is an `http` or `https` URL that passes the same check as a `URL` value; a malformed one such as `http://[` or a dangling relative id still fails | Fails as "references an entity that does not exist" |
 | 13 | Impossible dates and times | `2024-13-01`, `2023-02-29` and timezone offsets out of range (`+24:00`, `+10:60`) fail | Accepted if they fit the pattern |
 | 14 | Empty values | A required property given as `[]`, `null` or `""` counts as missing | An empty array satisfies a minimum count |
 | 15 | `0` and `false` | Count as values | Treated as missing |

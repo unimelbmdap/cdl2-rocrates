@@ -385,6 +385,15 @@ def test_absolute_iri_reference_satisfies_url_range():
     assert not only_row(rows, "#Root", "./", "license")["passed"]
 
 
+@pytest.mark.parametrize("bad_iri", ["http://[", "https://exa mple.org/x", "http://"])
+def test_malformed_absolute_reference_does_not_satisfy_url_range(bad_iri):
+    root = {"@id": "./", "@type": "Dataset", "license": {"@id": bad_iri}}
+    _, rows = validate(URL_RULES, root=root)
+    row = only_row(rows, "#Root", "./", "license")
+    assert not row["passed"]
+    assert "references an entity that does not exist in the crate" in row["message"]
+
+
 def test_enumeration_and_itemlist_and_template_ranges():
     rules = (
         cls("#Root", {"@id": "Dataset"}),
