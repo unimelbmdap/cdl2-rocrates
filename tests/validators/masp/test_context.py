@@ -190,6 +190,19 @@ def test_non_http_schemes_are_never_fetched(monkeypatch, url):
     assert resolve_context([url], fetch=True).unresolved == (url,)
 
 
+def test_malformed_url_with_fetch_is_unresolved_not_raised(monkeypatch):
+    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    assert resolve_context(["http://[abc"], fetch=True).unresolved == ("http://[abc",)
+
+
+def test_malformed_nested_url_is_unresolved_not_raised(monkeypatch):
+    document = {"@context": ["//[abc/x", {"ex": "http://ex.org/"}]}
+    monkeypatch.setattr(urllib.request, "urlopen", _fake_response(document))
+    res = resolve_context("https://example.org/ctx.jsonld", fetch=True)
+    assert res.unresolved == ("//[abc/x",)
+    assert res.context == [{"ex": "http://ex.org/"}]
+
+
 def test_nested_remote_contexts_resolve_recursively_against_their_document(monkeypatch):
     documents = {
         "https://example.org/a/outer.jsonld": {

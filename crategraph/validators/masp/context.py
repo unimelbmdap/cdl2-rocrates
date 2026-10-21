@@ -68,10 +68,10 @@ def _fetch(url: str) -> Any | None:
     """Fetch the document at *url*, or return ``None`` on any failure."""
     if url in _FETCH_CACHE:
         return _FETCH_CACHE[url]
-    # Only web URLs: crate data must never make the validator read local files.
-    if urllib.parse.urlsplit(url).scheme.lower() not in ("http", "https"):
-        return None
     try:
+        # Only web URLs: crate data must never make the validator read local files.
+        if urllib.parse.urlsplit(url).scheme.lower() not in ("http", "https"):
+            return None
         request = urllib.request.Request(url, headers={"Accept": _ACCEPT})
         with urllib.request.urlopen(request, timeout=_FETCH_TIMEOUT) as response:
             document = json.loads(response.read())
@@ -120,7 +120,13 @@ class _Resolver:
         return resolved
 
     def _resolve_url(self, url: str, base: str | None, active: frozenset[str]) -> list[Any]:
-        url = urllib.parse.urljoin(base, url) if base else url
+        if base:
+            try:
+                url = urllib.parse.urljoin(base, url)
+            except ValueError:
+                # A malformed reference such as ``//[abc/x`` cannot be joined.
+                self._unresolved[url] = None
+                return []
         if url in active:
             # Already being inlined further up: a cycle, so stop here.
             return []
