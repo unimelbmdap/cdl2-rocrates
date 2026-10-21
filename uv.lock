@@ -407,6 +407,10 @@ pyvis = [
 rdf = [
     { name = "rdflib" },
 ]
+validate = [
+    { name = "rdflib" },
+    { name = "validators" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -423,6 +427,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "crategraph", extras = ["inspect"], marker = "extra == 'index'" },
+    { name = "crategraph", extras = ["rdf"], marker = "extra == 'validate'" },
     { name = "crategraph-forceatlas2", specifier = ">=0.1" },
     { name = "cryptography", marker = "extra == 'inspect'", specifier = ">=50.0.0" },
     { name = "fastembed", marker = "extra == 'index'", specifier = ">=0.3" },
@@ -442,8 +447,9 @@ requires-dist = [
     { name = "sqlite-vec", marker = "extra == 'index'", specifier = ">=0.1" },
     { name = "tokenizers", marker = "extra == 'index'", specifier = ">=0.15" },
     { name = "tqdm", marker = "extra == 'index'", specifier = ">=4.65" },
+    { name = "validators", marker = "extra == 'validate'", specifier = ">=0.36" },
 ]
-provides-extras = ["pyvis", "rdf", "inspect", "ohrm", "okf", "index"]
+provides-extras = ["pyvis", "rdf", "validate", "inspect", "ohrm", "okf", "index"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1854,7 +1860,7 @@ name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ptyprocess" },
+    { name = "ptyprocess", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450, upload-time = "2023-11-25T09:07:26.339Z" }
 wheels = [
@@ -2758,8 +2764,8 @@ name = "standard-aifc"
 version = "3.13.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "audioop-lts" },
-    { name = "standard-chunk" },
+    { name = "audioop-lts", marker = "python_full_version >= '3.13'" },
+    { name = "standard-chunk", marker = "python_full_version >= '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c4/53/6050dc3dde1671eb3db592c13b55a8005e5040131f7509cef0215212cb84/standard_aifc-3.13.0.tar.gz", hash = "sha256:64e249c7cb4b3daf2fdba4e95721f811bde8bdfc43ad9f936589b7bb2fae2e43", size = 15240, upload-time = "2024-10-30T16:01:31.772Z" }
 wheels = [
@@ -2904,6 +2910,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/53/0c/06f8b233b8fd13b9e5ee11424ef85419ba0d8ba0b3138bf360be2ff56953/urllib3-2.7.0.tar.gz", hash = "sha256:231e0ec3b63ceb14667c67be60f2f2c40a518cb38b03af60abc813da26505f4c", size = 433602, upload-time = "2026-05-07T16:13:18.596Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7f/3e/5db95bcf282c52709639744ca2a8b149baccf648e39c8cc87553df9eae0c/urllib3-2.7.0-py3-none-any.whl", hash = "sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897", size = 131087, upload-time = "2026-05-07T16:13:17.151Z" },
+]
+
+[[package]]
+name = "validators"
+version = "0.36.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7b/3f/4fe7905f73ba0e768baa102a09ba9458f2f0bb4a676102e1fd7a3cb55c2b/validators-0.36.0.tar.gz", hash = "sha256:92ad9ed00bbed320b784cec0ea90b213cf08904cf605b3d0852cfa4108e32a2c", size = 79234, upload-time = "2026-10-11T11:01:31.682Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d5/ce/fc5090ea3789bdfd22e90f2515b237194c5dacfc8f26d2082a0b50b2ca86/validators-0.36.0-py3-none-any.whl", hash = "sha256:c52ad00435e385b95fa4d6dd3081cb20c0660e7fd07b214523c8584dd2edba34", size = 46040, upload-time = "2026-10-11T11:01:30.269Z" },
 ]
 
 [[package]]

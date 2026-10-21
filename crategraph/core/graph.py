@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from crategraph.core.models import CoverageResult, FileInfo, ViewInfo
     from crategraph.core.records import Records
     from crategraph.core.views import EntityView, RelationshipView
+    from crategraph.validators.report import ValidationReport
 
 
 @functools.cache
@@ -469,6 +470,32 @@ class Graph:
 
         writer_cls = get_writer(format)
         writer_cls().write(self, path, overwrite=overwrite, **kwargs)
+
+    def validate(
+        self,
+        profile: str | Path | None = None,
+        *,
+        kind: str = "masp",
+        **kwargs: Any,
+    ) -> ValidationReport:
+        """Validate the crate this graph was loaded from against a profile.
+
+        Validation reads the raw crate file on disk, not this graph's
+        entities, so the result reflects the source as written.
+
+        Args:
+            profile: Path to the profile to validate against. ``None`` checks
+                only what the validator can check without a profile.
+            kind: Name of a registered validator kind (default ``"masp"``).
+            **kwargs: Forwarded to the validator constructor (for example
+                ``fetch_contexts=True`` for ``"masp"``).
+
+        Returns:
+            A :class:`~crategraph.validators.report.ValidationReport`.
+        """
+        from crategraph.validators import get_validator
+
+        return get_validator(kind)(profile, **kwargs).validate(self)
 
     # --- Analysis methods (delegated to core/analysis.py) ---
 
