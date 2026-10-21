@@ -1,0 +1,217 @@
+{
+ "label": "masp-validator-basic.test.js:132 #1",
+ "origin": "suite",
+ "profile": "profiles/095ce4b7ff4b.json",
+ "target": {
+  "@context": [
+   "https://w3id.org/ro/crate/1.2/context",
+   {
+    "@vocab": "http://schema.org/"
+   }
+  ],
+  "@graph": [
+   {
+    "@id": "./",
+    "@type": "Dataset"
+   },
+   {
+    "@id": "ro-crate-metadata.json",
+    "@type": "CreativeWork",
+    "identifier": "ro-crate-metadata.json",
+    "about": {
+     "@id": "./"
+    },
+    "conformsTo": {
+     "@id": "https://w3id.org/ro/crate/1.2"
+    }
+   }
+  ]
+ },
+ "js_test": {
+  "title": "MASP Validator Tests should be able to deal with multiple required types on Root Data Entity",
+  "state": "passed"
+ },
+ "stack_frames": [
+  "masp-validator-basic.test.js:132"
+ ],
+ "js_version": {
+  "ro-crate": "3.7.2",
+  "node": "v22.23.3",
+  "ro-crate-masp": "6d7a018baf827b5716d79a17462e3b3edb15725f"
+ },
+ "js_contexts": {
+  "profile": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ],
+  "target": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ]
+ },
+ "js_results": {
+  "error": [
+   {
+    "message": "Expected at least 1 instances of RO-Crate Metadadata Descriptor : http://schema.org/CreativeWork, found 0",
+    "rule": "#RO-Crate_Metadata_Descriptor",
+    "entity": "..."
+   }
+  ],
+  "success": [
+   {
+    "message": "Found 0 valid instances of http://schema.org/Dataset (expected between 0 and 1)",
+    "rule": "#Root_Data_Entity"
+   },
+   {
+    "message": "Found 1 valid instances of http://schema.org/CreativeWork (expected between 0 and 9007199254740991)",
+    "rule": "#class_CreativeWorkLicense"
+   }
+  ],
+  "rules": {
+   "#RO-Crate_Metadata_Descriptor": {
+    "ro-crate-metadata.json": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity ro-crate-metadata.json"
+      }
+     ],
+     "property-errors": [
+      {
+       "message": "Property \"about\" validation failed for entity ro-crate-metadata.json (value \"./\" (types: Dataset) did not match any of the expected ranges: #Root_Data_Entity)"
+      }
+     ]
+    }
+   },
+   "http://schema.org/name": {
+    "./": {
+     "info": [
+      {
+       "message": "Entity ./ is missing required property name"
+      }
+     ]
+    }
+   },
+   "#Root_Data_Entity": {
+    "./": {
+     "property-errors": [
+      {
+       "message": "Property \"name\" validation failed for entity ./ (missing required property name)"
+      },
+      {
+       "message": "Property \"description\" validation failed for entity ./ (missing required property description)"
+      },
+      {
+       "message": "Property \"datePublished\" validation failed for entity ./ (missing required property datePublished)"
+      },
+      {
+       "message": "Property \"license\" validation failed for entity ./ (missing required property license)"
+      }
+     ]
+    }
+   },
+   "#prop_description_Dataset": {
+    "./": {
+     "info": [
+      {
+       "message": "Entity ./ is missing required property description"
+      }
+     ]
+    }
+   },
+   "#prop_datePublished_Dataset": {
+    "./": {
+     "info": [
+      {
+       "message": "Entity ./ is missing required property datePublished"
+      }
+     ]
+    }
+   },
+   "#prop_license_Dataset": {
+    "./": {
+     "info": [
+      {
+       "message": "Entity ./ is missing required property license"
+      }
+     ]
+    }
+   },
+   "#RO-Crate_Metadata_Descriptor.about": {
+    "ro-crate-metadata.json": {
+     "info": [
+      {
+       "message": "Property \"about\": value \"./\" (types: Dataset) did not match any of the expected ranges: #Root_Data_Entity"
+      }
+     ]
+    }
+   }
+  },
+  "ruleFlags": {
+   "#RO-Crate_Metadata_Descriptor": {
+    "metadataDescriptorRule": true
+   },
+   "#RO-Crate_Metadata_Descriptor.id": {
+    "metadataDescriptorRule": true
+   },
+   "#RO-Crate_Metadata_Descriptor.about": {
+    "metadataDescriptorRule": true
+   }
+  }
+ },
+ "js_outcomes": [
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.id",
+   "passed": true
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.about",
+   "passed": false
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "http://schema.org/name",
+   "passed": false
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_description_Dataset",
+   "passed": false
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_datePublished_Dataset",
+   "passed": false
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_license_Dataset",
+   "passed": false
+  }
+ ],
+ "js_cardinalities": [
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "passed": false,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_CreativeWorkLicense",
+   "passed": true,
+   "valid_count": 1
+  }
+ ],
+ "js_is_valid": false
+}

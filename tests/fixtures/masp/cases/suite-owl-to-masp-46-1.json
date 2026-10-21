@@ -1,0 +1,113 @@
+{
+ "label": "owl-to-masp.test.js:46 #1",
+ "origin": "suite",
+ "profile": "profiles/54bf8af3683f.json",
+ "target_path": "tests/fixtures/masp/profiles/54bf8af3683f.json",
+ "js_test": {
+  "title": "OWL to MASP converter (scripts/owl-to-masp.py) writes a schema crate that MaspValidator can load and parse without error",
+  "state": "passed"
+ },
+ "stack_frames": [
+  "owl-to-masp.test.js:46"
+ ],
+ "js_version": {
+  "ro-crate": "3.7.2",
+  "node": "v22.23.3",
+  "ro-crate-masp": "6d7a018baf827b5716d79a17462e3b3edb15725f"
+ },
+ "js_contexts": {
+  "profile": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}",
+   "{inline}"
+  ],
+  "target": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}",
+   "{inline}"
+  ]
+ },
+ "js_results": {
+  "error": [],
+  "success": [
+   {
+    "message": "Found 0 valid instances of http://example.org/ns#BareFrame (expected between 0 and 9007199254740991)",
+    "rule": "http://example.org/ns#BareFrame"
+   },
+   {
+    "message": "Found 2 valid instances of http://example.org/ns#Colour (expected between 0 and 9007199254740991)",
+    "rule": "http://example.org/ns#Colour"
+   },
+   {
+    "message": "Found 0 valid instances of http://example.org/ns#Gadget (expected between 0 and 9007199254740991)",
+    "rule": "http://example.org/ns#Gadget"
+   },
+   {
+    "message": "Found 0 valid instances of http://example.org/ns#HasColourCode (expected between 0 and 9007199254740991)",
+    "rule": "http://example.org/ns#HasColourCode"
+   },
+   {
+    "message": "Found 0 valid instances of http://example.org/ns#HasSerialNumber (expected between 0 and 9007199254740991)",
+    "rule": "http://example.org/ns#HasSerialNumber"
+   },
+   {
+    "message": "Found 0 valid instances of http://example.org/ns#LegacyWidget (expected between 0 and 9007199254740991)",
+    "rule": "http://example.org/ns#LegacyWidget"
+   },
+   {
+    "message": "Found 0 valid instances of http://example.org/ns#RedWidget (expected between 0 and 9007199254740991)",
+    "rule": "http://example.org/ns#RedWidget"
+   },
+   {
+    "message": "Found 0 valid instances of http://example.org/ns#Widget (expected between 0 and 9007199254740991)",
+    "rule": "http://example.org/ns#Widget"
+   }
+  ],
+  "rules": {},
+  "ruleFlags": {}
+ },
+ "js_outcomes": [],
+ "js_cardinalities": [
+  {
+   "class_id": "http://example.org/ns#BareFrame",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "http://example.org/ns#Colour",
+   "passed": true,
+   "valid_count": 2
+  },
+  {
+   "class_id": "http://example.org/ns#Gadget",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "http://example.org/ns#HasColourCode",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "http://example.org/ns#HasSerialNumber",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "http://example.org/ns#LegacyWidget",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "http://example.org/ns#RedWidget",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "http://example.org/ns#Widget",
+   "passed": true,
+   "valid_count": 0
+  }
+ ],
+ "js_is_valid": true
+}

@@ -1,0 +1,393 @@
+{
+ "@context": [
+  "https://w3id.org/ro/crate/1.2/context",
+  {
+   "@vocab": "http://schema.org/",
+   "skos": "http://www.w3.org/2004/02/skos/core#"
+  },
+  {
+   "@base": null
+  }
+ ],
+ "@graph": [
+  {
+   "@id": "ro-crate-metadata.json",
+   "@type": "CreativeWork",
+   "conformsTo": {
+    "@id": "https://w3id.org/ro/crate/1.1"
+   },
+   "about": {
+    "@id": "./"
+   }
+  },
+  {
+   "@id": "./",
+   "@type": "Dataset",
+   "name": "Fixture Schema",
+   "hasResource": [
+    {
+     "@id": "#hasSpecializedSchema"
+    }
+   ],
+   "hasPart": [
+    {
+     "@id": "fixture.ttl"
+    }
+   ],
+   "mentions": [
+    {
+     "@id": "#owl-to-masp-conversion"
+    }
+   ],
+   "description": [
+    "A tiny ontology used only to test scripts/owl-to-masp.py."
+   ]
+  },
+  {
+   "@id": "#hasSpecializedSchema",
+   "@type": "ResourceDescriptor",
+   "name": "Specialized Schema Terms",
+   "hasRole": {
+    "@id": "http://www.w3.org/ns/dx/prof/role/schema"
+   },
+   "hasPart": [
+    {
+     "@id": "#itemlist_Colour"
+    },
+    {
+     "@id": "http://example.org/ns#BareFrame"
+    },
+    {
+     "@id": "http://example.org/ns#Colour"
+    },
+    {
+     "@id": "http://example.org/ns#Gadget"
+    },
+    {
+     "@id": "http://example.org/ns#HasColourCode"
+    },
+    {
+     "@id": "http://example.org/ns#HasSerialNumber"
+    },
+    {
+     "@id": "http://example.org/ns#LegacyWidget"
+    },
+    {
+     "@id": "http://example.org/ns#RedWidget"
+    },
+    {
+     "@id": "http://example.org/ns#Widget"
+    },
+    {
+     "@id": "http://example.org/ns#bare"
+    },
+    {
+     "@id": "http://example.org/ns#colourCode"
+    },
+    {
+     "@id": "http://example.org/ns#describedBy"
+    },
+    {
+     "@id": "http://example.org/ns#hasColour"
+    },
+    {
+     "@id": "http://example.org/ns#hasRedWidget"
+    },
+    {
+     "@id": "http://example.org/ns#hasWidget"
+    },
+    {
+     "@id": "http://example.org/ns#isA"
+    },
+    {
+     "@id": "http://example.org/ns#legacyName"
+    },
+    {
+     "@id": "http://example.org/ns#mislabelledProperty"
+    },
+    {
+     "@id": "http://example.org/ns#refersTo"
+    },
+    {
+     "@id": "http://example.org/ns#serialNumber"
+    },
+    {
+     "@id": "http://example.org/ns#widgetName"
+    }
+   ]
+  },
+  {
+   "@id": "fixture.ttl",
+   "@type": "File",
+   "name": "fixture.ttl",
+   "description": "Source OWL ontology this schema was converted from",
+   "encodingFormat": "text/turtle"
+  },
+  {
+   "@id": "#owl-to-masp-conversion",
+   "@type": "CreateAction",
+   "name": "Convert OWL ontology to MASP schema crate",
+   "object": {
+    "@id": "fixture.ttl"
+   },
+   "instrument": {
+    "@id": "https://github.com/Language-Research-Technology/ro-crate-masp/blob/main/scripts/owl-to-masp.py"
+   },
+   "result": {
+    "@id": "./"
+   },
+   "startTime": "2026-10-21T07:12:43.401223+00:00"
+  },
+  {
+   "@id": "#itemlist_Colour",
+   "@type": "ItemList",
+   "name": "Colour values",
+   "itemListElement": [
+    {
+     "@id": "http://example.org/ns#blue"
+    },
+    {
+     "@id": "http://example.org/ns#red"
+    }
+   ]
+  },
+  {
+   "@id": "http://example.org/ns#BareFrame",
+   "@type": "rdfs:Class",
+   "rdfs:label": "BareFrame",
+   "name": "bare frame",
+   "rdfs:comment": "bare frame",
+   "skos:example": [
+    "an untagged example",
+    "his reputation SANK low",
+    "ich TUE mir WEH"
+   ]
+  },
+  {
+   "@id": "http://example.org/ns#Colour",
+   "@type": "rdfs:Class",
+   "rdfs:label": "Colour",
+   "name": "Colour",
+   "rdfs:comment": "A fixture class whose allowed values are its instances."
+  },
+  {
+   "@id": "http://example.org/ns#Gadget",
+   "@type": "rdfs:Class",
+   "rdfs:label": "Gadget",
+   "name": "Gadget Class",
+   "rdfs:comment": "A fixture class that specialises Widget.",
+   "rdfs:subClassOf": [
+    {
+     "@id": "http://example.org/ns#Widget"
+    }
+   ]
+  },
+  {
+   "@id": "http://example.org/ns#HasColourCode",
+   "@type": "rdfs:Class",
+   "rdfs:label": "HasColourCode",
+   "name": "HasColourCode"
+  },
+  {
+   "@id": "http://example.org/ns#HasSerialNumber",
+   "@type": "rdfs:Class",
+   "rdfs:label": "HasSerialNumber",
+   "name": "HasSerialNumber"
+  },
+  {
+   "@id": "http://example.org/ns#LegacyWidget",
+   "@type": "rdfs:Class",
+   "rdfs:label": "LegacyWidget",
+   "name": "LegacyWidget",
+   "rdfs:comment": "A fixture class declared with plain rdfs:Class, no owl:Class typing."
+  },
+  {
+   "@id": "http://example.org/ns#RedWidget",
+   "@type": "rdfs:Class",
+   "rdfs:label": "RedWidget",
+   "name": "red widget",
+   "rdfs:comment": "red widget. A kind of Widget. Equivalent to: Widget and hasColour = red and at least 1 widgetName.",
+   "rdfs:subClassOf": [
+    {
+     "@id": "http://example.org/ns#Widget"
+    }
+   ]
+  },
+  {
+   "@id": "http://example.org/ns#Widget",
+   "@type": "rdfs:Class",
+   "rdfs:label": "Widget",
+   "name": "Widget",
+   "rdfs:comment": "A basic fixture class.",
+   "rdfs:subClassOf": [
+    {
+     "@id": "http://example.org/ns#HasSerialNumber"
+    }
+   ]
+  },
+  {
+   "@id": "http://example.org/ns#bare",
+   "@type": "rdf:Property",
+   "rdfs:label": "bare",
+   "name": "bare",
+   "domainIncludes": {
+    "@id": "http://example.org/ns#BareFrame"
+   },
+   "rangeIncludes": {
+    "@id": "schema:Text"
+   }
+  },
+  {
+   "@id": "http://example.org/ns#colourCode",
+   "@type": "rdf:Property",
+   "rdfs:label": "colourCode",
+   "name": "colour code",
+   "rdfs:comment": "A Gadget's colour code.",
+   "domainIncludes": {
+    "@id": "http://example.org/ns#HasColourCode"
+   },
+   "rangeIncludes": {
+    "@id": "schema:Text"
+   }
+  },
+  {
+   "@id": "http://example.org/ns#describedBy",
+   "@type": "rdf:Property",
+   "rdfs:label": "describedBy",
+   "name": "described by",
+   "rdfs:comment": "Relates either a Widget or a Gadget to its describer.",
+   "domainIncludes": [
+    {
+     "@id": "http://example.org/ns#Widget"
+    },
+    {
+     "@id": "http://example.org/ns#Gadget"
+    }
+   ],
+   "rangeIncludes": {
+    "@id": "http://example.org/ns#Widget"
+   }
+  },
+  {
+   "@id": "http://example.org/ns#hasColour",
+   "@type": "rdf:Property",
+   "rdfs:label": "hasColour",
+   "name": "has colour",
+   "rdfs:comment": "The colour of a Widget.",
+   "domainIncludes": {
+    "@id": "http://example.org/ns#Widget"
+   },
+   "rangeIncludes": [
+    {
+     "@id": "http://example.org/ns#Colour"
+    },
+    {
+     "@id": "#itemlist_Colour"
+    }
+   ]
+  },
+  {
+   "@id": "http://example.org/ns#hasRedWidget",
+   "@type": "rdf:Property",
+   "rdfs:label": "hasRedWidget",
+   "name": "has red widget",
+   "rdfs:comment": "has red widget. A sub-property of hasWidget."
+  },
+  {
+   "@id": "http://example.org/ns#hasWidget",
+   "@type": "rdf:Property",
+   "rdfs:label": "hasWidget",
+   "name": "has widget",
+   "rdfs:comment": "Relates a Gadget to the Widget it contains.",
+   "domainIncludes": {
+    "@id": "http://example.org/ns#Gadget"
+   },
+   "rangeIncludes": {
+    "@id": "http://example.org/ns#Widget"
+   }
+  },
+  {
+   "@id": "http://example.org/ns#isA",
+   "@type": "rdf:Property",
+   "rdfs:label": "isA",
+   "name": "isA",
+   "rdfs:comment": "Labelled only in other languages."
+  },
+  {
+   "@id": "http://example.org/ns#legacyName",
+   "@type": "rdf:Property",
+   "rdfs:label": "legacyName",
+   "name": "legacy name",
+   "rdfs:comment": "A fixture property declared with plain rdf:Property, no owl:*Property typing.",
+   "domainIncludes": {
+    "@id": "http://example.org/ns#LegacyWidget"
+   },
+   "rangeIncludes": {
+    "@id": "schema:Text"
+   }
+  },
+  {
+   "@id": "http://example.org/ns#mislabelledProperty",
+   "@type": "rdf:Property",
+   "rdfs:label": "mislabelledProperty",
+   "name": "mislabelled property",
+   "rdfs:comment": "A property with a stray rdfs:subClassOf."
+  },
+  {
+   "@id": "http://example.org/ns#refersTo",
+   "@type": "rdf:Property",
+   "rdfs:label": "refersTo",
+   "name": "refers to",
+   "rdfs:comment": "Points at something outside the fixture namespace.",
+   "domainIncludes": {
+    "@id": "http://example.org/ns#Widget"
+   },
+   "rangeIncludes": {
+    "@id": "http://example.org/external#Thing"
+   }
+  },
+  {
+   "@id": "http://example.org/ns#serialNumber",
+   "@type": "rdf:Property",
+   "rdfs:label": "serialNumber",
+   "name": "serial number",
+   "rdfs:comment": "A Widget's serial number.",
+   "domainIncludes": {
+    "@id": "http://example.org/ns#HasSerialNumber"
+   },
+   "rangeIncludes": {
+    "@id": "schema:Text"
+   }
+  },
+  {
+   "@id": "http://example.org/ns#widgetName",
+   "@type": "rdf:Property",
+   "rdfs:label": "widgetName",
+   "name": "widget name",
+   "rdfs:comment": "The name of a Widget.",
+   "domainIncludes": {
+    "@id": "http://example.org/ns#Widget"
+   },
+   "rangeIncludes": {
+    "@id": "schema:Text"
+   }
+  },
+  {
+   "@id": "https://github.com/Language-Research-Technology/ro-crate-masp/blob/main/scripts/owl-to-masp.py",
+   "@type": "SoftwareApplication",
+   "name": "owl-to-masp.py",
+   "url": "https://github.com/Language-Research-Technology/ro-crate-masp/blob/main/scripts/owl-to-masp.py"
+  },
+  {
+   "@id": "http://example.org/ns#blue",
+   "@type": "http://example.org/ns#Colour",
+   "name": "blue"
+  },
+  {
+   "@id": "http://example.org/ns#red",
+   "@type": "http://example.org/ns#Colour",
+   "name": "red",
+   "description": "The colour red."
+  }
+ ]
+}

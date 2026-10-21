@@ -1,0 +1,306 @@
+{
+ "label": "masp-validator.test.js:494 #1",
+ "origin": "suite",
+ "profile": "profiles/ce0fa7834914.json",
+ "target": {
+  "@context": [
+   "https://w3id.org/ro/crate/1.2/context",
+   {
+    "@vocab": "http://schema.org/"
+   }
+  ],
+  "@graph": [
+   {
+    "@id": "ro-crate-metadata.json",
+    "@type": "CreativeWork",
+    "conformsTo": {
+     "@id": "https://w3id.org/ro/crate/1.2"
+    },
+    "about": {
+     "@id": "https://example.org/my-profile/"
+    }
+   },
+   {
+    "@id": "https://w3id.org/ro/crate/1.2",
+    "@type": "CreativeWork",
+    "name": "RO-Crate 1.2"
+   },
+   {
+    "@id": "https://example.org/my-profile/",
+    "@type": [
+     "Dataset"
+    ],
+    "name": "My Test Profile",
+    "license": "Apache-2.0"
+   }
+  ]
+ },
+ "js_test": {
+  "title": "MASP Profile Tests Error: root entity has Dataset type but not Profile type (before all hook)",
+  "state": null
+ },
+ "stack_frames": [
+  "masp-validator.test.js:494"
+ ],
+ "js_version": {
+  "ro-crate": "3.7.2",
+  "node": "v22.23.3",
+  "ro-crate-masp": "6d7a018baf827b5716d79a17462e3b3edb15725f"
+ },
+ "js_contexts": {
+  "profile": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ],
+  "target": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ]
+ },
+ "js_results": {
+  "error": [
+   {
+    "message": "Expected at least 1 instances of RO-Crate Metadata Descriptor : http://schema.org/CreativeWork, found 0",
+    "rule": "#class_MetadataDescriptor",
+    "entity": "..."
+   },
+   {
+    "message": "Expected at least 1 instances of Profile Dataset : http://schema.org/Dataset, http://www.w3.org/ns/dx/prof/Profile, found 0",
+    "rule": "#class_ProfileDataset",
+    "entity": "..."
+   }
+  ],
+  "success": [
+   {
+    "message": "Found 0 valid instances of http://www.w3.org/ns/dx/prof/ResourceDescriptor (expected between 0 and 9007199254740991)",
+    "rule": "#class_ResourceDescriptor"
+   },
+   {
+    "message": "Found 0 valid instances of http://www.w3.org/2000/01/rdf-schema#Class (expected between 0 and 9007199254740991)",
+    "rule": "#class_rdfsClass"
+   },
+   {
+    "message": "Found 0 valid instances of http://www.w3.org/1999/02/22-rdf-syntax-ns#Property (expected between 0 and 9007199254740991)",
+    "rule": "#class_rdfProperty"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/ItemList (expected between 0 and 9007199254740991)",
+    "rule": "#class_ItemList"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/DefinedTermSet (expected between 0 and 9007199254740991)",
+    "rule": "#class_DefinedTermSet"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/DefinedTerm (expected between 0 and 9007199254740991)",
+    "rule": "#class_DefinedTerm"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/Person (expected between 0 and 9007199254740991)",
+    "rule": "#class_Person"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/Organization (expected between 0 and 9007199254740991)",
+    "rule": "#class_Organization"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/MediaObject (expected between 0 and 9007199254740991)",
+    "rule": "#class_File"
+   },
+   {
+    "message": "Found 2 valid instances of http://schema.org/CreativeWork (expected between 0 and 9007199254740991)",
+    "rule": "#class_CreativeWork"
+   },
+   {
+    "message": "Found 0 valid instances of http://www.w3.org/ns/dx/prof/ResourceRole (expected between 0 and 9007199254740991)",
+    "rule": "#class_ResourceRole"
+   }
+  ],
+  "rules": {
+   "#class_MetadataDescriptor": {
+    "ro-crate-metadata.json": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"conformsTo\" validation succeeded for entity ro-crate-metadata.json"
+      }
+     ],
+     "property-errors": [
+      {
+       "message": "Property \"about\" validation failed for entity ro-crate-metadata.json (value \"https://example.org/my-profile/\" (types: Dataset) did not match any of the expected ranges: #class_ProfileDataset)"
+      }
+     ]
+    },
+    "https://w3id.org/ro/crate/1.2": {
+     "property-errors": [
+      {
+       "message": "Property \"@id\" validation failed for entity https://w3id.org/ro/crate/1.2 (value constraint #propertyValue_prop_id_MetadataDescriptor requires at least 1 match(es), found 0)"
+      },
+      {
+       "message": "Property \"conformsTo\" validation failed for entity https://w3id.org/ro/crate/1.2 (missing required property conformsTo)"
+      },
+      {
+       "message": "Property \"about\" validation failed for entity https://w3id.org/ro/crate/1.2 (missing required property about)"
+      }
+     ]
+    }
+   },
+   "#prop_about_MetadataDescriptor": {
+    "ro-crate-metadata.json": {
+     "info": [
+      {
+       "message": "Property \"about\": value \"https://example.org/my-profile/\" (types: Dataset) did not match any of the expected ranges: #class_ProfileDataset"
+      }
+     ]
+    },
+    "https://w3id.org/ro/crate/1.2": {
+     "info": [
+      {
+       "message": "Entity https://w3id.org/ro/crate/1.2 is missing required property about"
+      }
+     ]
+    }
+   },
+   "#prop_id_MetadataDescriptor": {
+    "https://w3id.org/ro/crate/1.2": {
+     "info": [
+      {
+       "message": "Property \"@id\": value constraint #propertyValue_prop_id_MetadataDescriptor requires at least 1 match(es), found 0"
+      }
+     ]
+    }
+   },
+   "#prop_conformsTo_MetadataDescriptor": {
+    "https://w3id.org/ro/crate/1.2": {
+     "info": [
+      {
+       "message": "Entity https://w3id.org/ro/crate/1.2 is missing required property conformsTo"
+      }
+     ]
+    }
+   }
+  },
+  "ruleFlags": {
+   "#class_MetadataDescriptor": {
+    "metadataDescriptorRule": true
+   },
+   "#prop_id_MetadataDescriptor": {
+    "metadataDescriptorRule": true
+   },
+   "#prop_conformsTo_MetadataDescriptor": {
+    "metadataDescriptorRule": true
+   },
+   "#prop_about_MetadataDescriptor": {
+    "metadataDescriptorRule": true
+   }
+  }
+ },
+ "js_outcomes": [
+  {
+   "class_id": "#class_MetadataDescriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_id_MetadataDescriptor",
+   "passed": true
+  },
+  {
+   "class_id": "#class_MetadataDescriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_conformsTo_MetadataDescriptor",
+   "passed": true
+  },
+  {
+   "class_id": "#class_MetadataDescriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_about_MetadataDescriptor",
+   "passed": false
+  },
+  {
+   "class_id": "#class_MetadataDescriptor",
+   "entity_id": "https://w3id.org/ro/crate/1.2",
+   "property_rule_id": "#prop_id_MetadataDescriptor",
+   "passed": false
+  },
+  {
+   "class_id": "#class_MetadataDescriptor",
+   "entity_id": "https://w3id.org/ro/crate/1.2",
+   "property_rule_id": "#prop_conformsTo_MetadataDescriptor",
+   "passed": false
+  },
+  {
+   "class_id": "#class_MetadataDescriptor",
+   "entity_id": "https://w3id.org/ro/crate/1.2",
+   "property_rule_id": "#prop_about_MetadataDescriptor",
+   "passed": false
+  }
+ ],
+ "js_cardinalities": [
+  {
+   "class_id": "#class_MetadataDescriptor",
+   "passed": false,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_ProfileDataset",
+   "passed": false,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_ResourceDescriptor",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_rdfsClass",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_rdfProperty",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_ItemList",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_DefinedTermSet",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_DefinedTerm",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Person",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Organization",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_File",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "passed": true,
+   "valid_count": 2
+  },
+  {
+   "class_id": "#class_ResourceRole",
+   "passed": true,
+   "valid_count": 0
+  }
+ ],
+ "js_is_valid": false
+}

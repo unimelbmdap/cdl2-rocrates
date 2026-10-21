@@ -1,0 +1,110 @@
+{
+ "label": "masp-validator.test.js:984 #1",
+ "origin": "suite",
+ "profile": "profiles/3bbf9343bd13.json",
+ "target": {
+  "@context": [
+   "https://w3id.org/ro/crate/1.2/context",
+   {
+    "@vocab": "http://schema.org/"
+   }
+  ],
+  "@graph": [
+   {
+    "@id": "./",
+    "@type": [
+     "Dataset",
+     "Profile"
+    ]
+   },
+   {
+    "@id": "ro-crate-metadata.json",
+    "@type": "CreativeWork",
+    "identifier": "ro-crate-metadata.json",
+    "about": {
+     "@id": "./"
+    },
+    "conformsTo": {
+     "@id": "https://w3id.org/ro/crate/1.2"
+    }
+   },
+   {
+    "@id": "readme.txt",
+    "@type": [
+     "File",
+     "CreativeWork",
+     "MediaObject"
+    ],
+    "name": "Not README"
+   }
+  ]
+ },
+ "js_test": {
+  "title": "MASP Profile Tests PropertyValue rangeIncludes handling supports regex flags on PropertyValue constraints",
+  "state": "passed"
+ },
+ "stack_frames": [
+  "masp-validator.test.js:984"
+ ],
+ "js_version": {
+  "ro-crate": "3.7.2",
+  "node": "v22.23.3",
+  "ro-crate-masp": "6d7a018baf827b5716d79a17462e3b3edb15725f"
+ },
+ "js_contexts": {
+  "profile": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ],
+  "target": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ]
+ },
+ "js_results": {
+  "error": [],
+  "success": [
+   {
+    "message": "Found 0 valid instances of http://schema.org/CreativeWork, http://schema.org/MediaObject (expected between 0 and 1)",
+    "rule": "#class_ReadmeEntity"
+   }
+  ],
+  "rules": {
+   "#prop_ReadmeEntity.id": {
+    "readme.txt": {
+     "info": [
+      {
+       "message": "Property \"@id\": value constraint #value_ReadmePattern requires at least 1 match(es), found 0"
+      }
+     ]
+    }
+   },
+   "#class_ReadmeEntity": {
+    "readme.txt": {
+     "property-errors": [
+      {
+       "message": "Property \"@id\" validation failed for entity readme.txt (value constraint #value_ReadmePattern requires at least 1 match(es), found 0)"
+      }
+     ]
+    }
+   }
+  },
+  "ruleFlags": {}
+ },
+ "js_outcomes": [
+  {
+   "class_id": "#class_ReadmeEntity",
+   "entity_id": "readme.txt",
+   "property_rule_id": "#prop_ReadmeEntity.id",
+   "passed": false
+  }
+ ],
+ "js_cardinalities": [
+  {
+   "class_id": "#class_ReadmeEntity",
+   "passed": true,
+   "valid_count": 0
+  }
+ ],
+ "js_is_valid": true
+}

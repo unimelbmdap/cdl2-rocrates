@@ -1,0 +1,94 @@
+{
+ "@context": [
+  "https://w3id.org/ro/crate/1.2/context",
+  {
+   "@vocab": "http://schema.org/"
+  }
+ ],
+ "@graph": [
+  {
+   "@id": "ro-crate-metadata.json",
+   "@type": "CreativeWork",
+   "conformsTo": {
+    "@id": "https://w3id.org/ro/crate/1.2"
+   },
+   "about": {
+    "@id": "./"
+   }
+  },
+  {
+   "@id": "./",
+   "@type": [
+    "Dataset",
+    "Profile"
+   ],
+   "name": "Regex Profile",
+   "description": "Profile for regex PropertyValue flag tests",
+   "version": "0.1.0",
+   "isProfileOf": [
+    {
+     "@id": "https://w3id.org/ro/crate/1.2"
+    }
+   ],
+   "hasResource": [
+    {
+     "@id": "#schema"
+    }
+   ]
+  },
+  {
+   "@id": "#schema",
+   "@type": "ResourceDescriptor",
+   "hasRole": {
+    "@id": "http://www.w3.org/ns/dx/prof/role/schema"
+   },
+   "hasPart": [
+    {
+     "@id": "#class_ReadmeEntity"
+    },
+    {
+     "@id": "#prop_ReadmeEntity.id"
+    },
+    {
+     "@id": "#value_ReadmePattern"
+    }
+   ]
+  },
+  {
+   "@id": "#class_ReadmeEntity",
+   "@type": "rdfs:Class",
+   "name": "Readme Entity",
+   "prov:specializationOf": [
+    {
+     "@id": "http://schema.org/CreativeWork"
+    },
+    {
+     "@id": "http://schema.org/MediaObject"
+    }
+   ],
+   "sh:minCount": 0,
+   "sh:maxCount": 1
+  },
+  {
+   "@id": "#prop_ReadmeEntity.id",
+   "@type": "rdf:Property",
+   "rdfs:label": "@id",
+   "domainIncludes": {
+    "@id": "#class_ReadmeEntity"
+   },
+   "rangeIncludes": {
+    "@id": "#value_ReadmePattern"
+   },
+   "sh:minCount": 1,
+   "sh:maxCount": 1
+  },
+  {
+   "@id": "#value_ReadmePattern",
+   "@type": "PropertyValue",
+   "name": "README Pattern",
+   "value": "/^readme\\.md$/i",
+   "sh:minCount": 1,
+   "sh:maxCount": 1
+  }
+ ]
+}

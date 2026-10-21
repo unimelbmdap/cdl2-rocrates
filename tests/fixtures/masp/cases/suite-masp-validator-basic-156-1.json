@@ -1,0 +1,175 @@
+{
+ "label": "masp-validator-basic.test.js:156 #1",
+ "origin": "suite",
+ "profile": "profiles/0c90ee592ff3.json",
+ "target": {
+  "@context": [
+   "https://w3id.org/ro/crate/1.2/context",
+   {
+    "@vocab": "http://schema.org/"
+   }
+  ],
+  "@graph": [
+   {
+    "@id": "./",
+    "@type": [
+     "HairSalon",
+     "Dataset"
+    ],
+    "name": "Test Dataset",
+    "license": "CC By-NC 4.0",
+    "datePublished": "2023-07-01",
+    "description": "This is an RO-Crate"
+   },
+   {
+    "@id": "ro-crate-metadata.json",
+    "@type": "CreativeWork",
+    "identifier": "ro-crate-metadata.json",
+    "about": {
+     "@id": "./"
+    },
+    "conformsTo": {
+     "@id": "https://w3id.org/ro/crate/1.2"
+    }
+   }
+  ]
+ },
+ "js_test": {
+  "title": "MASP Validator Tests should be able to deal with multiple required types on Root Data Entity",
+  "state": "passed"
+ },
+ "stack_frames": [
+  "masp-validator-basic.test.js:156"
+ ],
+ "js_version": {
+  "ro-crate": "3.7.2",
+  "node": "v22.23.3",
+  "ro-crate-masp": "6d7a018baf827b5716d79a17462e3b3edb15725f"
+ },
+ "js_contexts": {
+  "profile": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ],
+  "target": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ]
+ },
+ "js_results": {
+  "error": [],
+  "success": [
+   {
+    "message": "Found 1 valid instances of http://schema.org/CreativeWork (expected between 1 and 1)",
+    "rule": "#RO-Crate_Metadata_Descriptor"
+   },
+   {
+    "message": "Found 1 valid instances of http://schema.org/Dataset, http://schema.org/HairSalon (expected between 0 and 1)",
+    "rule": "#Root_Data_Entity"
+   },
+   {
+    "message": "Found 1 valid instances of http://schema.org/CreativeWork (expected between 0 and 9007199254740991)",
+    "rule": "#class_CreativeWorkLicense"
+   }
+  ],
+  "rules": {
+   "#RO-Crate_Metadata_Descriptor": {
+    "ro-crate-metadata.json": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"about\" validation succeeded for entity ro-crate-metadata.json"
+      }
+     ]
+    }
+   },
+   "#Root_Data_Entity": {
+    "./": {
+     "property-success": [
+      {
+       "message": "Property \"name\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"description\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"datePublished\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"license\" validation succeeded for entity ./"
+      }
+     ]
+    }
+   }
+  },
+  "ruleFlags": {
+   "#RO-Crate_Metadata_Descriptor": {
+    "metadataDescriptorRule": true
+   },
+   "#RO-Crate_Metadata_Descriptor.id": {
+    "metadataDescriptorRule": true
+   },
+   "#RO-Crate_Metadata_Descriptor.about": {
+    "metadataDescriptorRule": true
+   }
+  }
+ },
+ "js_outcomes": [
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.id",
+   "passed": true
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.about",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "http://schema.org/name",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_description_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_datePublished_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_license_Dataset",
+   "passed": true
+  }
+ ],
+ "js_cardinalities": [
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "passed": true,
+   "valid_count": 1
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "passed": true,
+   "valid_count": 1
+  },
+  {
+   "class_id": "#class_CreativeWorkLicense",
+   "passed": true,
+   "valid_count": 1
+  }
+ ],
+ "js_is_valid": true
+}

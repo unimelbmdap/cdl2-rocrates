@@ -2,8 +2,11 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+      # Upstream MASP profile crates are kept byte-for-byte verbatim.
       - id: trailing-whitespace
+        exclude: ^tests/fixtures/masp/upstream/
       - id: end-of-file-fixer
+        exclude: ^tests/fixtures/masp/upstream/
       - id: check-yaml
         args: ['--unsafe']  # mkdocs.yml uses the !!python/name: tag for Mermaid superfences
       - id: check-added-large-files

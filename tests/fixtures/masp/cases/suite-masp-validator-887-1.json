@@ -1,0 +1,116 @@
+{
+ "label": "masp-validator.test.js:887 #1",
+ "origin": "suite",
+ "profile": "profiles/dd633c289a57.json",
+ "target": {
+  "@context": [
+   "https://w3id.org/ro/crate/1.2/context",
+   {
+    "@vocab": "http://schema.org/"
+   }
+  ],
+  "@graph": [
+   {
+    "@id": "./",
+    "@type": [
+     "Dataset",
+     "Profile"
+    ],
+    "conformsTo": [
+     {
+      "@id": "https://example.org/other-profile"
+     }
+    ]
+   },
+   {
+    "@id": "ro-crate-metadata.json",
+    "@type": "CreativeWork",
+    "identifier": "ro-crate-metadata.json",
+    "about": {
+     "@id": "./"
+    },
+    "conformsTo": {
+     "@id": "https://w3id.org/ro/crate/1.2"
+    }
+   },
+   {
+    "@id": "https://example.org/other-profile",
+    "@type": [
+     "CreativeWork",
+     "Profile"
+    ],
+    "name": "Other Profile",
+    "version": "1.0.0"
+   }
+  ]
+ },
+ "js_test": {
+  "title": "MASP Profile Tests PropertyValue rangeIncludes handling fails when the required PropertyValue is missing",
+  "state": "passed"
+ },
+ "stack_frames": [
+  "masp-validator.test.js:887"
+ ],
+ "js_version": {
+  "ro-crate": "3.7.2",
+  "node": "v22.23.3",
+  "ro-crate-masp": "6d7a018baf827b5716d79a17462e3b3edb15725f"
+ },
+ "js_contexts": {
+  "profile": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ],
+  "target": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ]
+ },
+ "js_results": {
+  "error": [
+   {
+    "message": "Expected at least 1 instances of Root Data Entity : http://schema.org/Dataset, found 0",
+    "rule": "#Root_Data_Entity",
+    "entity": "..."
+   }
+  ],
+  "success": [],
+  "rules": {
+   "#prop_conformsTo_Root_Data_Entity": {
+    "./": {
+     "info": [
+      {
+       "message": "Property \"conformsTo\": value constraint #Root_Data_Entity_profile_value requires at least 1 match(es), found 0"
+      }
+     ]
+    }
+   },
+   "#Root_Data_Entity": {
+    "./": {
+     "property-errors": [
+      {
+       "message": "Property \"conformsTo\" validation failed for entity ./ (value constraint #Root_Data_Entity_profile_value requires at least 1 match(es), found 0)"
+      }
+     ]
+    }
+   }
+  },
+  "ruleFlags": {}
+ },
+ "js_outcomes": [
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_conformsTo_Root_Data_Entity",
+   "passed": false
+  }
+ ],
+ "js_cardinalities": [
+  {
+   "class_id": "#Root_Data_Entity",
+   "passed": false,
+   "valid_count": 0
+  }
+ ],
+ "js_is_valid": false
+}

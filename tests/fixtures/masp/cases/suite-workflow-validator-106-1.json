@@ -1,0 +1,541 @@
+{
+ "label": "workflow-validator.test.js:106 #1",
+ "origin": "suite",
+ "profile": "profiles/1431a50ce323.json",
+ "target": {
+  "@context": [
+   "https://w3id.org/ro/crate/1.2/context"
+  ],
+  "@graph": [
+   {
+    "@id": "ro-crate-metadata.json",
+    "@type": "CreativeWork",
+    "about": {
+     "@id": "./"
+    },
+    "conformsTo": [
+     {
+      "@id": "https://w3id.org/ro/crate/1.1"
+     }
+    ]
+   },
+   {
+    "@id": "./",
+    "@type": "Dataset",
+    "name": "Example Workflow",
+    "conformsTo": {
+     "@id": "https://example.org/imaginary-profile"
+    },
+    "description": "An example workflow RO-Crate",
+    "license": "Apache-2.0",
+    "datePublished": "2025-10-15",
+    "mainEntity": {
+     "@id": "example_workflow.cwl"
+    },
+    "hasPart": [
+     {
+      "@id": "example_workflow.cwl"
+     },
+     {
+      "@id": "diagram.svg"
+     },
+     {
+      "@id": "README.md"
+     }
+    ]
+   },
+   {
+    "@id": "ro-crate-preview.html",
+    "@type": "CreativeWork",
+    "about": {
+     "@id": "./"
+    }
+   },
+   {
+    "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0",
+    "@type": [
+     "CreativeWork",
+     "Profile"
+    ],
+    "name": "Workflow RO-Crate Profile (experimental)",
+    "version": "0.4.0",
+    "description": "This is a profile for RO-Crates that are used to describe workflows -- NOTE have moved the conformsTo to the ROOT Data Entity  as per RO-Crate 1.2"
+   },
+   {
+    "@id": "example_workflow.cwl",
+    "@type": [
+     "File",
+     "SoftwareSourceCode",
+     "ComputationalWorkflow"
+    ],
+    "programmingLanguage": {
+     "@id": "https://w3id.org/workflowhub/workflow-ro-crate#cwl"
+    },
+    "name": "Example Workflow",
+    "image": {
+     "@id": "diagram.svg"
+    }
+   },
+   {
+    "@id": "diagram.svg",
+    "name": "Example Workflow Diagram",
+    "@type": [
+     "File",
+     "ImageObject"
+    ]
+   },
+   {
+    "@id": "README.md",
+    "@type": "File",
+    "about": "./",
+    "encodingFormat": "text/markdown"
+   },
+   {
+    "@id": "https://w3id.org/workflowhub/workflow-ro-crate#cwl",
+    "@type": "ComputerLanguage",
+    "name": "Common Workflow Language",
+    "alternateName": "CWL",
+    "identifier": {
+     "@id": "https://w3id.org/cwl/v1.2/"
+    },
+    "url": {
+     "@id": "https://www.commonwl.org/"
+    }
+   },
+   {
+    "@id": "https://example.org/imaginary-profile",
+    "@type": [
+     "http://schema.org/CreativeWork"
+    ],
+    "name": "Imaginary Profile",
+    "version": "1.0.0"
+   }
+  ]
+ },
+ "js_test": {
+  "title": "Workflow Profile Tests accepts a fresh profile entity only after it becomes CreativeWork and Profile",
+  "state": "passed"
+ },
+ "stack_frames": [
+  "workflow-validator.test.js:106"
+ ],
+ "js_version": {
+  "ro-crate": "3.7.2",
+  "node": "v22.23.3",
+  "ro-crate-masp": "6d7a018baf827b5716d79a17462e3b3edb15725f"
+ },
+ "js_contexts": {
+  "profile": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ],
+  "target": [
+   "https://w3id.org/ro/crate/1.2/context"
+  ]
+ },
+ "js_results": {
+  "error": [
+   {
+    "message": "Expected at least 1 instances of RO-Crate Metadadata Descriptor : http://schema.org/CreativeWork, found 0",
+    "rule": "#RO-Crate_Metadata_Descriptor",
+    "entity": "..."
+   },
+   {
+    "message": "Expected at least 1 instances of Root Data Entity : http://schema.org/Dataset, found 0",
+    "rule": "#Root_Data_Entity",
+    "entity": "..."
+   },
+   {
+    "message": "Expected at least 1 instances of Profile : http://schema.org/CreativeWork, http://schema.org/Profile, found 0",
+    "rule": "#classProfile",
+    "entity": "..."
+   }
+  ],
+  "success": [
+   {
+    "message": "Found 1 valid instances of http://schema.org/MediaObject, http://schema.org/SoftwareSourceCode, https://bioschemas.org/ComputationalWorkflow (expected between 1 and 9007199254740991)",
+    "rule": "#Class_MainWorkflow"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/MediaObject, http://schema.org/SoftwareSourceCode, http://schema.org/HowTo (expected between 0 and 1)",
+    "rule": "#Class_MainWorkflow_Description"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/CreativeWork, http://schema.org/MediaObject (expected between 0 and 1)",
+    "rule": "#class_CreativeWork_README"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/Dataset (expected between 0 and 1)",
+    "rule": "#class_Dataset_Test_Directory"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/Dataset (expected between 0 and 1)",
+    "rule": "#class_Dataset_Examples_Directory"
+   },
+   {
+    "message": "Found 1 valid instances of http://schema.org/ImageObject, http://schema.org/MediaObject (expected between 0 and 9007199254740991)",
+    "rule": "#Class_ImageObject_Diagram"
+   }
+  ],
+  "rules": {
+   "#RO-Crate_Metadata_Descriptor": {
+    "ro-crate-metadata.json": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity ro-crate-metadata.json"
+      }
+     ],
+     "property-errors": [
+      {
+       "message": "Property \"about\" validation failed for entity ro-crate-metadata.json (value \"./\" (types: Dataset) did not match any of the expected ranges: #Root_Data_Entity)"
+      }
+     ]
+    },
+    "ro-crate-preview.html": {
+     "property-errors": [
+      {
+       "message": "Property \"@id\" validation failed for entity ro-crate-preview.html (value constraint #propertyValue_RO-Crate_Metadata_Descriptor.id requires at least 1 match(es), found 0)"
+      },
+      {
+       "message": "Property \"about\" validation failed for entity ro-crate-preview.html (value \"./\" (types: Dataset) did not match any of the expected ranges: #Root_Data_Entity)"
+      }
+     ]
+    },
+    "https://w3id.org/workflowhub/workflow-ro-crate/1.0": {
+     "property-errors": [
+      {
+       "message": "Property \"@id\" validation failed for entity https://w3id.org/workflowhub/workflow-ro-crate/1.0 (value constraint #propertyValue_RO-Crate_Metadata_Descriptor.id requires at least 1 match(es), found 0)"
+      },
+      {
+       "message": "Property \"about\" validation failed for entity https://w3id.org/workflowhub/workflow-ro-crate/1.0 (missing required property about)"
+      }
+     ]
+    },
+    "https://example.org/imaginary-profile": {
+     "property-errors": [
+      {
+       "message": "Property \"@id\" validation failed for entity https://example.org/imaginary-profile (value constraint #propertyValue_RO-Crate_Metadata_Descriptor.id requires at least 1 match(es), found 0)"
+      },
+      {
+       "message": "Property \"about\" validation failed for entity https://example.org/imaginary-profile (missing required property about)"
+      }
+     ]
+    }
+   },
+   "#Root_Data_Entity": {
+    "./": {
+     "property-success": [
+      {
+       "message": "Property \"description\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"datePublished\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"license\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"mainEntity\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"name\" validation succeeded for entity ./"
+      }
+     ],
+     "property-errors": [
+      {
+       "message": "Property \"conformsTo\" validation failed for entity ./ (value constraint #Root_Data_Entity_conformsTo_value requires at least 1 match(es), found 0)"
+      }
+     ]
+    }
+   },
+   "#Class_MainWorkflow": {
+    "example_workflow.cwl": {
+     "property-success": [
+      {
+       "message": "Property \"programmingLanguage\" validation succeeded for entity example_workflow.cwl"
+      },
+      {
+       "message": "Property \"subjectOf\" validation succeeded for entity example_workflow.cwl"
+      },
+      {
+       "message": "Property \"image\" validation succeeded for entity example_workflow.cwl"
+      }
+     ]
+    }
+   },
+   "#prop_conformsTo_Root_Data_Entity": {
+    "./": {
+     "info": [
+      {
+       "message": "Property \"conformsTo\": value constraint #Root_Data_Entity_conformsTo_value requires at least 1 match(es), found 0"
+      }
+     ]
+    }
+   },
+   "#RO-Crate_Metadata_Descriptor.about": {
+    "ro-crate-metadata.json": {
+     "info": [
+      {
+       "message": "Property \"about\": value \"./\" (types: Dataset) did not match any of the expected ranges: #Root_Data_Entity"
+      }
+     ]
+    },
+    "ro-crate-preview.html": {
+     "info": [
+      {
+       "message": "Property \"about\": value \"./\" (types: Dataset) did not match any of the expected ranges: #Root_Data_Entity"
+      }
+     ]
+    },
+    "https://w3id.org/workflowhub/workflow-ro-crate/1.0": {
+     "info": [
+      {
+       "message": "Entity https://w3id.org/workflowhub/workflow-ro-crate/1.0 is missing required property about"
+      }
+     ]
+    },
+    "https://example.org/imaginary-profile": {
+     "info": [
+      {
+       "message": "Entity https://example.org/imaginary-profile is missing required property about"
+      }
+     ]
+    }
+   },
+   "#RO-Crate_Metadata_Descriptor.id": {
+    "ro-crate-preview.html": {
+     "info": [
+      {
+       "message": "Property \"@id\": value constraint #propertyValue_RO-Crate_Metadata_Descriptor.id requires at least 1 match(es), found 0"
+      }
+     ]
+    },
+    "https://w3id.org/workflowhub/workflow-ro-crate/1.0": {
+     "info": [
+      {
+       "message": "Property \"@id\": value constraint #propertyValue_RO-Crate_Metadata_Descriptor.id requires at least 1 match(es), found 0"
+      }
+     ]
+    },
+    "https://example.org/imaginary-profile": {
+     "info": [
+      {
+       "message": "Property \"@id\": value constraint #propertyValue_RO-Crate_Metadata_Descriptor.id requires at least 1 match(es), found 0"
+      }
+     ]
+    }
+   },
+   "#property_Dataset_Test_Directory.id": {
+    "./": {
+     "info": [
+      {
+       "message": "Property \"@id\": value constraint #propertyValue_property_Dataset_Test_Directory.id requires at least 1 match(es), found 0"
+      }
+     ]
+    }
+   },
+   "#class_Dataset_Test_Directory": {
+    "./": {
+     "property-errors": [
+      {
+       "message": "Property \"@id\" validation failed for entity ./ (value constraint #propertyValue_property_Dataset_Test_Directory.id requires at least 1 match(es), found 0)"
+      }
+     ]
+    }
+   },
+   "#property_Dataset_Examples_Directory.id": {
+    "./": {
+     "info": [
+      {
+       "message": "Property \"@id\": value constraint #propertyValue_property_Dataset_Examples_Directory.id requires at least 1 match(es), found 0"
+      }
+     ]
+    }
+   },
+   "#class_Dataset_Examples_Directory": {
+    "./": {
+     "property-errors": [
+      {
+       "message": "Property \"@id\" validation failed for entity ./ (value constraint #propertyValue_property_Dataset_Examples_Directory.id requires at least 1 match(es), found 0)"
+      }
+     ]
+    }
+   }
+  },
+  "ruleFlags": {
+   "#RO-Crate_Metadata_Descriptor": {
+    "metadataDescriptorRule": true
+   },
+   "#RO-Crate_Metadata_Descriptor.id": {
+    "metadataDescriptorRule": true
+   },
+   "#RO-Crate_Metadata_Descriptor.about": {
+    "metadataDescriptorRule": true
+   }
+  }
+ },
+ "js_outcomes": [
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.id",
+   "passed": true
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.about",
+   "passed": false
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_description_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_datePublished_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_license_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#Property_mainEntity_Workflow",
+   "passed": true
+  },
+  {
+   "class_id": "#Class_MainWorkflow",
+   "entity_id": "example_workflow.cwl",
+   "property_rule_id": "#Property_programmingLanguage_Workflow",
+   "passed": true
+  },
+  {
+   "class_id": "#Class_MainWorkflow",
+   "entity_id": "example_workflow.cwl",
+   "property_rule_id": "#Property_MainWorkflow_subjectOf",
+   "passed": true
+  },
+  {
+   "class_id": "#Class_MainWorkflow",
+   "entity_id": "example_workflow.cwl",
+   "property_rule_id": "#Property_MainWorkflow_image",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_conformsTo_Root_Data_Entity",
+   "passed": false
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "http://schema.org/name",
+   "passed": true
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-preview.html",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.id",
+   "passed": false
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-preview.html",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.about",
+   "passed": false
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.id",
+   "passed": false
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.about",
+   "passed": false
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "https://example.org/imaginary-profile",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.id",
+   "passed": false
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "https://example.org/imaginary-profile",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.about",
+   "passed": false
+  },
+  {
+   "class_id": "#class_Dataset_Test_Directory",
+   "entity_id": "./",
+   "property_rule_id": "#property_Dataset_Test_Directory.id",
+   "passed": false
+  },
+  {
+   "class_id": "#class_Dataset_Examples_Directory",
+   "entity_id": "./",
+   "property_rule_id": "#property_Dataset_Examples_Directory.id",
+   "passed": false
+  }
+ ],
+ "js_cardinalities": [
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "passed": false,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "passed": false,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#Class_MainWorkflow",
+   "passed": true,
+   "valid_count": 1
+  },
+  {
+   "class_id": "#Class_MainWorkflow_Description",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_CreativeWork_README",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Dataset_Test_Directory",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Dataset_Examples_Directory",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#Class_ImageObject_Diagram",
+   "passed": true,
+   "valid_count": 1
+  },
+  {
+   "class_id": "#classProfile",
+   "passed": false,
+   "valid_count": 0
+  }
+ ],
+ "js_is_valid": false
+}

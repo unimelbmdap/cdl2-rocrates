@@ -1,0 +1,101 @@
+{
+ "label": "masp-validator.test.js:968 #1",
+ "origin": "suite",
+ "profile": "profiles/3bbf9343bd13.json",
+ "target": {
+  "@context": [
+   "https://w3id.org/ro/crate/1.2/context",
+   {
+    "@vocab": "http://schema.org/"
+   }
+  ],
+  "@graph": [
+   {
+    "@id": "./",
+    "@type": [
+     "Dataset",
+     "Profile"
+    ]
+   },
+   {
+    "@id": "ro-crate-metadata.json",
+    "@type": "CreativeWork",
+    "identifier": "ro-crate-metadata.json",
+    "about": {
+     "@id": "./"
+    },
+    "conformsTo": {
+     "@id": "https://w3id.org/ro/crate/1.2"
+    }
+   },
+   {
+    "@id": "ReAdMe.Md",
+    "@type": [
+     "File",
+     "CreativeWork",
+     "MediaObject"
+    ],
+    "name": "README"
+   }
+  ]
+ },
+ "js_test": {
+  "title": "MASP Profile Tests PropertyValue rangeIncludes handling supports regex flags on PropertyValue constraints",
+  "state": "passed"
+ },
+ "stack_frames": [
+  "masp-validator.test.js:968"
+ ],
+ "js_version": {
+  "ro-crate": "3.7.2",
+  "node": "v22.23.3",
+  "ro-crate-masp": "6d7a018baf827b5716d79a17462e3b3edb15725f"
+ },
+ "js_contexts": {
+  "profile": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ],
+  "target": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ]
+ },
+ "js_results": {
+  "error": [],
+  "success": [
+   {
+    "message": "Found 1 valid instances of http://schema.org/CreativeWork, http://schema.org/MediaObject (expected between 0 and 1)",
+    "rule": "#class_ReadmeEntity"
+   }
+  ],
+  "rules": {
+   "#class_ReadmeEntity": {
+    "ReAdMe.Md": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity ReAdMe.Md"
+      }
+     ]
+    }
+   }
+  },
+  "ruleFlags": {}
+ },
+ "js_outcomes": [
+  {
+   "class_id": "#class_ReadmeEntity",
+   "entity_id": "ReAdMe.Md",
+   "property_rule_id": "#prop_ReadmeEntity.id",
+   "passed": true
+  }
+ ],
+ "js_cardinalities": [
+  {
+   "class_id": "#class_ReadmeEntity",
+   "passed": true,
+   "valid_count": 1
+  }
+ ],
+ "js_is_valid": true
+}

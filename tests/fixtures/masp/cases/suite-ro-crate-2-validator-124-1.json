@@ -1,0 +1,273 @@
+{
+ "label": "ro-crate-2-validator.test.js:124 #1",
+ "origin": "suite",
+ "profile": "profiles/99c6b3e9cd57.json",
+ "target": {
+  "@context": [
+   "https://w3id.org/ro/crate/1.2/context",
+   {
+    "@vocab": "http://schema.org/"
+   }
+  ],
+  "@graph": [
+   {
+    "@id": "./",
+    "@type": "Dataset",
+    "name": "RO-Crate 2 test crate",
+    "description": "Validation target for RO-Crate 2 profile tests",
+    "datePublished": "2026-07-22",
+    "license": "https://creativecommons.org/licenses/by/4.0/"
+   },
+   {
+    "@id": "ro-crate-metadata.json",
+    "@type": "CreativeWork",
+    "identifier": "ro-crate-metadata.json",
+    "about": {
+     "@id": "./"
+    },
+    "conformsTo": {
+     "@id": "https://w3id.org/ro/crate/1.2"
+    }
+   },
+   {
+    "@id": "#file",
+    "@type": [
+     "File",
+     "MediaObject"
+    ],
+    "name": "Invalid file #file",
+    "encodingFormat": "text/plain"
+   },
+   {
+    "@id": "#local-id",
+    "@type": [
+     "File",
+     "MediaObject"
+    ],
+    "name": "Invalid file #local-id",
+    "encodingFormat": "text/plain"
+   },
+   {
+    "@id": "#/slash",
+    "@type": [
+     "File",
+     "MediaObject"
+    ],
+    "name": "Invalid file #/slash",
+    "encodingFormat": "text/plain"
+   }
+  ]
+ },
+ "js_test": {
+  "title": "RO-Crate 2 Profile Validator Tests rejects File/MediaObject entities with IDs starting with #",
+  "state": "passed"
+ },
+ "stack_frames": [
+  "ro-crate-2-validator.test.js:37",
+  "ro-crate-2-validator.test.js:124"
+ ],
+ "js_version": {
+  "ro-crate": "3.7.2",
+  "node": "v22.23.3",
+  "ro-crate-masp": "6d7a018baf827b5716d79a17462e3b3edb15725f"
+ },
+ "js_contexts": {
+  "profile": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ],
+  "target": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ]
+ },
+ "js_results": {
+  "error": [],
+  "success": [
+   {
+    "message": "Found 1 valid instances of http://schema.org/CreativeWork (expected between 1 and 1)",
+    "rule": "#RO-Crate_Metadata_Descriptor"
+   },
+   {
+    "message": "Found 1 valid instances of http://schema.org/Dataset (expected between 0 and 1)",
+    "rule": "#Root_Data_Entity"
+   },
+   {
+    "message": "Found 1 valid instances of http://schema.org/CreativeWork (expected between 0 and 9007199254740991)",
+    "rule": "#class_CreativeWorkLicense"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/MediaObject (expected between 0 and 9007199254740991)",
+    "rule": "#class_File"
+   }
+  ],
+  "rules": {
+   "#RO-Crate_Metadata_Descriptor": {
+    "ro-crate-metadata.json": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"about\" validation succeeded for entity ro-crate-metadata.json"
+      }
+     ]
+    }
+   },
+   "#Root_Data_Entity": {
+    "./": {
+     "property-success": [
+      {
+       "message": "Property \"name\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"description\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"datePublished\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"license\" validation succeeded for entity ./"
+      }
+     ]
+    }
+   },
+   "#property_File.id": {
+    "#file": {
+     "info": [
+      {
+       "message": "Property \"@id\": value constraint #File_id_constraints requires at least 1 match(es), found 0"
+      }
+     ]
+    },
+    "#local-id": {
+     "info": [
+      {
+       "message": "Property \"@id\": value constraint #File_id_constraints requires at least 1 match(es), found 0"
+      }
+     ]
+    },
+    "#/slash": {
+     "info": [
+      {
+       "message": "Property \"@id\": value constraint #File_id_constraints requires at least 1 match(es), found 0"
+      }
+     ]
+    }
+   },
+   "#class_File": {
+    "#file": {
+     "property-errors": [
+      {
+       "message": "Property \"@id\" validation failed for entity #file (value constraint #File_id_constraints requires at least 1 match(es), found 0)"
+      }
+     ]
+    },
+    "#local-id": {
+     "property-errors": [
+      {
+       "message": "Property \"@id\" validation failed for entity #local-id (value constraint #File_id_constraints requires at least 1 match(es), found 0)"
+      }
+     ]
+    },
+    "#/slash": {
+     "property-errors": [
+      {
+       "message": "Property \"@id\" validation failed for entity #/slash (value constraint #File_id_constraints requires at least 1 match(es), found 0)"
+      }
+     ]
+    }
+   }
+  },
+  "ruleFlags": {
+   "#RO-Crate_Metadata_Descriptor": {
+    "metadataDescriptorRule": true
+   },
+   "#RO-Crate_Metadata_Descriptor.id": {
+    "metadataDescriptorRule": true
+   },
+   "#RO-Crate_Metadata_Descriptor.about": {
+    "metadataDescriptorRule": true
+   }
+  }
+ },
+ "js_outcomes": [
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.id",
+   "passed": true
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.about",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "http://schema.org/name",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_description_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_datePublished_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_license_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_File",
+   "entity_id": "#file",
+   "property_rule_id": "#property_File.id",
+   "passed": false
+  },
+  {
+   "class_id": "#class_File",
+   "entity_id": "#local-id",
+   "property_rule_id": "#property_File.id",
+   "passed": false
+  },
+  {
+   "class_id": "#class_File",
+   "entity_id": "#/slash",
+   "property_rule_id": "#property_File.id",
+   "passed": false
+  }
+ ],
+ "js_cardinalities": [
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "passed": true,
+   "valid_count": 1
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "passed": true,
+   "valid_count": 1
+  },
+  {
+   "class_id": "#class_CreativeWorkLicense",
+   "passed": true,
+   "valid_count": 1
+  },
+  {
+   "class_id": "#class_File",
+   "passed": true,
+   "valid_count": 0
+  }
+ ],
+ "js_is_valid": true
+}

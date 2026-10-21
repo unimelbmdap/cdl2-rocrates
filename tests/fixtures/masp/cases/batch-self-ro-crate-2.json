@@ -1,0 +1,285 @@
+{
+ "label": "batch:self-ro-crate-2",
+ "origin": "batch",
+ "profile": "profiles/7c42d6557986.json",
+ "target_path": "tests/fixtures/masp/upstream/ro-crate-2/ro-crate-metadata.json",
+ "js_version": {
+  "ro-crate": "3.7.2",
+  "node": "v22.23.3",
+  "ro-crate-masp": "6d7a018baf827b5716d79a17462e3b3edb15725f"
+ },
+ "js_contexts": {
+  "profile": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ],
+  "target": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ]
+ },
+ "js_results": {
+  "error": [
+   {
+    "message": "Expected at least 1 instances of RO-Crate Metadadata Descriptor : http://schema.org/CreativeWork, found 0",
+    "rule": "#RO-Crate_Metadata_Descriptor",
+    "entity": "..."
+   }
+  ],
+  "success": [
+   {
+    "message": "Found 0 valid instances of http://schema.org/Dataset (expected between 0 and 1)",
+    "rule": "#Root_Data_Entity"
+   },
+   {
+    "message": "Found 3 valid instances of http://schema.org/CreativeWork (expected between 0 and 9007199254740991)",
+    "rule": "#class_CreativeWorkLicense"
+   },
+   {
+    "message": "Found 3 valid instances of http://schema.org/MediaObject (expected between 0 and 9007199254740991)",
+    "rule": "#class_File"
+   }
+  ],
+  "rules": {
+   "#RO-Crate_Metadata_Descriptor.id": {
+    "https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate-masp/profile-crate/#profile": {
+     "info": [
+      {
+       "message": "Property \"@id\": value constraint #propertyValue_RO-Crate_Metadata_Descriptor.id requires at least 1 match(es), found 0"
+      }
+     ]
+    },
+    "https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate/profile-crate/#profile": {
+     "info": [
+      {
+       "message": "Property \"@id\": value constraint #propertyValue_RO-Crate_Metadata_Descriptor.id requires at least 1 match(es), found 0"
+      }
+     ]
+    }
+   },
+   "#RO-Crate_Metadata_Descriptor": {
+    "https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate-masp/profile-crate/#profile": {
+     "property-errors": [
+      {
+       "message": "Property \"@id\" validation failed for entity https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate-masp/profile-crate/#profile (value constraint #propertyValue_RO-Crate_Metadata_Descriptor.id requires at least 1 match(es), found 0)"
+      },
+      {
+       "message": "Property \"about\" validation failed for entity https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate-masp/profile-crate/#profile (missing required property about)"
+      }
+     ]
+    },
+    "ro-crate-metadata.json": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity ro-crate-metadata.json"
+      }
+     ],
+     "property-errors": [
+      {
+       "message": "Property \"about\" validation failed for entity ro-crate-metadata.json (value \"./\" (types: Dataset, Profile) did not match any of the expected ranges: #Root_Data_Entity)"
+      }
+     ]
+    },
+    "https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate/profile-crate/#profile": {
+     "property-errors": [
+      {
+       "message": "Property \"@id\" validation failed for entity https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate/profile-crate/#profile (value constraint #propertyValue_RO-Crate_Metadata_Descriptor.id requires at least 1 match(es), found 0)"
+      },
+      {
+       "message": "Property \"about\" validation failed for entity https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate/profile-crate/#profile (missing required property about)"
+      }
+     ]
+    }
+   },
+   "#RO-Crate_Metadata_Descriptor.about": {
+    "https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate-masp/profile-crate/#profile": {
+     "info": [
+      {
+       "message": "Entity https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate-masp/profile-crate/#profile is missing required property about"
+      }
+     ]
+    },
+    "ro-crate-metadata.json": {
+     "info": [
+      {
+       "message": "Property \"about\": value \"./\" (types: Dataset, Profile) did not match any of the expected ranges: #Root_Data_Entity"
+      }
+     ]
+    },
+    "https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate/profile-crate/#profile": {
+     "info": [
+      {
+       "message": "Entity https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate/profile-crate/#profile is missing required property about"
+      }
+     ]
+    }
+   },
+   "#Root_Data_Entity": {
+    "./": {
+     "property-success": [
+      {
+       "message": "Property \"name\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"description\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"license\" validation succeeded for entity ./"
+      }
+     ],
+     "property-errors": [
+      {
+       "message": "Property \"datePublished\" validation failed for entity ./ (missing required property datePublished)"
+      }
+     ]
+    }
+   },
+   "#prop_datePublished_Dataset": {
+    "./": {
+     "info": [
+      {
+       "message": "Entity ./ is missing required property datePublished"
+      }
+     ]
+    }
+   },
+   "#class_File": {
+    "index.html": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity index.html"
+      }
+     ]
+    },
+    "profile-documentation.md": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity profile-documentation.md"
+      }
+     ]
+    },
+    "crate-o-mode.json": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity crate-o-mode.json"
+      }
+     ]
+    }
+   }
+  },
+  "ruleFlags": {
+   "#RO-Crate_Metadata_Descriptor": {
+    "metadataDescriptorRule": true
+   },
+   "#RO-Crate_Metadata_Descriptor.id": {
+    "metadataDescriptorRule": true
+   },
+   "#RO-Crate_Metadata_Descriptor.about": {
+    "metadataDescriptorRule": true
+   }
+  }
+ },
+ "js_outcomes": [
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate-masp/profile-crate/#profile",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.id",
+   "passed": false
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate-masp/profile-crate/#profile",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.about",
+   "passed": false
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.id",
+   "passed": true
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.about",
+   "passed": false
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "http://schema.org/name",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_description_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_datePublished_Dataset",
+   "passed": false
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_license_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate/profile-crate/#profile",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.id",
+   "passed": false
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "https://language-research-technology.github.io/ro-crate-masp/profiles/ro-crate/profile-crate/#profile",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.about",
+   "passed": false
+  },
+  {
+   "class_id": "#class_File",
+   "entity_id": "index.html",
+   "property_rule_id": "#property_File.id",
+   "passed": true
+  },
+  {
+   "class_id": "#class_File",
+   "entity_id": "profile-documentation.md",
+   "property_rule_id": "#property_File.id",
+   "passed": true
+  },
+  {
+   "class_id": "#class_File",
+   "entity_id": "crate-o-mode.json",
+   "property_rule_id": "#property_File.id",
+   "passed": true
+  }
+ ],
+ "js_cardinalities": [
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "passed": false,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_CreativeWorkLicense",
+   "passed": true,
+   "valid_count": 3
+  },
+  {
+   "class_id": "#class_File",
+   "passed": true,
+   "valid_count": 3
+  }
+ ],
+ "js_is_valid": false
+}

@@ -1,0 +1,956 @@
+{
+ "label": "ldac-validator.test.js:53 #1",
+ "origin": "suite",
+ "profile": "profiles/fa7afa5a91dd.json",
+ "target": {
+  "@context": [
+   "https://w3id.org/ro/crate/1.2/context",
+   {
+    "@vocab": "http://schema.org/"
+   }
+  ],
+  "@graph": [
+   {
+    "@id": "./",
+    "@type": "Dataset"
+   },
+   {
+    "@id": "ro-crate-metadata.json",
+    "@type": "CreativeWork",
+    "identifier": "ro-crate-metadata.json",
+    "about": {
+     "@id": "./"
+    },
+    "conformsTo": {
+     "@id": "https://w3id.org/ro/crate/1.2"
+    }
+   }
+  ]
+ },
+ "js_test": {
+  "title": "Language Data Commons (LDAC) Validator Tests should be able to deal with the MASP-based LDAC profile",
+  "state": "passed"
+ },
+ "stack_frames": [
+  "ldac-validator.test.js:53"
+ ],
+ "js_version": {
+  "ro-crate": "3.7.2",
+  "node": "v22.23.3",
+  "ro-crate-masp": "6d7a018baf827b5716d79a17462e3b3edb15725f"
+ },
+ "js_contexts": {
+  "profile": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ],
+  "target": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ]
+ },
+ "js_results": {
+  "error": [
+   {
+    "message": "Expected at least 1 instances of RO-Crate Metadata Descriptor : http://schema.org/CreativeWork, found 0",
+    "rule": "#RO-Crate_Metadata_Descriptor",
+    "entity": "..."
+   },
+   {
+    "message": "Expected at least 1 instances of README Entity : http://schema.org/MediaObject, found 0",
+    "rule": "#README_Entity",
+    "entity": "..."
+   },
+   {
+    "message": "Expected at least 1 instances of Root Data Entity : http://schema.org/Dataset, http://pcdm.org/models#Collection, found 0",
+    "rule": "#Root_Data_Entity",
+    "entity": "..."
+   }
+  ],
+  "success": [
+   {
+    "message": "Found 0 valid instances of https://w3id.org/ldac/terms#CollectionEvent (expected between 0 and 9007199254740991)",
+    "rule": "#class_CollectionEvent"
+   },
+   {
+    "message": "Found 1 valid instances of http://schema.org/CreativeWork (expected between 0 and 9007199254740991)",
+    "rule": "#class_CreativeWork"
+   },
+   {
+    "message": "Found 0 valid instances of https://w3id.org/ldac/terms#DataDepositLicense (expected between 0 and 9007199254740991)",
+    "rule": "#class_DataDepositLicense"
+   },
+   {
+    "message": "Found 0 valid instances of https://w3id.org/ldac/terms#DataLicense (expected between 0 and 9007199254740991)",
+    "rule": "#class_DataLicense"
+   },
+   {
+    "message": "Found 0 valid instances of https://w3id.org/ldac/terms#DataReuseLicense (expected between 0 and 9007199254740991)",
+    "rule": "#class_DataReuseLicense"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/Dataset (expected between 0 and 9007199254740991)",
+    "rule": "#class_Dataset"
+   },
+   {
+    "message": "Found 0 valid instances of http://purl.org/dc/terms/Collection (expected between 0 and 9007199254740991)",
+    "rule": "#class_dct:Collection"
+   },
+   {
+    "message": "Found 0 valid instances of http://purl.org/dc/terms/Dataset (expected between 0 and 9007199254740991)",
+    "rule": "#class_dct:Dataset"
+   },
+   {
+    "message": "Found 0 valid instances of http://purl.org/dc/terms/Event (expected between 0 and 9007199254740991)",
+    "rule": "#class_dct:Event"
+   },
+   {
+    "message": "Found 0 valid instances of http://purl.org/dc/terms/Image (expected between 0 and 9007199254740991)",
+    "rule": "#class_dct:Image"
+   },
+   {
+    "message": "Found 0 valid instances of http://purl.org/dc/terms/InteractiveResource (expected between 0 and 9007199254740991)",
+    "rule": "#class_dct:InteractiveResource"
+   },
+   {
+    "message": "Found 0 valid instances of http://purl.org/dc/terms/MovingImage (expected between 0 and 9007199254740991)",
+    "rule": "#class_dct:MovingImage"
+   },
+   {
+    "message": "Found 0 valid instances of http://purl.org/dc/terms/PhysicalObject (expected between 0 and 9007199254740991)",
+    "rule": "#class_dct:PhysicalObject"
+   },
+   {
+    "message": "Found 0 valid instances of http://purl.org/dc/terms/Service (expected between 0 and 9007199254740991)",
+    "rule": "#class_dct:Service"
+   },
+   {
+    "message": "Found 0 valid instances of http://purl.org/dc/terms/Software (expected between 0 and 9007199254740991)",
+    "rule": "#class_dct:Software"
+   },
+   {
+    "message": "Found 0 valid instances of http://purl.org/dc/terms/Sound (expected between 0 and 9007199254740991)",
+    "rule": "#class_dct:Sound"
+   },
+   {
+    "message": "Found 0 valid instances of http://purl.org/dc/terms/StillImage (expected between 0 and 9007199254740991)",
+    "rule": "#class_dct:StillImage"
+   },
+   {
+    "message": "Found 0 valid instances of http://purl.org/dc/terms/Text (expected between 0 and 9007199254740991)",
+    "rule": "#class_dct:Text"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/MediaObject (expected between 0 and 9007199254740991)",
+    "rule": "#class_File"
+   },
+   {
+    "message": "Found 0 valid instances of http://www.opengis.net/ont/geosparql#Geometry (expected between 0 and 9007199254740991)",
+    "rule": "#class_Geometry"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/Language (expected between 0 and 9007199254740991)",
+    "rule": "#class_Language"
+   },
+   {
+    "message": "Found 0 valid instances of https://w3id.org/ldac/terms#CollectionProtocol (expected between 0 and 9007199254740991)",
+    "rule": "#class_ldac:CollectionProtocol"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/Organization (expected between 0 and 9007199254740991)",
+    "rule": "#class_Organization"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/Person (expected between 0 and 9007199254740991)",
+    "rule": "#class_Person"
+   },
+   {
+    "message": "Found 0 valid instances of http://schema.org/Place (expected between 0 and 9007199254740991)",
+    "rule": "#class_Place"
+   },
+   {
+    "message": "Found 0 valid instances of http://pcdm.org/models#Collection (expected between 0 and 9007199254740991)",
+    "rule": "#class_RepositoryCollection"
+   },
+   {
+    "message": "Found 0 valid instances of http://pcdm.org/models#Object (expected between 0 and 9007199254740991)",
+    "rule": "#class_RepositoryObject"
+   }
+  ],
+  "rules": {
+   "#class_CreativeWork": {
+    "ro-crate-metadata.json": {
+     "property-success": [
+      {
+       "message": "Property \"author\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"isbn\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"issn\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"ldac:annotationType\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"ldac:channels\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"ldac:communicationMode\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"ldac:indexableText\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"ldac:isDeIdentified\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"ldac:linguisticGenre\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"ldac:material\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"ldac:openAccessIndex\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"ldac:register\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"ldac:writtenLanguageFormat\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"publisher\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"recipient\" validation succeeded for entity ro-crate-metadata.json"
+      }
+     ]
+    }
+   },
+   "#prop_accountablePerson_Dataset": {
+    "./": {
+     "info": [
+      {
+       "message": "Entity ./ is missing required property accountablePerson"
+      }
+     ]
+    }
+   },
+   "#class_Dataset": {
+    "./": {
+     "property-errors": [
+      {
+       "message": "Property \"accountablePerson\" validation failed for entity ./ (missing required property accountablePerson)"
+      },
+      {
+       "message": "Property \"author\" validation failed for entity ./ (missing required property author)"
+      },
+      {
+       "message": "Property \"dct:rightsHolder\" validation failed for entity ./ (missing required property dct:rightsHolder)"
+      },
+      {
+       "message": "Property \"publisher\" validation failed for entity ./ (missing required property publisher)"
+      }
+     ],
+     "property-success": [
+      {
+       "message": "Property \"citation\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"creditText\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"funder\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"hasPart\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"isAccessibleForFree\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"isBasedOn\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"isPartOf\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:annotationOf\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:annotator\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:compiler\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:consultant\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:dataInputter\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:depositor\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:developer\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:doi\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:editor\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:hasCollectionProtocol\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:illustrator\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:interpreter\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:interviewee\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:interviewer\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:participant\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:performer\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:photographer\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:recorder\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:researcher\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:researchParticipant\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:responder\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:signer\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:singer\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:speaker\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:sponsor\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:transcriber\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"ldac:translator\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"pcdm:hasMember\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"pcdm:memberOf\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"spatialCoverage\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"temporalCoverage\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"usageInfo\" validation succeeded for entity ./"
+      }
+     ]
+    }
+   },
+   "#prop_author_Dataset": {
+    "./": {
+     "info": [
+      {
+       "message": "Entity ./ is missing required property author"
+      }
+     ]
+    }
+   },
+   "#prop_dct:rightsHolder_Dataset": {
+    "./": {
+     "info": [
+      {
+       "message": "Entity ./ is missing required property dct:rightsHolder"
+      }
+     ]
+    }
+   },
+   "#prop_publisher_Dataset": {
+    "./": {
+     "info": [
+      {
+       "message": "Entity ./ is missing required property publisher"
+      }
+     ]
+    }
+   },
+   "#RO-Crate_Metadata_Descriptor.about": {
+    "ro-crate-metadata.json": {
+     "info": [
+      {
+       "message": "Property \"about\": value \"./\" (types: Dataset) did not match any of the expected ranges: #Root_Data_Entity"
+      }
+     ]
+    }
+   },
+   "#RO-Crate_Metadata_Descriptor": {
+    "ro-crate-metadata.json": {
+     "property-errors": [
+      {
+       "message": "Property \"about\" validation failed for entity ro-crate-metadata.json (value \"./\" (types: Dataset) did not match any of the expected ranges: #Root_Data_Entity)"
+      }
+     ],
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity ro-crate-metadata.json"
+      }
+     ]
+    }
+   }
+  },
+  "ruleFlags": {
+   "#RO-Crate_Metadata_Descriptor": {
+    "metadataDescriptorRule": true
+   },
+   "#RO-Crate_Metadata_Descriptor.about": {
+    "metadataDescriptorRule": true
+   },
+   "#RO-Crate_Metadata_Descriptor.id": {
+    "metadataDescriptorRule": true
+   }
+  }
+ },
+ "js_outcomes": [
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_author_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_isbn_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_issn_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_ldac:annotationType_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_ldac:channels_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_ldac:communicationMode_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_ldac:indexableText_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_ldac:isDeIdentified_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_ldac:linguisticGenre_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_ldac:material_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_ldac:openAccessIndex_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_ldac:register_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_ldac:writtenLanguageFormat_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_publisher_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#prop_recipient_CreativeWork",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_accountablePerson_Dataset",
+   "passed": false
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_author_Dataset",
+   "passed": false
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_citation_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_creditText_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_dct:rightsHolder_Dataset",
+   "passed": false
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_funder_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_hasPart_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_isAccessibleForFree_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_isBasedOn_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_isPartOf_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:annotationOf_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:annotator_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:compiler_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:consultant_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:dataInputter_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:depositor_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:developer_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:doi_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:editor_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:hasCollectionProtocol_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:illustrator_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:interpreter_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:interviewee_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:interviewer_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:participant_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:performer_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:photographer_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:recorder_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:researcher_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:researchParticipant_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:responder_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:signer_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:singer_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:speaker_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:sponsor_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:transcriber_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_ldac:translator_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_pcdm:hasMember_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_pcdm:memberOf_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_publisher_Dataset",
+   "passed": false
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_spatialCoverage_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_temporalCoverage_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Dataset",
+   "entity_id": "./",
+   "property_rule_id": "#prop_usageInfo_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.about",
+   "passed": false
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.id",
+   "passed": true
+  }
+ ],
+ "js_cardinalities": [
+  {
+   "class_id": "#class_CollectionEvent",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_CreativeWork",
+   "passed": true,
+   "valid_count": 1
+  },
+  {
+   "class_id": "#class_DataDepositLicense",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_DataLicense",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_DataReuseLicense",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Dataset",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_dct:Collection",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_dct:Dataset",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_dct:Event",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_dct:Image",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_dct:InteractiveResource",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_dct:MovingImage",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_dct:PhysicalObject",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_dct:Service",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_dct:Software",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_dct:Sound",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_dct:StillImage",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_dct:Text",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_File",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Geometry",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Language",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_ldac:CollectionProtocol",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Organization",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Person",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Place",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_RepositoryCollection",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_RepositoryObject",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "passed": false,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#README_Entity",
+   "passed": false,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "passed": false,
+   "valid_count": 0
+  }
+ ],
+ "js_is_valid": false
+}

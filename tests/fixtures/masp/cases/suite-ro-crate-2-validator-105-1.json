@@ -1,0 +1,272 @@
+{
+ "label": "ro-crate-2-validator.test.js:105 #1",
+ "origin": "suite",
+ "profile": "profiles/99c6b3e9cd57.json",
+ "target": {
+  "@context": [
+   "https://w3id.org/ro/crate/1.2/context",
+   {
+    "@vocab": "http://schema.org/"
+   }
+  ],
+  "@graph": [
+   {
+    "@id": "./",
+    "@type": "Dataset",
+    "name": "RO-Crate 2 test crate",
+    "description": "Validation target for RO-Crate 2 profile tests",
+    "datePublished": "2026-07-22",
+    "license": "https://creativecommons.org/licenses/by/4.0/"
+   },
+   {
+    "@id": "ro-crate-metadata.json",
+    "@type": "CreativeWork",
+    "identifier": "ro-crate-metadata.json",
+    "about": {
+     "@id": "./"
+    },
+    "conformsTo": {
+     "@id": "https://w3id.org/ro/crate/1.2"
+    }
+   },
+   {
+    "@id": "data/file.txt",
+    "@type": [
+     "File",
+     "MediaObject"
+    ],
+    "name": "File data/file.txt",
+    "encodingFormat": "text/plain"
+   },
+   {
+    "@id": "./nested/path/file.txt",
+    "@type": [
+     "File",
+     "MediaObject"
+    ],
+    "name": "File ./nested/path/file.txt",
+    "encodingFormat": "text/plain"
+   },
+   {
+    "@id": "assets/audio.wav",
+    "@type": [
+     "File",
+     "MediaObject"
+    ],
+    "name": "File assets/audio.wav",
+    "encodingFormat": "text/plain"
+   },
+   {
+    "@id": "file-1",
+    "@type": [
+     "File",
+     "MediaObject"
+    ],
+    "name": "File file-1",
+    "encodingFormat": "text/plain"
+   }
+  ]
+ },
+ "js_test": {
+  "title": "RO-Crate 2 Profile Validator Tests accepts File/MediaObject entities with non-empty relative IDs not starting with # or _:",
+  "state": "passed"
+ },
+ "stack_frames": [
+  "ro-crate-2-validator.test.js:37",
+  "ro-crate-2-validator.test.js:105"
+ ],
+ "js_version": {
+  "ro-crate": "3.7.2",
+  "node": "v22.23.3",
+  "ro-crate-masp": "6d7a018baf827b5716d79a17462e3b3edb15725f"
+ },
+ "js_contexts": {
+  "profile": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ],
+  "target": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ]
+ },
+ "js_results": {
+  "error": [],
+  "success": [
+   {
+    "message": "Found 1 valid instances of http://schema.org/CreativeWork (expected between 1 and 1)",
+    "rule": "#RO-Crate_Metadata_Descriptor"
+   },
+   {
+    "message": "Found 1 valid instances of http://schema.org/Dataset (expected between 0 and 1)",
+    "rule": "#Root_Data_Entity"
+   },
+   {
+    "message": "Found 1 valid instances of http://schema.org/CreativeWork (expected between 0 and 9007199254740991)",
+    "rule": "#class_CreativeWorkLicense"
+   },
+   {
+    "message": "Found 4 valid instances of http://schema.org/MediaObject (expected between 0 and 9007199254740991)",
+    "rule": "#class_File"
+   }
+  ],
+  "rules": {
+   "#RO-Crate_Metadata_Descriptor": {
+    "ro-crate-metadata.json": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity ro-crate-metadata.json"
+      },
+      {
+       "message": "Property \"about\" validation succeeded for entity ro-crate-metadata.json"
+      }
+     ]
+    }
+   },
+   "#Root_Data_Entity": {
+    "./": {
+     "property-success": [
+      {
+       "message": "Property \"name\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"description\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"datePublished\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"license\" validation succeeded for entity ./"
+      }
+     ]
+    }
+   },
+   "#class_File": {
+    "data/file.txt": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity data/file.txt"
+      }
+     ]
+    },
+    "./nested/path/file.txt": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity ./nested/path/file.txt"
+      }
+     ]
+    },
+    "assets/audio.wav": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity assets/audio.wav"
+      }
+     ]
+    },
+    "file-1": {
+     "property-success": [
+      {
+       "message": "Property \"@id\" validation succeeded for entity file-1"
+      }
+     ]
+    }
+   }
+  },
+  "ruleFlags": {
+   "#RO-Crate_Metadata_Descriptor": {
+    "metadataDescriptorRule": true
+   },
+   "#RO-Crate_Metadata_Descriptor.id": {
+    "metadataDescriptorRule": true
+   },
+   "#RO-Crate_Metadata_Descriptor.about": {
+    "metadataDescriptorRule": true
+   }
+  }
+ },
+ "js_outcomes": [
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.id",
+   "passed": true
+  },
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "entity_id": "ro-crate-metadata.json",
+   "property_rule_id": "#RO-Crate_Metadata_Descriptor.about",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "http://schema.org/name",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_description_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_datePublished_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "entity_id": "./",
+   "property_rule_id": "#prop_license_Dataset",
+   "passed": true
+  },
+  {
+   "class_id": "#class_File",
+   "entity_id": "data/file.txt",
+   "property_rule_id": "#property_File.id",
+   "passed": true
+  },
+  {
+   "class_id": "#class_File",
+   "entity_id": "./nested/path/file.txt",
+   "property_rule_id": "#property_File.id",
+   "passed": true
+  },
+  {
+   "class_id": "#class_File",
+   "entity_id": "assets/audio.wav",
+   "property_rule_id": "#property_File.id",
+   "passed": true
+  },
+  {
+   "class_id": "#class_File",
+   "entity_id": "file-1",
+   "property_rule_id": "#property_File.id",
+   "passed": true
+  }
+ ],
+ "js_cardinalities": [
+  {
+   "class_id": "#RO-Crate_Metadata_Descriptor",
+   "passed": true,
+   "valid_count": 1
+  },
+  {
+   "class_id": "#Root_Data_Entity",
+   "passed": true,
+   "valid_count": 1
+  },
+  {
+   "class_id": "#class_CreativeWorkLicense",
+   "passed": true,
+   "valid_count": 1
+  },
+  {
+   "class_id": "#class_File",
+   "passed": true,
+   "valid_count": 4
+  }
+ ],
+ "js_is_valid": true
+}

@@ -1,0 +1,1279 @@
+{
+ "label": "ldac-dmlex-profile.test.js:78 #1",
+ "origin": "suite",
+ "profile": "profiles/3c68b09dc811.json",
+ "target": {
+  "@context": [
+   "https://w3id.org/ro/crate/1.2/context",
+   {
+    "@vocab": "http://schema.org/",
+    "dmlex": "https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#"
+   }
+  ],
+  "@graph": [
+   {
+    "@id": "ro-crate-metadata.json",
+    "@type": "CreativeWork",
+    "conformsTo": {
+     "@id": "https://w3id.org/ro/crate/1.2"
+    },
+    "about": {
+     "@id": "./"
+    }
+   },
+   {
+    "@id": "./",
+    "@type": [
+     "Dataset",
+     "dmlex:LexicographicResource"
+    ],
+    "name": "Example Dictionary",
+    "description": "The basic entry example (A.1.1) from the DMLex v1.0 specification, as an RO-Crate.",
+    "datePublished": "2026-10-14",
+    "license": {
+     "@id": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    "dmlex:title": "Example Dictionary",
+    "dmlex:uri": "not a url",
+    "dmlex:langCode": "en",
+    "dmlex:entry": {
+     "@id": "#abandon-verb"
+    }
+   },
+   {
+    "@id": "#abandon-verb",
+    "@type": "dmlex:Entry",
+    "dmlex:headword": "abandon",
+    "dmlex:partOfSpeech": {
+     "@id": "#abandon-verb-pos"
+    },
+    "dmlex:sense": [
+     {
+      "@id": "#abandon-verb-1"
+     },
+     {
+      "@id": "#abandon-verb-2"
+     }
+    ]
+   },
+   {
+    "@id": "#abandon-verb-pos",
+    "@type": "dmlex:PartOfSpeech",
+    "dmlex:tag": "verb",
+    "dmlex:listingOrder": 1
+   },
+   {
+    "@id": "#abandon-verb-1",
+    "@type": "dmlex:Sense",
+    "dmlex:listingOrder": 1,
+    "dmlex:definition": {
+     "@id": "#abandon-verb-1-def"
+    },
+    "dmlex:example": [
+     {
+      "@id": "#abandon-verb-1-ex1"
+     },
+     {
+      "@id": "#abandon-verb-1-ex2"
+     }
+    ]
+   },
+   {
+    "@id": "#abandon-verb-2",
+    "@type": "dmlex:Sense",
+    "dmlex:listingOrder": 2,
+    "dmlex:label": {
+     "@id": "#abandon-verb-2-label"
+    },
+    "dmlex:definition": {
+     "@id": "#abandon-verb-2-def"
+    },
+    "dmlex:example": {
+     "@id": "#abandon-verb-2-ex1"
+    }
+   },
+   {
+    "@id": "#abandon-verb-1-def",
+    "@type": "dmlex:Definition",
+    "dmlex:text": "to suddenly leave a place or a person",
+    "dmlex:listingOrder": 1
+   },
+   {
+    "@id": "#abandon-verb-1-ex1",
+    "@type": "dmlex:Example",
+    "dmlex:text": "I'm sorry I abandoned you like that.",
+    "dmlex:listingOrder": 1
+   },
+   {
+    "@id": "#abandon-verb-1-ex2",
+    "@type": "dmlex:Example",
+    "dmlex:text": "Abandon ship!",
+    "dmlex:label": {
+     "@id": "#abandon-verb-1-ex2-label"
+    },
+    "dmlex:listingOrder": 2
+   },
+   {
+    "@id": "#abandon-verb-1-ex2-label",
+    "@type": "dmlex:Label",
+    "dmlex:tag": "idiom",
+    "dmlex:listingOrder": 1
+   },
+   {
+    "@id": "#abandon-verb-2-label",
+    "@type": "dmlex:Label",
+    "dmlex:tag": "mostly-passive",
+    "dmlex:listingOrder": 1
+   },
+   {
+    "@id": "#abandon-verb-2-def",
+    "@type": "dmlex:Definition",
+    "dmlex:text": "to stop supporting an idea",
+    "dmlex:listingOrder": 1
+   },
+   {
+    "@id": "#abandon-verb-2-ex1",
+    "@type": "dmlex:Example",
+    "dmlex:text": "That theory has been abandoned.",
+    "dmlex:listingOrder": 1
+   }
+  ]
+ },
+ "js_test": {
+  "title": "LDAC-DMLex Profile requires a schema:URL value to be a URL",
+  "state": "passed"
+ },
+ "stack_frames": [
+  "ldac-dmlex-profile.test.js:31",
+  "ldac-dmlex-profile.test.js:78"
+ ],
+ "js_version": {
+  "ro-crate": "3.7.2",
+  "node": "v22.23.3",
+  "ro-crate-masp": "6d7a018baf827b5716d79a17462e3b3edb15725f"
+ },
+ "js_contexts": {
+  "profile": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ],
+  "target": [
+   "https://w3id.org/ro/crate/1.2/context",
+   "{inline}"
+  ]
+ },
+ "js_results": {
+  "error": [
+   {
+    "message": "Expected at least 1 instances of Lexicographic resource : https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#LexicographicResource, found 0",
+    "rule": "#class_LexicographicResource",
+    "entity": "..."
+   }
+  ],
+  "success": [
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#CollocateMarker (expected between 0 and 9007199254740991)",
+    "rule": "#class_CollocateMarker"
+   },
+   {
+    "message": "Found 2 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#Definition (expected between 0 and 9007199254740991)",
+    "rule": "#class_Definition"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#DefinitionTypeTag (expected between 0 and 9007199254740991)",
+    "rule": "#class_DefinitionTypeTag"
+   },
+   {
+    "message": "Found 1 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#Entry (expected between 0 and 9007199254740991)",
+    "rule": "#class_Entry"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#Etymology (expected between 0 and 9007199254740991)",
+    "rule": "#class_Etymology"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#Etymon (expected between 0 and 9007199254740991)",
+    "rule": "#class_Etymon"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#EtymonLanguage (expected between 0 and 9007199254740991)",
+    "rule": "#class_EtymonLanguage"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#EtymonType (expected between 0 and 9007199254740991)",
+    "rule": "#class_EtymonType"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#EtymonUnit (expected between 0 and 9007199254740991)",
+    "rule": "#class_EtymonUnit"
+   },
+   {
+    "message": "Found 3 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#Example (expected between 0 and 9007199254740991)",
+    "rule": "#class_Example"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#ExampleTranslation (expected between 0 and 9007199254740991)",
+    "rule": "#class_ExampleTranslation"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#HeadwordExplanation (expected between 0 and 9007199254740991)",
+    "rule": "#class_HeadwordExplanation"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#HeadwordMarker (expected between 0 and 9007199254740991)",
+    "rule": "#class_HeadwordMarker"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#HeadwordTranslation (expected between 0 and 9007199254740991)",
+    "rule": "#class_HeadwordTranslation"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#InflectedForm (expected between 0 and 9007199254740991)",
+    "rule": "#class_InflectedForm"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#InflectedFormTag (expected between 0 and 9007199254740991)",
+    "rule": "#class_InflectedFormTag"
+   },
+   {
+    "message": "Found 2 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#Label (expected between 0 and 9007199254740991)",
+    "rule": "#class_Label"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#LabelTag (expected between 0 and 9007199254740991)",
+    "rule": "#class_LabelTag"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#LabelTypeTag (expected between 0 and 9007199254740991)",
+    "rule": "#class_LabelTypeTag"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#Member (expected between 0 and 9007199254740991)",
+    "rule": "#class_Member"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#MemberType (expected between 0 and 9007199254740991)",
+    "rule": "#class_MemberType"
+   },
+   {
+    "message": "Found 1 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#PartOfSpeech (expected between 0 and 9007199254740991)",
+    "rule": "#class_PartOfSpeech"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#PartOfSpeechTag (expected between 0 and 9007199254740991)",
+    "rule": "#class_PartOfSpeechTag"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#PlaceholderMarker (expected between 0 and 9007199254740991)",
+    "rule": "#class_PlaceholderMarker"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#Pronunciation (expected between 0 and 9007199254740991)",
+    "rule": "#class_Pronunciation"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#Relation (expected between 0 and 9007199254740991)",
+    "rule": "#class_Relation"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#RelationType (expected between 0 and 9007199254740991)",
+    "rule": "#class_RelationType"
+   },
+   {
+    "message": "Found 2 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#Sense (expected between 0 and 9007199254740991)",
+    "rule": "#class_Sense"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#SourceIdentityTag (expected between 0 and 9007199254740991)",
+    "rule": "#class_SourceIdentityTag"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#Transcription (expected between 0 and 9007199254740991)",
+    "rule": "#class_Transcription"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#TranscriptionSchemeTag (expected between 0 and 9007199254740991)",
+    "rule": "#class_TranscriptionSchemeTag"
+   },
+   {
+    "message": "Found 0 valid instances of https://docs.oasis-open.org/lexidma/dmlex/v1.0/schemas/RDF/dmlex.ttl#TranslationLanguage (expected between 0 and 9007199254740991)",
+    "rule": "#class_TranslationLanguage"
+   }
+  ],
+  "rules": {
+   "#class_Definition": {
+    "#abandon-verb-1-def": {
+     "property-success": [
+      {
+       "message": "Property \"Collocate Marker\" validation succeeded for entity #abandon-verb-1-def"
+      },
+      {
+       "message": "Property \"Definition Type\" validation succeeded for entity #abandon-verb-1-def"
+      },
+      {
+       "message": "Property \"Headword Marker\" validation succeeded for entity #abandon-verb-1-def"
+      },
+      {
+       "message": "Property \"Listing Order\" validation succeeded for entity #abandon-verb-1-def"
+      },
+      {
+       "message": "Property \"Text\" validation succeeded for entity #abandon-verb-1-def"
+      }
+     ]
+    },
+    "#abandon-verb-2-def": {
+     "property-success": [
+      {
+       "message": "Property \"Collocate Marker\" validation succeeded for entity #abandon-verb-2-def"
+      },
+      {
+       "message": "Property \"Definition Type\" validation succeeded for entity #abandon-verb-2-def"
+      },
+      {
+       "message": "Property \"Headword Marker\" validation succeeded for entity #abandon-verb-2-def"
+      },
+      {
+       "message": "Property \"Listing Order\" validation succeeded for entity #abandon-verb-2-def"
+      },
+      {
+       "message": "Property \"Text\" validation succeeded for entity #abandon-verb-2-def"
+      }
+     ]
+    }
+   },
+   "#class_Entry": {
+    "#abandon-verb": {
+     "property-success": [
+      {
+       "message": "Property \"Etymology\" validation succeeded for entity #abandon-verb"
+      },
+      {
+       "message": "Property \"Headword\" validation succeeded for entity #abandon-verb"
+      },
+      {
+       "message": "Property \"Homograph Number\" validation succeeded for entity #abandon-verb"
+      },
+      {
+       "message": "Property \"Inflected Form\" validation succeeded for entity #abandon-verb"
+      },
+      {
+       "message": "Property \"Label\" validation succeeded for entity #abandon-verb"
+      },
+      {
+       "message": "Property \"Part of Speech\" validation succeeded for entity #abandon-verb"
+      },
+      {
+       "message": "Property \"Placeholder Marker\" validation succeeded for entity #abandon-verb"
+      },
+      {
+       "message": "Property \"Pronunciation\" validation succeeded for entity #abandon-verb"
+      },
+      {
+       "message": "Property \"Sense\" validation succeeded for entity #abandon-verb"
+      }
+     ]
+    }
+   },
+   "#class_PartOfSpeech": {
+    "#abandon-verb-pos": {
+     "property-success": [
+      {
+       "message": "Property \"Listing Order\" validation succeeded for entity #abandon-verb-pos"
+      },
+      {
+       "message": "Property \"Tag\" validation succeeded for entity #abandon-verb-pos"
+      }
+     ]
+    }
+   },
+   "#class_Sense": {
+    "#abandon-verb-1": {
+     "property-success": [
+      {
+       "message": "Property \"Definition\" validation succeeded for entity #abandon-verb-1"
+      },
+      {
+       "message": "Property \"Example\" validation succeeded for entity #abandon-verb-1"
+      },
+      {
+       "message": "Property \"Headword Explanation\" validation succeeded for entity #abandon-verb-1"
+      },
+      {
+       "message": "Property \"Headword Translation\" validation succeeded for entity #abandon-verb-1"
+      },
+      {
+       "message": "Property \"Indicator\" validation succeeded for entity #abandon-verb-1"
+      },
+      {
+       "message": "Property \"Label\" validation succeeded for entity #abandon-verb-1"
+      },
+      {
+       "message": "Property \"Listing Order\" validation succeeded for entity #abandon-verb-1"
+      }
+     ]
+    },
+    "#abandon-verb-2": {
+     "property-success": [
+      {
+       "message": "Property \"Definition\" validation succeeded for entity #abandon-verb-2"
+      },
+      {
+       "message": "Property \"Example\" validation succeeded for entity #abandon-verb-2"
+      },
+      {
+       "message": "Property \"Headword Explanation\" validation succeeded for entity #abandon-verb-2"
+      },
+      {
+       "message": "Property \"Headword Translation\" validation succeeded for entity #abandon-verb-2"
+      },
+      {
+       "message": "Property \"Indicator\" validation succeeded for entity #abandon-verb-2"
+      },
+      {
+       "message": "Property \"Label\" validation succeeded for entity #abandon-verb-2"
+      },
+      {
+       "message": "Property \"Listing Order\" validation succeeded for entity #abandon-verb-2"
+      }
+     ]
+    }
+   },
+   "#class_Example": {
+    "#abandon-verb-1-ex1": {
+     "property-success": [
+      {
+       "message": "Property \"Collocate Marker\" validation succeeded for entity #abandon-verb-1-ex1"
+      },
+      {
+       "message": "Property \"Example Translation\" validation succeeded for entity #abandon-verb-1-ex1"
+      },
+      {
+       "message": "Property \"Headword Marker\" validation succeeded for entity #abandon-verb-1-ex1"
+      },
+      {
+       "message": "Property \"Label\" validation succeeded for entity #abandon-verb-1-ex1"
+      },
+      {
+       "message": "Property \"Listing Order\" validation succeeded for entity #abandon-verb-1-ex1"
+      },
+      {
+       "message": "Property \"Sound File\" validation succeeded for entity #abandon-verb-1-ex1"
+      },
+      {
+       "message": "Property \"Source Elaboration\" validation succeeded for entity #abandon-verb-1-ex1"
+      },
+      {
+       "message": "Property \"Source Identity\" validation succeeded for entity #abandon-verb-1-ex1"
+      },
+      {
+       "message": "Property \"Text\" validation succeeded for entity #abandon-verb-1-ex1"
+      }
+     ]
+    },
+    "#abandon-verb-1-ex2": {
+     "property-success": [
+      {
+       "message": "Property \"Collocate Marker\" validation succeeded for entity #abandon-verb-1-ex2"
+      },
+      {
+       "message": "Property \"Example Translation\" validation succeeded for entity #abandon-verb-1-ex2"
+      },
+      {
+       "message": "Property \"Headword Marker\" validation succeeded for entity #abandon-verb-1-ex2"
+      },
+      {
+       "message": "Property \"Label\" validation succeeded for entity #abandon-verb-1-ex2"
+      },
+      {
+       "message": "Property \"Listing Order\" validation succeeded for entity #abandon-verb-1-ex2"
+      },
+      {
+       "message": "Property \"Sound File\" validation succeeded for entity #abandon-verb-1-ex2"
+      },
+      {
+       "message": "Property \"Source Elaboration\" validation succeeded for entity #abandon-verb-1-ex2"
+      },
+      {
+       "message": "Property \"Source Identity\" validation succeeded for entity #abandon-verb-1-ex2"
+      },
+      {
+       "message": "Property \"Text\" validation succeeded for entity #abandon-verb-1-ex2"
+      }
+     ]
+    },
+    "#abandon-verb-2-ex1": {
+     "property-success": [
+      {
+       "message": "Property \"Collocate Marker\" validation succeeded for entity #abandon-verb-2-ex1"
+      },
+      {
+       "message": "Property \"Example Translation\" validation succeeded for entity #abandon-verb-2-ex1"
+      },
+      {
+       "message": "Property \"Headword Marker\" validation succeeded for entity #abandon-verb-2-ex1"
+      },
+      {
+       "message": "Property \"Label\" validation succeeded for entity #abandon-verb-2-ex1"
+      },
+      {
+       "message": "Property \"Listing Order\" validation succeeded for entity #abandon-verb-2-ex1"
+      },
+      {
+       "message": "Property \"Sound File\" validation succeeded for entity #abandon-verb-2-ex1"
+      },
+      {
+       "message": "Property \"Source Elaboration\" validation succeeded for entity #abandon-verb-2-ex1"
+      },
+      {
+       "message": "Property \"Source Identity\" validation succeeded for entity #abandon-verb-2-ex1"
+      },
+      {
+       "message": "Property \"Text\" validation succeeded for entity #abandon-verb-2-ex1"
+      }
+     ]
+    }
+   },
+   "#class_Label": {
+    "#abandon-verb-1-ex2-label": {
+     "property-success": [
+      {
+       "message": "Property \"Listing Order\" validation succeeded for entity #abandon-verb-1-ex2-label"
+      },
+      {
+       "message": "Property \"Tag\" validation succeeded for entity #abandon-verb-1-ex2-label"
+      }
+     ]
+    },
+    "#abandon-verb-2-label": {
+     "property-success": [
+      {
+       "message": "Property \"Listing Order\" validation succeeded for entity #abandon-verb-2-label"
+      },
+      {
+       "message": "Property \"Tag\" validation succeeded for entity #abandon-verb-2-label"
+      }
+     ]
+    }
+   },
+   "#class_LexicographicResource": {
+    "./": {
+     "property-success": [
+      {
+       "message": "Property \"Definition Type Tag\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"Entry\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"Etymon Language\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"Etymon Type\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"Inflected Form Tag\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"Label Type Tag\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"Language\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"Part of Speech Tag\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"Relation\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"RelationType\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"Source Identity Tag\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"Title\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"Transcription Scheme Tag\" validation succeeded for entity ./"
+      },
+      {
+       "message": "Property \"Translation Language\" validation succeeded for entity ./"
+      }
+     ],
+     "property-errors": [
+      {
+       "message": "Property \"URI\" validation failed for entity ./ (value \"not a url\" did not match any of the expected ranges: schema:URL)"
+      }
+     ]
+    }
+   },
+   "#prop_LexicographicResource_uri": {
+    "./": {
+     "info": [
+      {
+       "message": "Property \"dmlex:uri\": value \"not a url\" did not match any of the expected ranges: schema:URL"
+      }
+     ]
+    }
+   }
+  },
+  "ruleFlags": {}
+ },
+ "js_outcomes": [
+  {
+   "class_id": "#class_Definition",
+   "entity_id": "#abandon-verb-1-def",
+   "property_rule_id": "#prop_Definition_collocateMarker",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Definition",
+   "entity_id": "#abandon-verb-1-def",
+   "property_rule_id": "#prop_Definition_definitionType",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Definition",
+   "entity_id": "#abandon-verb-1-def",
+   "property_rule_id": "#prop_Definition_headwordMarker",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Definition",
+   "entity_id": "#abandon-verb-1-def",
+   "property_rule_id": "#prop_Definition_listingOrder",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Definition",
+   "entity_id": "#abandon-verb-1-def",
+   "property_rule_id": "#prop_Definition_text",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Definition",
+   "entity_id": "#abandon-verb-2-def",
+   "property_rule_id": "#prop_Definition_collocateMarker",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Definition",
+   "entity_id": "#abandon-verb-2-def",
+   "property_rule_id": "#prop_Definition_definitionType",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Definition",
+   "entity_id": "#abandon-verb-2-def",
+   "property_rule_id": "#prop_Definition_headwordMarker",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Definition",
+   "entity_id": "#abandon-verb-2-def",
+   "property_rule_id": "#prop_Definition_listingOrder",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Definition",
+   "entity_id": "#abandon-verb-2-def",
+   "property_rule_id": "#prop_Definition_text",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Entry",
+   "entity_id": "#abandon-verb",
+   "property_rule_id": "#prop_Entry_etymology",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Entry",
+   "entity_id": "#abandon-verb",
+   "property_rule_id": "#prop_Entry_headword",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Entry",
+   "entity_id": "#abandon-verb",
+   "property_rule_id": "#prop_Entry_homographNumber",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Entry",
+   "entity_id": "#abandon-verb",
+   "property_rule_id": "#prop_Entry_inflectedForm",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Entry",
+   "entity_id": "#abandon-verb",
+   "property_rule_id": "#prop_Entry_label",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Entry",
+   "entity_id": "#abandon-verb",
+   "property_rule_id": "#prop_Entry_partOfSpeech",
+   "passed": true
+  },
+  {
+   "class_id": "#class_PartOfSpeech",
+   "entity_id": "#abandon-verb-pos",
+   "property_rule_id": "#prop_PartOfSpeech_listingOrder",
+   "passed": true
+  },
+  {
+   "class_id": "#class_PartOfSpeech",
+   "entity_id": "#abandon-verb-pos",
+   "property_rule_id": "#prop_PartOfSpeech_tag",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Entry",
+   "entity_id": "#abandon-verb",
+   "property_rule_id": "#prop_Entry_placeholderMarker",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Entry",
+   "entity_id": "#abandon-verb",
+   "property_rule_id": "#prop_Entry_pronunciation",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Entry",
+   "entity_id": "#abandon-verb",
+   "property_rule_id": "#prop_Entry_sense",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Sense",
+   "entity_id": "#abandon-verb-1",
+   "property_rule_id": "#prop_Sense_definition",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Sense",
+   "entity_id": "#abandon-verb-1",
+   "property_rule_id": "#prop_Sense_example",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex1",
+   "property_rule_id": "#prop_Example_collocateMarker",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex1",
+   "property_rule_id": "#prop_Example_exampleTranslation",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex1",
+   "property_rule_id": "#prop_Example_headwordMarker",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex1",
+   "property_rule_id": "#prop_Example_label",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex1",
+   "property_rule_id": "#prop_Example_listingOrder",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex1",
+   "property_rule_id": "#prop_Example_soundFile",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex1",
+   "property_rule_id": "#prop_Example_sourceElaboration",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex1",
+   "property_rule_id": "#prop_Example_sourceIdentity",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex1",
+   "property_rule_id": "#prop_Example_text",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex2",
+   "property_rule_id": "#prop_Example_collocateMarker",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex2",
+   "property_rule_id": "#prop_Example_exampleTranslation",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex2",
+   "property_rule_id": "#prop_Example_headwordMarker",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex2",
+   "property_rule_id": "#prop_Example_label",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Label",
+   "entity_id": "#abandon-verb-1-ex2-label",
+   "property_rule_id": "#prop_Label_listingOrder",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Label",
+   "entity_id": "#abandon-verb-1-ex2-label",
+   "property_rule_id": "#prop_Label_tag",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex2",
+   "property_rule_id": "#prop_Example_listingOrder",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex2",
+   "property_rule_id": "#prop_Example_soundFile",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex2",
+   "property_rule_id": "#prop_Example_sourceElaboration",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex2",
+   "property_rule_id": "#prop_Example_sourceIdentity",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-1-ex2",
+   "property_rule_id": "#prop_Example_text",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Sense",
+   "entity_id": "#abandon-verb-1",
+   "property_rule_id": "#prop_Sense_headwordExplanation",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Sense",
+   "entity_id": "#abandon-verb-1",
+   "property_rule_id": "#prop_Sense_headwordTranslation",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Sense",
+   "entity_id": "#abandon-verb-1",
+   "property_rule_id": "#prop_Sense_indicator",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Sense",
+   "entity_id": "#abandon-verb-1",
+   "property_rule_id": "#prop_Sense_label",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Sense",
+   "entity_id": "#abandon-verb-1",
+   "property_rule_id": "#prop_Sense_listingOrder",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Sense",
+   "entity_id": "#abandon-verb-2",
+   "property_rule_id": "#prop_Sense_definition",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Sense",
+   "entity_id": "#abandon-verb-2",
+   "property_rule_id": "#prop_Sense_example",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-2-ex1",
+   "property_rule_id": "#prop_Example_collocateMarker",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-2-ex1",
+   "property_rule_id": "#prop_Example_exampleTranslation",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-2-ex1",
+   "property_rule_id": "#prop_Example_headwordMarker",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-2-ex1",
+   "property_rule_id": "#prop_Example_label",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-2-ex1",
+   "property_rule_id": "#prop_Example_listingOrder",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-2-ex1",
+   "property_rule_id": "#prop_Example_soundFile",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-2-ex1",
+   "property_rule_id": "#prop_Example_sourceElaboration",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-2-ex1",
+   "property_rule_id": "#prop_Example_sourceIdentity",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Example",
+   "entity_id": "#abandon-verb-2-ex1",
+   "property_rule_id": "#prop_Example_text",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Sense",
+   "entity_id": "#abandon-verb-2",
+   "property_rule_id": "#prop_Sense_headwordExplanation",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Sense",
+   "entity_id": "#abandon-verb-2",
+   "property_rule_id": "#prop_Sense_headwordTranslation",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Sense",
+   "entity_id": "#abandon-verb-2",
+   "property_rule_id": "#prop_Sense_indicator",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Sense",
+   "entity_id": "#abandon-verb-2",
+   "property_rule_id": "#prop_Sense_label",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Label",
+   "entity_id": "#abandon-verb-2-label",
+   "property_rule_id": "#prop_Label_listingOrder",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Label",
+   "entity_id": "#abandon-verb-2-label",
+   "property_rule_id": "#prop_Label_tag",
+   "passed": true
+  },
+  {
+   "class_id": "#class_Sense",
+   "entity_id": "#abandon-verb-2",
+   "property_rule_id": "#prop_Sense_listingOrder",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_definitionTypeTag",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_entry",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_etymonLanguage",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_etymonType",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_inflectedFormTag",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_labelTypeTag",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_langCode",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_partOfSpeechTag",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_relation",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_relationType",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_sourceIdentityTag",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_title",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_transcriptionSchemeTag",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_translationLanguage",
+   "passed": true
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "entity_id": "./",
+   "property_rule_id": "#prop_LexicographicResource_uri",
+   "passed": false
+  }
+ ],
+ "js_cardinalities": [
+  {
+   "class_id": "#class_CollocateMarker",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Definition",
+   "passed": true,
+   "valid_count": 2
+  },
+  {
+   "class_id": "#class_DefinitionTypeTag",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Entry",
+   "passed": true,
+   "valid_count": 1
+  },
+  {
+   "class_id": "#class_Etymology",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Etymon",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_EtymonLanguage",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_EtymonType",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_EtymonUnit",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Example",
+   "passed": true,
+   "valid_count": 3
+  },
+  {
+   "class_id": "#class_ExampleTranslation",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_HeadwordExplanation",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_HeadwordMarker",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_HeadwordTranslation",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_InflectedForm",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_InflectedFormTag",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Label",
+   "passed": true,
+   "valid_count": 2
+  },
+  {
+   "class_id": "#class_LabelTag",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_LabelTypeTag",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_LexicographicResource",
+   "passed": false,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Member",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_MemberType",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_PartOfSpeech",
+   "passed": true,
+   "valid_count": 1
+  },
+  {
+   "class_id": "#class_PartOfSpeechTag",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_PlaceholderMarker",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Pronunciation",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Relation",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_RelationType",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Sense",
+   "passed": true,
+   "valid_count": 2
+  },
+  {
+   "class_id": "#class_SourceIdentityTag",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_Transcription",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_TranscriptionSchemeTag",
+   "passed": true,
+   "valid_count": 0
+  },
+  {
+   "class_id": "#class_TranslationLanguage",
+   "passed": true,
+   "valid_count": 0
+  }
+ ],
+ "js_is_valid": false
+}

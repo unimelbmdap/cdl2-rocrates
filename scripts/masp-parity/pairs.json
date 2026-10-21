@@ -1,0 +1,85 @@
+{
+ "comment": "Batch pairs for batch.js. Paths starting 'masp:' are inside the ro-crate-masp clone; 'crategraph:' paths are inside the read-only crategraph mount. A '*' path segment expands to every matching directory. 'store' is 'commit' (tests/fixtures/masp/cases) or 'local' (data/masp-parity/cases). 'target_path' records the target by its crategraph repo path instead of embedding it.",
+ "upstream_profiles": ["ro-crate", "ro-crate-2", "ro-crate-masp", "ldac", "ldac-dmlex", "workflow", "software"],
+ "pairs": [
+  {
+   "name": "paradisec-NT1-ldac",
+   "target": "masp:test_data/ldac/validator_tests/paradisec/collection/NT1/ro-crate-metadata.json",
+   "profile": "ldac",
+   "store": "local"
+  },
+  {
+   "name": "paradisec-NT3-ldac",
+   "target": "masp:test_data/ldac/validator_tests/paradisec/collection/NT3/ro-crate-metadata.json",
+   "profile": "ldac",
+   "store": "local"
+  },
+  {
+   "name": "crategraph-tutorial-NT1-ldac",
+   "target": "crategraph:docs/tutorials/data/paradisec/NT1/ro-crate-metadata.json",
+   "target_path": "docs/tutorials/data/paradisec/NT1/ro-crate-metadata.json",
+   "profile": "ldac",
+   "store": "commit"
+  },
+  {
+   "name": "workflow-minimal-example-workflow",
+   "target": "masp:profiles/workflow/examples/minimal-example/ro-crate-metadata.json",
+   "profile": "workflow",
+   "store": "commit"
+  },
+  {
+   "name": "ldac-dmlex-abandon-ldac-dmlex",
+   "target": "masp:profiles/ldac-dmlex/examples/abandon/ro-crate-metadata.json",
+   "profile": "ldac-dmlex",
+   "store": "commit"
+  },
+  {
+   "name": "ldac-examples-{dir}-ldac",
+   "target": "masp:test_data/ldac_examples/*/ro-crate-metadata.json",
+   "profile": "ldac",
+   "store": "local"
+  },
+  {
+   "name": "self-ro-crate",
+   "target": "masp:profiles/ro-crate/profile-crate/ro-crate-metadata.json",
+   "target_path": "tests/fixtures/masp/upstream/ro-crate/ro-crate-metadata.json",
+   "profile": "ro-crate",
+   "store": "commit"
+  },
+  {
+   "name": "self-ro-crate-2",
+   "target": "masp:profiles/ro-crate-2/profile-crate/ro-crate-metadata.json",
+   "target_path": "tests/fixtures/masp/upstream/ro-crate-2/ro-crate-metadata.json",
+   "profile": "ro-crate-2",
+   "store": "commit"
+  },
+  {
+   "name": "self-ro-crate-masp",
+   "target": "masp:profiles/ro-crate-masp/profile-crate/ro-crate-metadata.json",
+   "target_path": "tests/fixtures/masp/upstream/ro-crate-masp/ro-crate-metadata.json",
+   "profile": "ro-crate-masp",
+   "store": "commit"
+  },
+  {
+   "name": "self-ldac",
+   "target": "masp:profiles/ldac/profile-crate/ro-crate-metadata.json",
+   "target_path": "tests/fixtures/masp/upstream/ldac/ro-crate-metadata.json",
+   "profile": "ldac",
+   "store": "commit"
+  },
+  {
+   "name": "self-workflow",
+   "target": "masp:profiles/workflow/profile-crate/ro-crate-metadata.json",
+   "target_path": "tests/fixtures/masp/upstream/workflow/ro-crate-metadata.json",
+   "profile": "workflow",
+   "store": "commit"
+  },
+  {
+   "name": "self-software",
+   "target": "masp:profiles/software/profile-crate/ro-crate-metadata.json",
+   "target_path": "tests/fixtures/masp/upstream/software/ro-crate-metadata.json",
+   "profile": "software",
+   "store": "commit"
+  }
+ ]
+}
