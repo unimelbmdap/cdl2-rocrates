@@ -6,6 +6,7 @@ DEFAULT_CONTEXT = [
     "https://w3id.org/ro/crate/1.2/context",
     {"@vocab": "http://schema.org/"},
 ]
+SCHEMA_ROLE = "http://www.w3.org/ns/dx/prof/role/schema"
 
 
 def _wrap(entities: tuple[dict, ...], context, root: dict, conforms: str | None = None) -> dict:
@@ -34,14 +35,15 @@ def make_profile(*rules: dict, context=None, root_extra: dict | None = None) -> 
     descriptor_id = "#profile-descriptor"
     root = {
         "@id": "./",
-        "@type": "Dataset",
+        "@type": ["Dataset", "Profile"],
         "name": "Test profile",
-        "hasPart": [{"@id": descriptor_id}],
+        "hasResource": [{"@id": descriptor_id}],
         **(root_extra or {}),
     }
     resource = {
         "@id": descriptor_id,
         "@type": "ResourceDescriptor",
+        "hasRole": {"@id": SCHEMA_ROLE},
         "hasPart": [{"@id": r["@id"]} for r in rules],
     }
     return _wrap((resource, *rules), context, root)
