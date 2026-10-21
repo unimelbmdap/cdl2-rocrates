@@ -7,7 +7,7 @@ Rationale behind key architectural choices in crategraph.
 
 ## Backend: NetworkX Direct
 
-**Decision:** `Graph` stores entities and relationships in plain Python containers with a lazily built adjacency index; NetworkX graphs are built on demand for the algorithm layer (Cypher queries, community detection, `to_networkx()`). There is no swappable backend abstraction. RDFLib is an optional dependency reserved for future validation and RDF-based readers (e.g. RiC-O), not as a graph engine.
+**Decision:** `Graph` stores entities and relationships in plain Python containers with a lazily built adjacency index; NetworkX graphs are built on demand for the algorithm layer (Cypher queries, community detection, `to_networkx()`). There is no swappable backend abstraction. RDFLib is an optional dependency used by the `validate` extra for JSON-LD context expansion and by RDF-based readers (e.g. RiC-O), not as a graph engine.
 
 **History:** The project originally had a `GraphBackend` ABC with NetworkX, rustworkx, and RDFLib implementations. This was removed because the abstraction only covered storage (add/query nodes and edges) while the algorithm layer (Cypher queries, community detection, connected components) imported NetworkX directly. A non-NetworkX backend could be plugged in for storage but was silently ignored by every analytical operation. A later performance pass (2026-07, profiling on an 82.7K-node crate) removed the eagerly maintained internal `nx.MultiDiGraph` as well: it was rebuilt on every derived graph but consulted by only one internal method, so derived-graph construction paid an O(N+E) rebuild per transform for nothing.
 
@@ -21,7 +21,7 @@ Rationale behind key architectural choices in crategraph.
 
 **Why frozen dataclasses?** The immutable-results principle means entities and relationships should not be mutated after creation. `frozen=True` enforces this at the language level. Dataclasses are stdlib, lightweight, and sufficient for simple containers. Inspection and viewer results (`FileInfo`, `ViewInfo`) also use frozen dataclasses — they're immutable result objects, not configuration.
 
-**Why Pydantic for validation and configuration models?** Automatic validation, type coercion, and JSON serialisation. Useful for structured option types. Pydantic is already a dependency (used in the core), so there's no cost to using it where it adds value.
+**Why Pydantic for user-facing option models?** Automatic validation, type coercion, and JSON serialisation. Useful for structured option types. Pydantic is already a dependency (used in the core), so there's no cost to using it where it adds value.
 
 ## Plugin Contracts: ABCs not Protocols
 

@@ -49,7 +49,7 @@ df[df.severity == "error"]           # just the errors
 
 `is_valid` is `True` unless there is at least one `error` row. Warnings and info rows never make a crate invalid.
 
-`info` rows give the detail behind an error. When a class needs at least one instance and none qualifies, the error names each near miss and why it failed, for example `./ matched the types but: property license is required and missing`. The per-property failures behind it appear as `info` rows. A separate `info` row reports whether the crate claims conformance to the profile (through `conformsTo` on the root entity or the metadata descriptor). This is informational because real crates often cite older or sibling profile URIs.
+`info` rows give the detail behind an error. When a class needs at least one instance and none qualifies, the error names each near miss and why it failed, for example ``./: property `license`: missing required property``. The per-property failures behind it appear as `info` rows. A separate `info` row reports whether the crate claims conformance to the profile (through `conformsTo` on the root entity or the metadata descriptor). This is informational because real crates often cite older or sibling profile URIs.
 
 Malformed profiles, unreadable crates and graphs that did not come from an RO-Crate raise an exception (`ValueError`, `FileNotFoundError` or `TypeError`) rather than producing a row.
 
@@ -92,14 +92,14 @@ crategraph's validator is a Python port of the [ro-crate-masp](https://github.co
 ### Other notes
 
 - A property rule with no name produces one warning per rule.
+- A class rule with no types (no `prov:specializationOf`) produces a warning.
 - A malformed `sh:minCount` or `sh:maxCount` produces a warning and falls back to the default.
 
 ## Known limitations
 
-- Inheritance (`specializationOf`) is applied to property rules only.
+- Inheritance (`rdfs:subClassOf`) applies to property rules only; an entity of a subclass is not counted as an instance of the parent class.
 - `DefinedTermSet` vocabularies are not checked.
 - There are no domain checks and no checks for undeclared properties.
-- Relations are checked only as far as the profile's ranges reach.
 - Profiles must be local paths, not URLs.
 
 Contributors can regenerate the JavaScript comparison corpus with the harness in `scripts/masp-parity/`.
