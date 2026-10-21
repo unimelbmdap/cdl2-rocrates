@@ -179,6 +179,17 @@ def test_fetched_document_without_context_is_unresolved(monkeypatch, document):
     assert res.unresolved == ("https://example.org/ctx.jsonld",)
 
 
+def test_relative_url_with_fetch_is_unresolved_not_raised(monkeypatch):
+    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    assert resolve_context(["ctx.jsonld"], fetch=True).unresolved == ("ctx.jsonld",)
+
+
+@pytest.mark.parametrize("url", ["file:///etc/hosts", "ftp://example.org/x"])
+def test_non_http_schemes_are_never_fetched(monkeypatch, url):
+    monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    assert resolve_context([url], fetch=True).unresolved == (url,)
+
+
 def test_nested_remote_contexts_resolve_recursively_against_their_document(monkeypatch):
     documents = {
         "https://example.org/a/outer.jsonld": {

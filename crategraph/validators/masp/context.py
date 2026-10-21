@@ -68,12 +68,16 @@ def _fetch(url: str) -> Any | None:
     """Fetch the document at *url*, or return ``None`` on any failure."""
     if url in _FETCH_CACHE:
         return _FETCH_CACHE[url]
-    request = urllib.request.Request(url, headers={"Accept": _ACCEPT})
+    # Only web URLs: crate data must never make the validator read local files.
+    if urllib.parse.urlsplit(url).scheme.lower() not in ("http", "https"):
+        return None
     try:
+        request = urllib.request.Request(url, headers={"Accept": _ACCEPT})
         with urllib.request.urlopen(request, timeout=_FETCH_TIMEOUT) as response:
             document = json.loads(response.read())
     except (OSError, ValueError):
-        # URLError, HTTPError and timeouts are OSErrors; bad JSON is a ValueError.
+        # URLError, HTTPError and timeouts are OSErrors; a malformed URL or bad
+        # JSON is a ValueError.
         return None
     _FETCH_CACHE[url] = document
     return document
