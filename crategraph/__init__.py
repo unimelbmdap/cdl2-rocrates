@@ -109,7 +109,7 @@ class Crate(Graph):
         that need a complete RO-Crate representation including the root
         Dataset node.
         """
-        _meta_keys = {"@context", "_root_id", "_source_format"}
+        _meta_keys = {"@context", "_root_id", "_source_format", "_source_path"}
 
         # Multi-crate: metadata is nested under per-crate prefixes.
         if self.source is None and self.sources:

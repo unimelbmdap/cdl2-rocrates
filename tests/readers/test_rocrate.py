@@ -288,6 +288,11 @@ class TestRootIdDetection:
         g = reader.read(str(MINIMAL))
         assert g.metadata["_root_id"] == "./"
 
+    def test_source_path_recorded(self):
+        g = ROCrateReader().read(str(MINIMAL))
+        expected = (MINIMAL / "ro-crate-metadata.json").absolute()
+        assert g.metadata["_source_path"] == str(expected)
+
     def test_source_format_marker_set(self):
         g = ROCrateReader().read(str(MINIMAL))
         assert g.metadata["_source_format"] == "ro-crate"

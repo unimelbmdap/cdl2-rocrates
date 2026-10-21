@@ -257,6 +257,12 @@ class TestRestoreRootSingleCrate:
         root = crate._entities["./"]
         assert "@context" not in root.properties
 
+    def test_reader_markers_excluded_from_properties(self):
+        for crate in (Crate(MINIMAL), Crate(MINIMAL, SECOND)):
+            crate._restore_root()
+            for root in (e for e in crate._entities.values() if e.properties.get("_is_root")):
+                assert not {"_root_id", "_source_format", "_source_path"} & set(root.properties)
+
 
 class TestRestoreRootMultiCrate:
     """_restore_root() reconstructs per-prefix root entities."""
