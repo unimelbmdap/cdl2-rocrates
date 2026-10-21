@@ -2,6 +2,9 @@ import re
 
 import pytest
 
+pytest.importorskip("rdflib")
+pytest.importorskip("validators")
+
 from crategraph.validators.masp.document import Node
 from crategraph.validators.masp.profile import ItemListRule, PropertyValueRule
 from crategraph.validators.masp.values import (

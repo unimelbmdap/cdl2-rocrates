@@ -484,8 +484,8 @@ class Graph:
         entities, so the result reflects the source as written.
 
         Args:
-            profile: Path to the profile to validate against. ``None`` checks
-                only what the validator can check without a profile.
+            profile: Path to the profile to validate against. Required for
+                ``kind="masp"``; other kinds may accept ``None``.
             kind: Name of a registered validator kind (default ``"masp"``).
             **kwargs: Forwarded to the validator constructor (for example
                 ``fetch_contexts=True`` for ``"masp"``).

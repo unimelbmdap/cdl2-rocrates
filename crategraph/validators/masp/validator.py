@@ -94,7 +94,10 @@ class MaspValidator(Validator):
                 rule="duplicate-id",
                 entity_id=entity_id,
                 property=None,
-                message=f"More than one entity has the @id {entity_id}; the first is used",
+                message=(
+                    f"More than one entity has the @id {entity_id}; "
+                    "their values are merged and validated together"
+                ),
                 source=crate.source,
             )
             for entity_id in crate.duplicate_ids

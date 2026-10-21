@@ -2,6 +2,9 @@ from collections import Counter
 
 import pytest
 
+pytest.importorskip("rdflib")
+pytest.importorskip("validators")
+
 from crategraph.validators.masp import engine
 from crategraph.validators.masp.document import CrateDocument
 from crategraph.validators.masp.engine import CardinalityOutcome, ValidationRun

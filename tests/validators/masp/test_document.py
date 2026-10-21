@@ -2,6 +2,9 @@ import json
 
 import pytest
 
+pytest.importorskip("rdflib")
+pytest.importorskip("validators")
+
 from crategraph.validators.masp.document import (
     CrateDocument,
     is_reference,
@@ -101,3 +104,41 @@ def test_literal_of_value_object():
     assert literal_of({"@value": "x", "@language": "en"}) == "x"
     assert literal_of("y") == "y"
     assert is_reference({"@id": "#a"}) and not is_reference("#a")
+
+
+@pytest.mark.parametrize(
+    "bad_context",
+    [
+        [{"@vocab": "http://schema.org/"}, {"@vocab": 5}],
+        {"@vocab": 5},
+        {"foo": {"@id": 5}},
+        {"@base": 5},
+    ],
+)
+def test_malformed_context_raises_value_error_naming_source(bad_context):
+    data = make_crate(context=bad_context)
+    with pytest.raises(ValueError, match=r"t\.json: unusable @context"):
+        CrateDocument.from_json(data, source="t.json")
+
+
+@pytest.mark.parametrize("bad_context", [["https://w3id.org/ro/crate/1.1/context", 5], True])
+def test_non_string_context_item_is_reported_as_unresolved(bad_context):
+    d = CrateDocument.from_json(make_crate(context=bad_context), source="t.json")
+    assert d.unresolved_contexts[-1] in ("5", "True")
+
+
+def test_load_missing_file_stays_file_not_found(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        CrateDocument.load(tmp_path / "nope.json")
+
+
+def test_load_undecodable_file_raises_value_error_naming_path(tmp_path):
+    path = tmp_path / "ro-crate-metadata.json"
+    path.write_bytes(b"\xff\xfe\x00bad")
+    with pytest.raises(ValueError, match=r"ro-crate-metadata\.json: cannot read file"):
+        CrateDocument.load(path)
+
+
+def test_load_directory_raises_value_error_naming_path(tmp_path):
+    with pytest.raises(ValueError, match="cannot read file"):
+        CrateDocument.load(tmp_path)

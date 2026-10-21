@@ -15,7 +15,11 @@ _REGISTRY: dict[str, Callable[..., Validator]] = {}
 
 
 def register_validator(kind: str, factory: Callable[..., Validator]) -> None:
-    """Register *factory* under *kind* for lookup via get_validator."""
+    """Register *factory* under *kind* for lookup via get_validator.
+
+    The factory is called as ``factory(profile, **kwargs)`` and must return a
+    :class:`~crategraph.core.interfaces.Validator`.
+    """
     _REGISTRY[kind] = factory
 
 

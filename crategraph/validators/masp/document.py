@@ -68,7 +68,11 @@ class CrateDocument:
             raise ValueError(f"{source}: missing @graph array")
 
         resolution = resolve_context(data.get("@context", []), fetch=fetch_contexts)
-        expander = TermExpander(resolution.context)
+        try:
+            expander = TermExpander(resolution.context)
+            expander.expand("name")  # surfaces a bad @vocab now, not mid-validation
+        except Exception as exc:
+            raise ValueError(f"{source}: unusable @context ({exc})") from exc
 
         merged: dict[str, tuple[list[str], dict[str, list[Any]]]] = {}
         duplicates: list[str] = []
@@ -109,6 +113,10 @@ class CrateDocument:
         path = Path(path)
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            raise
+        except (OSError, UnicodeDecodeError) as exc:
+            raise ValueError(f"{path}: cannot read file ({exc})") from exc
         except json.JSONDecodeError as exc:
             raise ValueError(f"{path}: invalid JSON ({exc})") from exc
         if not isinstance(data, dict):

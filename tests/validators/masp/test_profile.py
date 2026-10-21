@@ -3,6 +3,9 @@ from pathlib import Path
 
 import pytest
 
+pytest.importorskip("rdflib")
+pytest.importorskip("validators")
+
 from crategraph.validators.masp.document import Node
 from crategraph.validators.masp.profile import (
     ClassRule,

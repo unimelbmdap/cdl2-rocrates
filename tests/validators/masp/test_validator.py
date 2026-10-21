@@ -211,3 +211,11 @@ def test_profile_rows_are_copied_per_report(tmp_path: Path):
     second = validator.validate_files([path])
     assert all(r["message"] != "mutated" for r in second)
     assert not any(r is s for r in first for s in validator.profile.warnings)
+
+
+def test_duplicate_id_warning_says_values_are_merged(tmp_path: Path):
+    validator, path = _ordered_case(tmp_path)
+    report = validator.validate_files([path])
+    (row,) = [r for r in report if r["rule"] == "duplicate-id"]
+    assert "merged and validated together" in row["message"]
+    assert "first is used" not in row["message"]

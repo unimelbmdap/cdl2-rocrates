@@ -114,9 +114,13 @@ class _Resolver:
                 resolved.extend(self._resolve_url(item, base, active))
             elif isinstance(item, dict):
                 resolved.append(self._resolve_dict(item, base, active))
-            elif item is not None or isinstance(context, list):
-                # ``None`` inside a list resets the active context; keep it.
-                resolved.append(item)
+            elif item is None:
+                if isinstance(context, list):
+                    # ``None`` inside a list resets the active context; keep it.
+                    resolved.append(item)
+            else:
+                # Not a URL, an object or null: rdflib cannot use it.
+                self._unresolved[repr(item)] = None
         return resolved
 
     def _resolve_url(self, url: str, base: str | None, active: frozenset[str]) -> list[Any]:

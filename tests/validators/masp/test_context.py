@@ -395,3 +395,16 @@ def test_normalise_iri():
     assert normalise_iri("https://schema.org/Dataset") == "http://schema.org/Dataset"
     assert normalise_iri("http://schema.org/Dataset") == "http://schema.org/Dataset"
     assert normalise_iri("https://example.org/x") == "https://example.org/x"
+
+
+def test_non_string_non_dict_context_items_are_unresolved():
+    result = resolve_context(["https://w3id.org/ro/crate/1.1/context", 5, True])
+    assert set(result.unresolved) == {"5", "True"}
+    assert 5 not in result.context
+    assert True not in result.context
+
+
+def test_bundled_contexts_load_as_package_data():
+    for name in BUNDLED_CONTEXTS.values():
+        data = context_module._load_bundled(name)
+        assert "@context" in data
