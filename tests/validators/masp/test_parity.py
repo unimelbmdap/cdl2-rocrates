@@ -7,7 +7,9 @@ same files and is compared on structured data only, never on message text:
 1. property outcomes ``(class_id, entity_id, property_rule_id, passed)``;
 2. class cardinalities ``(class_id, passed, valid_count)``;
 3. ``is_valid``, which also counts the Python-only validator rows (context,
-   duplicate-id, profile and conformance), so a severity change shows up.
+   duplicate-id, profile and conformance);
+4. error severity: the classes with a count error and the property rules with
+   a too-many-values error must match the JS error list exactly.
 
 Deliberate differences are pinned in ``known_differences.py``.
 """
@@ -131,3 +133,17 @@ def test_matches_js(case_path: Path, tmp_path: Path):
                 if not r["passed"] and r["severity"] == "error"
             ]
         pytest.fail("\n".join(lines), pytrace=False)
+
+    # The JS has two kinds of error: a failed class count (keyed by class id)
+    # and too many values (keyed by property rule id). Both must be errors in
+    # Python too, so a severity change cannot hide behind another error.
+    class_ids = {c["class_id"] for c in case["js_cardinalities"]}
+    js_errors = {e["rule"] for e in case["js_results"]["error"]}
+    py_class_errors = {
+        r["rule"]
+        for r in report
+        if r["severity"] == "error" and r["rule"] in class_ids and r["entity_id"] is None
+    }
+    py_too_many = {o.property_rule_id for o in run.outcomes if o.severity == "error"}
+    assert py_class_errors == js_errors & class_ids, case["label"]
+    assert py_too_many == js_errors - class_ids, case["label"]
