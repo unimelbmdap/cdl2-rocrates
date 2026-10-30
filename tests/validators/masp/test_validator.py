@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+import warnings
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,7 @@ pytest.importorskip("validators")
 from crategraph import Crate
 from crategraph.validators.masp import MaspValidator
 from crategraph.validators.masp import context as context_module
+from crategraph.validators.masp import validator as validator_module
 from crategraph.validators.report import ValidationReport
 
 from .conftest import make_crate, make_profile
@@ -276,3 +278,15 @@ def test_scoped_context_in_profile_warns_once(tmp_path: Path):
     b = _write(tmp_path / "b", _crate_data())
     rows = _scoped_rows(validator.validate_files([a, b]))
     assert [r["source"] for r in rows] == [validator.profile.source]
+
+
+def test_development_warning_once_per_session_at_caller(
+    profile_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(validator_module, "_warned_experimental", False)
+    with pytest.warns(UserWarning, match="still being developed") as caught:
+        Crate(str(NT1)).validate(profile_dir)
+    assert [w.filename for w in caught] == [__file__]
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        MaspValidator(profile_dir)

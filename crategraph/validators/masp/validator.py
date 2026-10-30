@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -20,6 +21,23 @@ if TYPE_CHECKING:
 
 _METADATA_NAME = "ro-crate-metadata.json"
 _CONFORMS_TO_IRI = "http://purl.org/dc/terms/conformsTo"
+_PACKAGE_DIR = str(Path(__file__).resolve().parents[2])
+_warned_experimental = False
+
+
+def _warn_experimental() -> None:
+    """Warn once per session that MASP validation is still being developed."""
+    global _warned_experimental
+    if _warned_experimental:
+        return
+    _warned_experimental = True
+    warnings.warn(
+        "MASP validation is still being developed: its API and report columns "
+        "may change between releases. Feedback is welcome at "
+        "https://github.com/unimelbmdap/cdl2-rocrates/issues",
+        stacklevel=2,
+        skip_file_prefixes=(_PACKAGE_DIR,),
+    )
 
 
 class MaspValidator(Validator):
@@ -38,6 +56,7 @@ class MaspValidator(Validator):
         self.fetch_contexts = fetch_contexts
         self.profile_path = path
         self.profile = Profile.load(path, fetch_contexts=fetch_contexts)
+        _warn_experimental()
 
     def validate(self, graph: Graph) -> ValidationReport:
         """Validate the crate files *graph* was loaded from."""
