@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from crategraph.validators.errors import UnknownValidatorError
+from crategraph.validators.masp import MaspValidator
+from crategraph.validators.report import ValidationReport
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -42,13 +44,13 @@ def list_kinds() -> list[str]:
     return sorted(_REGISTRY)
 
 
-def _masp_factory(profile: Any = None, **kwargs: Any) -> Validator:
-    """Build a MaspValidator, importing it lazily (it needs the extra)."""
-    from crategraph.validators.masp import MaspValidator
+register_validator("masp", MaspValidator)
 
-    return MaspValidator(profile, **kwargs)
-
-
-register_validator("masp", _masp_factory)
-
-__all__ = ["UnknownValidatorError", "get_validator", "list_kinds", "register_validator"]
+__all__ = [
+    "MaspValidator",
+    "UnknownValidatorError",
+    "ValidationReport",
+    "get_validator",
+    "list_kinds",
+    "register_validator",
+]

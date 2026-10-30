@@ -57,7 +57,8 @@ def test_graph_validate_dispatches_kind_and_passes_profile_and_kwargs(
 
 def test_import_crategraph_validators_does_not_import_rdflib():
     code = (
-        "import sys, crategraph, crategraph.validators; "
+        "import sys, crategraph; "
+        "from crategraph.validators import MaspValidator, ValidationReport; "
         "assert 'rdflib' not in sys.modules and 'validators' not in sys.modules"
     )
     subprocess.run([sys.executable, "-c", code], check=True)
