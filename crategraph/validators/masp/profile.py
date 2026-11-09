@@ -26,6 +26,11 @@ if TYPE_CHECKING:
 SCHEMA_ROLE = "http://www.w3.org/ns/dx/prof/role/schema"
 VOCABULARY_ROLE = "http://www.w3.org/ns/dx/prof/role/vocabulary"
 CONFORMANCE_INDICATOR_ROLES = frozenset({"https://w3id.org/ro/conformance-indicators"})
+
+# Real profiles have class hierarchies a few levels deep and need a few dozen
+# ancestor summaries; these bound what a malformed or hostile profile can cost.
+_MAX_CLASS_DEPTH = 100
+_MAX_ANCESTOR_SUMMARIES = 10_000
 ENUMERATION_IRI = "http://schema.org/Enumeration"
 # Completes "This crate ..." or "The profile ..." in a ``context`` warning row.
 SCOPED_CONTEXT_WARNING = (
@@ -393,6 +398,8 @@ class Profile:
         """Each class in an ``rdfs:subClassOf`` cycle, mapped to its whole cycle.
 
         Precisely: the strongly connected components with more than one class.
+        Also refuses a hierarchy deeper than ``_MAX_CLASS_DEPTH``, whatever
+        order its classes are declared in.
         """
         if self._cycles is None:
             import networkx as nx
@@ -400,6 +407,8 @@ class Profile:
             graph = nx.DiGraph()
             for node in self.document.nodes.values():
                 graph.add_edges_from((node.id, p) for p in self._parent_class_ids(node.id))
+            if nx.dag_longest_path_length(nx.condensation(graph)) > _MAX_CLASS_DEPTH:
+                raise self._too_deep()
             self._cycles = {
                 member: frozenset(component)
                 for component in nx.strongly_connected_components(graph)
@@ -424,8 +433,14 @@ class Profile:
         """
         if class_id in visited:
             return False, ()
+        if len(visited) > _MAX_CLASS_DEPTH:
+            # Only reachable inside a long cycle; deep chains fail up front.
+            raise self._too_deep()
         key = (class_id, visited & self._cycle_members().get(class_id, frozenset()))
         if key not in self._summaries:
+            if len(self._summaries) >= _MAX_ANCESTOR_SUMMARIES:
+                msg = f"{self.document.source}: rdfs:subClassOf cycles are too tangled to evaluate"
+                raise ValueError(msg)
             parents = self._parent_class_ids(class_id)
             if not parents:
                 summary: tuple[bool, tuple[str, ...]] = (True, ())
@@ -442,6 +457,12 @@ class Profile:
                 summary = (alive, tuple(order))
             self._summaries[key] = summary
         return self._summaries[key]
+
+    def _too_deep(self) -> ValueError:
+        return ValueError(
+            f"{self.document.source}: rdfs:subClassOf hierarchy is more than "
+            f"{_MAX_CLASS_DEPTH} classes deep"
+        )
 
     def ancestor_class_ids(self, class_id: str) -> list[str]:
         """All ancestor class ids, nearest first, de-duplicated (JS l.1583-1585)."""

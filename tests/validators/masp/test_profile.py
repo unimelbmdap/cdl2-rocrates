@@ -277,6 +277,43 @@ def test_ancestor_ids_survive_cycles():
     assert p.classes["#A"].property_rules == ()
 
 
+def test_overly_deep_class_hierarchy_raises_value_error():
+    chain_ = [{"@id": "#c0", "@type": "rdfs:Class"}]
+    chain_ += [
+        {"@id": f"#c{i}", "@type": "rdfs:Class", "rdfs:subClassOf": {"@id": f"#c{i - 1}"}}
+        for i in range(1, 1100)
+    ]
+    for declared in (chain_, chain_[::-1]):
+        with pytest.raises(ValueError, match="more than 100 classes deep"):
+            parse(*declared)
+
+
+def test_long_class_cycle_raises_value_error():
+    size = 1100
+    ring = [
+        {"@id": f"#c{i}", "@type": "rdfs:Class", "rdfs:subClassOf": {"@id": f"#c{(i + 1) % size}"}}
+        for i in range(size)
+    ]
+    with pytest.raises(ValueError, match="more than 100 classes deep"):
+        parse(*ring)
+
+
+def test_densely_cyclic_class_hierarchy_raises_value_error():
+    size = 20
+    classes = [
+        {
+            "@id": f"#c{i}",
+            "@type": "rdfs:Class",
+            "rdfs:subClassOf": [{"@id": f"#c{j}"} for j in range(size) if j != i],
+        }
+        for i in range(size)
+    ]
+    start = time.perf_counter()
+    with pytest.raises(ValueError, match="too tangled"):
+        parse(*classes)
+    assert time.perf_counter() - start < 10
+
+
 def _enumerated_ancestors(profile: Profile, class_id: str) -> list[str]:
     """The original path-enumerating algorithm (JS ``parentClasses``), kept as an oracle."""
 
