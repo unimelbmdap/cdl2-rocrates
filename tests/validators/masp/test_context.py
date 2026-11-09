@@ -15,6 +15,7 @@ import pytest
 
 pytest.importorskip("rdflib")
 
+from rdflib.plugins.shared.jsonld import context as rdflib_context
 from rdflib.plugins.shared.jsonld.context import Context
 
 from crategraph.validators.masp import context as context_module
@@ -464,6 +465,61 @@ def test_scoped_context_urls_are_inlined(monkeypatch):
     scoped = res.context[0]["thing"]["@context"]
     assert isinstance(scoped, list) and isinstance(scoped[0], dict)
     assert "https://w3id.org/ro/crate/1.2/context" not in set(_strings_anywhere(res.context))
+
+
+WRAPPED_URL = "https://example.org/ctx.jsonld"
+
+
+@pytest.mark.parametrize(
+    "context",
+    [
+        [{"@context": WRAPPED_URL}],
+        [{"@context": [WRAPPED_URL]}],
+        [{"@context": {"@import": WRAPPED_URL}}],
+        {"@context": {"@context": WRAPPED_URL}},
+    ],
+    ids=["string", "list", "import", "doubly-wrapped"],
+)
+def test_wrapped_context_urls_are_resolved_not_left_for_rdflib(monkeypatch, context):
+    monkeypatch.setattr(context_module, "_open", _boom)
+    monkeypatch.setattr(rdflib_context, "source_to_json", _boom)
+    res = resolve_context(context)
+    assert res.unresolved == (WRAPPED_URL,)
+    assert WRAPPED_URL not in set(_strings_anywhere(res.context))
+    assert TermExpander(res.context).expand("ex:thing") == "ex:thing"
+
+
+def test_wrapped_bundled_context_still_expands():
+    res = resolve_context([{"@context": "https://w3id.org/ro/crate/1.2/context"}])
+    assert res.unresolved == ()
+    assert TermExpander(res.context).expand("Dataset") == "http://schema.org/Dataset"
+
+
+@pytest.mark.parametrize(
+    "context",
+    [
+        [{"@context": "file:///etc/hosts"}],
+        [{"@import": "http://169.254.169.254/latest/meta-data/"}],
+        [{"ex": "http://ex.org/", "@import": "http://127.0.0.1:6379/x"}],
+    ],
+)
+def test_term_expander_refuses_to_load_any_context(monkeypatch, context):
+    monkeypatch.setattr(rdflib_context, "source_to_json", _boom)
+    with pytest.raises(ValueError, match="refusing to load context"):
+        TermExpander(context)
+
+
+def test_deeply_nested_contexts_raise_value_error():
+    context: dict = {"@vocab": "http://schema.org/"}
+    for i in range(400):
+        context = {f"t{i}": {"@id": f"http://ex.org/t{i}", "@context": context}}
+    with pytest.raises(ValueError, match="nested more than"):
+        resolve_context([context])
+
+
+def test_too_many_context_references_raise_value_error():
+    with pytest.raises(ValueError, match="more than 100 times"):
+        resolve_context(["https://w3id.org/ro/crate/1.2/context"] * 101)
 
 
 def test_unresolved_urls_are_reported_once_in_order(monkeypatch):

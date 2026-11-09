@@ -5,6 +5,9 @@ import pytest
 pytest.importorskip("rdflib")
 pytest.importorskip("validators")
 
+from rdflib.plugins.shared.jsonld import context as rdflib_context
+
+from crategraph.validators.masp import context as context_module
 from crategraph.validators.masp.document import (
     CrateDocument,
     is_reference,
@@ -142,3 +145,33 @@ def test_load_undecodable_file_raises_value_error_naming_path(tmp_path):
 def test_load_directory_raises_value_error_naming_path(tmp_path):
     with pytest.raises(ValueError, match="cannot read file"):
         CrateDocument.load(tmp_path)
+
+
+def _no_network(*args, **kwargs):
+    raise AssertionError("network or file access attempted")
+
+
+@pytest.mark.parametrize(
+    ("context", "url"),
+    [
+        (
+            [{"@context": "http://169.254.169.254/latest/meta-data/"}],
+            "http://169.254.169.254/latest/meta-data/",
+        ),
+        ([{"@context": {"@import": "http://10.0.0.5:8080/admin"}}], "http://10.0.0.5:8080/admin"),
+        ([{"@context": ["file:///etc/passwd"]}], "file:///etc/passwd"),
+    ],
+)
+def test_wrapped_remote_context_is_reported_and_never_loaded(monkeypatch, context, url):
+    monkeypatch.setattr(context_module, "_open", _no_network)
+    monkeypatch.setattr(rdflib_context, "source_to_json", _no_network)
+    d = CrateDocument.from_json({"@context": context, "@graph": []}, source="t.json")
+    assert d.unresolved_contexts == (url,)
+
+
+def test_overly_nested_context_raises_value_error_naming_source():
+    context: dict = {"@vocab": "http://schema.org/"}
+    for i in range(400):
+        context = {f"t{i}": {"@id": f"http://ex.org/t{i}", "@context": context}}
+    with pytest.raises(ValueError, match=r"t\.json: unusable @context"):
+        CrateDocument.from_json({"@context": [context], "@graph": []}, source="t.json")

@@ -84,8 +84,8 @@ class CrateDocument:
         if not isinstance(graph, list):
             raise ValueError(f"{source}: missing @graph array")
 
-        resolution = resolve_context(data.get("@context", []), fetch=fetch_contexts)
         try:
+            resolution = resolve_context(data.get("@context", []), fetch=fetch_contexts)
             expander = TermExpander(resolution.context)
             expander.expand("name")  # surfaces a bad @vocab now, not mid-validation
         except Exception as exc:

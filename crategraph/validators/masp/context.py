@@ -2,9 +2,10 @@
 
 rdflib's ``Context`` fetches remote context URLs on its own. To keep network
 use under the caller's control, :func:`resolve_context` first replaces every
-context URL (top level, nested in other contexts, ``@import`` and scoped
-contexts) with a bundled copy, or with a fetched copy when ``fetch=True``.
-Whatever cannot be resolved is dropped and reported.
+context URL (top level, nested in other contexts, wrapped in ``{"@context": ...}``,
+``@import`` and scoped contexts) with a bundled copy, or with a fetched copy when
+``fetch=True``. Whatever cannot be resolved is dropped and reported. As a
+backstop, :class:`TermExpander` uses a ``Context`` that refuses to load anything.
 
 :class:`TermExpander` is the only code in crategraph that touches rdflib's
 ``Context``, which is internal rather than documented API.
@@ -13,6 +14,7 @@ Whatever cannot be resolved is dropped and reported.
 from __future__ import annotations
 
 import copy
+import functools
 import ipaddress
 import json
 import re
@@ -34,6 +36,10 @@ BUNDLED_CONTEXTS: dict[str, str] = {
 
 _FETCH_TIMEOUT = 30
 _MAX_REDIRECTS = 5
+# Real contexts nest a few levels and refer to a handful of others; these bound
+# what a malformed or hostile document can make the resolver do.
+_MAX_DEPTH = 32
+_MAX_REFERENCES = 100
 _ACCEPT = "application/ld+json, application/json"
 _IMPORT = "@import"
 _CONTEXT = "@context"
@@ -148,6 +154,8 @@ class _Resolver:
     def __init__(self, fetch: bool) -> None:
         self._fetch = fetch
         self._unresolved: dict[str, None] = {}
+        self._depth = 0
+        self._references = 0
 
     @property
     def unresolved(self) -> tuple[str, ...]:
@@ -168,11 +176,28 @@ class _Resolver:
 
     def resolve(self, context: Any, base: str | None, active: frozenset[str]) -> list[Any]:
         """Inline *context* (a URL, dict, ``None`` or list of these)."""
+        self._depth += 1
+        try:
+            if self._depth > _MAX_DEPTH:
+                raise ValueError(f"@context is nested more than {_MAX_DEPTH} levels deep")
+            return self._resolve_items(context, base, active)
+        finally:
+            self._depth -= 1
+
+    def _resolve_items(self, context: Any, base: str | None, active: frozenset[str]) -> list[Any]:
         items = context if isinstance(context, list) else [context]
         resolved: list[Any] = []
         for item in items:
             if isinstance(item, str):
                 resolved.extend(self._resolve_url(item, base, active))
+            elif isinstance(item, dict) and _CONTEXT in item:
+                # rdflib unwraps ``{"@context": ...}`` and ignores its other keys, so
+                # resolve the wrapped context in its place rather than leave any
+                # URLs in it for rdflib to load.
+                inner = item[_CONTEXT]
+                resolved.extend(
+                    self.resolve(inner if isinstance(inner, list) else [inner], base, active)
+                )
             elif isinstance(item, dict):
                 resolved.append(self._resolve_dict(item, base, active))
             elif item is None:
@@ -185,6 +210,11 @@ class _Resolver:
         return resolved
 
     def _resolve_url(self, url: str, base: str | None, active: frozenset[str]) -> list[Any]:
+        self._references += 1
+        if self._references > _MAX_REFERENCES:
+            raise ValueError(
+                f"@context refers to other contexts more than {_MAX_REFERENCES} times"
+            )
         if base:
             try:
                 url = urllib.parse.urljoin(base, url)
@@ -233,7 +263,8 @@ def resolve_context(context: Any, *, fetch: bool = False) -> ContextResolution:
     Bundled contexts are used first. Other URLs are fetched only when *fetch*
     is true (and cached for the process); otherwise, or when fetching fails,
     they are dropped and listed in ``unresolved``. Never raises for a
-    missing or unreachable context.
+    missing or unreachable context; raises ``ValueError`` for one nested or
+    referring to others beyond sane limits.
     """
     resolver = _Resolver(fetch)
     resolved = resolver.resolve(context, None, frozenset())
@@ -247,16 +278,37 @@ def normalise_iri(iri: str) -> str:
     return iri
 
 
+@functools.cache
+def _offline_context_class() -> type:
+    """rdflib's ``Context``, changed so that it can never load a context itself.
+
+    :func:`resolve_context` inlines every context first. This is the backstop
+    for a URL that slips through, which rdflib would otherwise load with its
+    own unguarded loader (one that also opens ``file:`` URLs).
+    """
+    from rdflib.plugins.shared.jsonld.context import Context
+
+    class OfflineContext(Context):
+        def _fetch_context(self, source, base, referenced_contexts):
+            msg = f"refusing to load context {source!r}; contexts must be inlined first"
+            raise ValueError(msg)
+
+        def _subcontext(self, source, propagate):
+            # rdflib builds subcontexts as plain ``Context`` objects, which could
+            # load; term expansion never needs them.
+            raise ValueError("scoped contexts are not applied")
+
+    return OfflineContext
+
+
 class TermExpander:
     """Expand compact JSON-LD terms to full IRIs under one resolved context."""
 
     def __init__(self, context: list[Any]) -> None:
-        from rdflib.plugins.shared.jsonld.context import Context
-
         if any(isinstance(item, str) for item in context):
             msg = "TermExpander needs a context without URLs; pass it through resolve_context."
             raise ValueError(msg)
-        self._context = Context(context)
+        self._context = _offline_context_class()(context)
         self._cache: dict[str, str | None] = {}
 
     def expand(self, term: str) -> str | None:
