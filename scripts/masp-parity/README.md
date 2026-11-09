@@ -26,9 +26,12 @@ The image (`Dockerfile`) is pinned to:
 | ro-crate-masp | commit `6d7a018baf827b5716d79a17462e3b3edb15725f` |
 | ro-crate (npm) | 3.7.2, from the upstream lockfile; recorded in every case as `js_version` |
 
-At this commit the upstream `package-lock.json` is slightly out of sync with
-`package.json`, so `npm ci` fails and the build falls back to `npm install`,
-which keeps the locked versions.
+At this commit the upstream `package-lock.json` is out of sync with
+`package.json`, so `npm ci` rejects it. The harness ships its own
+`package-lock.json` (what `npm install` resolved for this commit) and the
+build runs `npm ci --ignore-scripts` against it, so a rebuild installs exactly
+those versions and runs no package install scripts. Regenerate it only when
+`MASP_COMMIT` changes.
 
 The container then runs two steps.
 

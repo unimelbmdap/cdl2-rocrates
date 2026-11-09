@@ -19,13 +19,17 @@ ARG MASP_COMMIT=6d7a018baf827b5716d79a17462e3b3edb15725f
 ENV MASP_DIR=/opt/ro-crate-masp \
     MASP_COMMIT=${MASP_COMMIT}
 
-# The lockfile at this commit is slightly out of sync with package.json
-# (npm ci reports missing chokidar 3 entries), so fall back to npm install,
-# which keeps the locked versions (ro-crate 3.7.2) and adds what is missing.
 RUN git clone https://github.com/Language-Research-Technology/ro-crate-masp.git "$MASP_DIR" \
     && cd "$MASP_DIR" \
-    && git checkout "$MASP_COMMIT" \
-    && (npm ci || npm install --no-audit --no-fund) \
+    && git checkout "$MASP_COMMIT"
+
+# The upstream lockfile at this commit is out of sync with package.json, so
+# npm ci rejects it. package-lock.json here is what npm install resolved for
+# this commit (ro-crate 3.7.2). Installing strictly from it, without install
+# scripts, keeps rebuilds from picking up anything unreviewed.
+COPY package-lock.json "$MASP_DIR/package-lock.json"
+RUN cd "$MASP_DIR" \
+    && npm ci --ignore-scripts --no-audit --no-fund \
     && uv run scripts/owl-to-masp.py --help > /dev/null \
     && chmod -R a+rwX /opt/uv
 
