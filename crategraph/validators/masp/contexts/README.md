@@ -35,6 +35,7 @@ same document. Neither the document nor the vocabulary crates in those
 repositories declare a separate data licence, so the only evidence is
 GPL-3.0, and crategraph keeps GPL-licensed material out of its Apache-2.0
 distribution. Crates that use these contexts get an "unresolved
-context" warning unless the user passes `fetch_contexts=True`. They can be
+context" warning unless the user passes `fetch_contexts=True`, which may
+download exactly these two URLs (`FETCHABLE_CONTEXTS` in `context.py`). They can be
 bundled once the maintainers publish the context under a permissive licence
 (such as CC0 or CC BY 4.0).

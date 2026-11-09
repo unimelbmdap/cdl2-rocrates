@@ -18,7 +18,7 @@ report
 
 The profile can be a directory containing `ro-crate-metadata.json` or the file itself. Profiles must be local paths.
 
-Validation never touches the network unless you ask it to. If the crate or profile uses a JSON-LD context that crategraph does not bundle, pass `fetch_contexts=True` to download it (see [Bundled contexts](#bundled-contexts)).
+Validation never touches the network unless you ask it to, and even then it only downloads contexts from a short list, never URLs chosen by the crate (see [Bundled contexts](#bundled-contexts)).
 
 !!! note "It checks the file on disk, not the graph"
     Validation reads the raw `ro-crate-metadata.json` the crate was loaded from. Filtering, selecting or transforming the graph does not change the result, and a graph that was not loaded from an RO-Crate cannot be validated. A derived graph validates the full source crate (or crates, for a combined graph).
@@ -63,7 +63,16 @@ The two Language Data Commons (LDaC) contexts are **not** bundled: `http://purl.
 report = crate.validate("path/to/ldac-profile/", fetch_contexts=True)
 ```
 
-Fetched contexts are cached for the rest of the Python session. Because the crate chooses which URLs are fetched, `fetch_contexts` only fetches `http` and `https` URLs on the public internet: it refuses hosts that resolve to private or local network addresses (loopback, private ranges, link-local and similar), applies the same check to every redirect, and follows at most five redirects. A refused context is reported as unresolved.
+`fetch_contexts=True` only downloads the two LDaC contexts above. Any other context URL in a crate or profile stays unresolved, because a crate downloaded from the internet should not be able to make your computer contact an address of its choosing. To allow another context, list its URL; the LDaC contexts stay allowed:
+
+```python
+report = crate.validate(
+    "path/to/profile/",
+    fetch_contexts=["https://example.org/my-community/context.jsonld"],
+)
+```
+
+Fetched contexts are cached for the rest of the Python session. Even for allowed URLs, only `http` and `https` addresses on the public internet are fetched: hosts that resolve to private or local network addresses (loopback, private ranges, link-local and similar) are refused, the same check applies to every redirect, at most five redirects are followed, and a context larger than 2 MB is ignored. A context that is not allowed or cannot be fetched is reported as unresolved, and the warning says how to allow it.
 
 ## Differences from the JavaScript validator
 

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from crategraph.validators.masp.context import (
+    FetchContexts,
     TermExpander,
     normalise_iri,
     resolve_context,
@@ -79,7 +80,9 @@ class CrateDocument:
         self._expansions: dict[str, str | None] = {}
 
     @classmethod
-    def from_json(cls, data: dict, *, source: str, fetch_contexts: bool = False) -> CrateDocument:
+    def from_json(
+        cls, data: dict, *, source: str, fetch_contexts: FetchContexts = False
+    ) -> CrateDocument:
         graph = data.get("@graph") if isinstance(data, dict) else None
         if not isinstance(graph, list):
             raise ValueError(f"{source}: missing @graph array")
@@ -127,7 +130,7 @@ class CrateDocument:
         )
 
     @classmethod
-    def load(cls, path: Path, *, fetch_contexts: bool = False) -> CrateDocument:
+    def load(cls, path: Path, *, fetch_contexts: FetchContexts = False) -> CrateDocument:
         path = Path(path)
         try:
             data = json.loads(path.read_text(encoding="utf-8"))

@@ -145,8 +145,23 @@ def test_crate_context_row_has_fetch_hint(profile_dir: Path, tmp_path: Path):
     row = next(r for r in report if r["rule"] == "context")
     assert "https://example.org/unbundled.json" in row["message"]
     assert "could not be resolved" in row["message"]
-    assert "pass fetch_contexts=True to fetch it" in row["message"]
+    assert "pass fetch_contexts=['https://example.org/unbundled.json']" in row["message"]
     assert row["source"] == str(path)
+
+
+def test_known_context_row_suggests_fetch_contexts_true(profile_dir: Path, tmp_path: Path):
+    data = _crate_data()
+    data["@context"] = [*data["@context"], "https://w3id.org/ldac/context"]
+    path = _write(tmp_path / "c", data)
+    row = next(
+        r for r in MaspValidator(profile_dir).validate_files([path]) if r["rule"] == "context"
+    )
+    assert "pass fetch_contexts=True to fetch it" in row["message"]
+
+
+def test_malformed_fetch_contexts_rejected_before_loading(profile_dir: Path):
+    with pytest.raises(TypeError, match="list of context URLs"):
+        MaspValidator(profile_dir, fetch_contexts=[None])
 
 
 def test_fetch_contexts_forwarded_from_graph_validate(profile_dir: Path, monkeypatch):

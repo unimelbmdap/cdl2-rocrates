@@ -21,6 +21,8 @@ from crategraph.validators.report import make_row
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from crategraph.validators.masp.context import FetchContexts
+
 SCHEMA_ROLE = "http://www.w3.org/ns/dx/prof/role/schema"
 VOCABULARY_ROLE = "http://www.w3.org/ns/dx/prof/role/vocabulary"
 CONFORMANCE_INDICATOR_ROLES = frozenset({"https://w3id.org/ro/conformance-indicators"})
@@ -134,11 +136,13 @@ class Profile:
         self._parse()
 
     @classmethod
-    def from_json(cls, data: dict, *, source: str, fetch_contexts: bool = False) -> Profile:
+    def from_json(
+        cls, data: dict, *, source: str, fetch_contexts: FetchContexts = False
+    ) -> Profile:
         return cls(CrateDocument.from_json(data, source=source, fetch_contexts=fetch_contexts))
 
     @classmethod
-    def load(cls, path: Path, *, fetch_contexts: bool = False) -> Profile:
+    def load(cls, path: Path, *, fetch_contexts: FetchContexts = False) -> Profile:
         return cls(CrateDocument.load(path, fetch_contexts=fetch_contexts))
 
     # -- parsing -------------------------------------------------------------

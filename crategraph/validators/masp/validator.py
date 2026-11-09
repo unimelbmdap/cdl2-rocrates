@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from crategraph.core.interfaces import Validator
 from crategraph.validators._extra import require_validate_extra
+from crategraph.validators.masp.context import FetchContexts, fetchable_urls, may_fetch
 from crategraph.validators.masp.document import CrateDocument, is_reference
 from crategraph.validators.masp.engine import ValidationRun
 from crategraph.validators.masp.profile import SCOPED_CONTEXT_WARNING, Profile
@@ -43,8 +44,11 @@ def _warn_experimental() -> None:
 class MaspValidator(Validator):
     """Validate crates against a MASP profile, reading the raw files on disk."""
 
-    def __init__(self, profile: str | Path | None = None, *, fetch_contexts: bool = False) -> None:
+    def __init__(
+        self, profile: str | Path | None = None, *, fetch_contexts: FetchContexts = False
+    ) -> None:
         require_validate_extra()
+        fetchable_urls(fetch_contexts)  # reject a malformed option before any work
         if profile is None:
             raise TypeError("kind='masp' needs a MASP profile: crate.validate('path/to/profile')")
         path = Path(profile)
@@ -90,9 +94,8 @@ class MaspValidator(Validator):
         )
 
     def _context_rows(self, crate: CrateDocument) -> list[dict[str, Any]]:
-        hint = "" if self.fetch_contexts else "; pass fetch_contexts=True to fetch it"
         messages = [
-            f"The terms of context {url} could not be resolved{hint}"
+            f"The terms of context {url} could not be resolved{self._fetch_hint(url)}"
             for url in crate.unresolved_contexts
         ]
         if crate.has_scoped_contexts:
@@ -109,6 +112,15 @@ class MaspValidator(Validator):
             )
             for message in messages
         ]
+
+    def _fetch_hint(self, url: str) -> str:
+        if may_fetch(url, self.fetch_contexts):
+            return "; fetching it failed"
+        if may_fetch(url, True):
+            return "; pass fetch_contexts=True to fetch it"
+        if url.lower().startswith(("http://", "https://")):
+            return f"; to fetch it, pass fetch_contexts=[{url!r}]"
+        return ""
 
     @staticmethod
     def _duplicate_rows(crate: CrateDocument) -> list[dict[str, Any]]:

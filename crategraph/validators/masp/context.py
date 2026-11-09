@@ -3,8 +3,10 @@
 rdflib's ``Context`` fetches remote context URLs on its own. To keep network
 use under the caller's control, :func:`resolve_context` first replaces every
 context URL (top level, nested in other contexts, wrapped in ``{"@context": ...}``,
-``@import`` and scoped contexts) with a bundled copy, or with a fetched copy when
-``fetch=True``. Whatever cannot be resolved is dropped and reported. As a
+``@import`` and scoped contexts) with a bundled copy, or with a fetched copy of
+one of the few URLs the caller allows (:data:`FETCHABLE_CONTEXTS`, plus any it
+names). The crate never chooses what is fetched. Whatever cannot be resolved is
+dropped and reported. As a
 backstop, :class:`TermExpander` uses a ``Context`` that refuses to load anything.
 
 :class:`TermExpander` is the only code in crategraph that touches rdflib's
@@ -22,6 +24,7 @@ import socket
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Iterable
 from importlib import resources
 from typing import Any, NamedTuple
 
@@ -34,7 +37,18 @@ BUNDLED_CONTEXTS: dict[str, str] = {
     "https://w3id.org/ro/crate/1.2-DRAFT/context": "ro-crate-1.2.json",
 }
 
+# Remote contexts that ``fetch=True`` may download. They are not bundled because
+# the only licence found for them is GPL-3.0 (see ``contexts/README.md``).
+FETCHABLE_CONTEXTS: tuple[str, ...] = (
+    "http://purl.archive.org/language-data-commons/context.json",
+    "https://w3id.org/ldac/context",
+)
+
+# ``False``, ``True`` (the known contexts) or extra URLs to allow as well.
+FetchContexts = bool | str | Iterable[str]
+
 _FETCH_TIMEOUT = 30
+_MAX_CONTEXT_BYTES = 2_000_000
 _MAX_REDIRECTS = 5
 # Real contexts nest a few levels and refer to a handful of others; these bound
 # what a malformed or hostile document can make the resolver do.
@@ -69,6 +83,28 @@ def _lookup_key(url: str) -> str:
 _BUNDLED_BY_KEY = {_lookup_key(url): name for url, name in BUNDLED_CONTEXTS.items()}
 
 
+def fetchable_urls(fetch: FetchContexts) -> frozenset[str]:
+    """Lookup keys of the context URLs that *fetch* allows downloading.
+
+    ``False`` allows none, ``True`` the :data:`FETCHABLE_CONTEXTS`, and a URL
+    or list of URLs those plus the URLs given.
+    """
+    if fetch is False:
+        return frozenset()
+    urls = list(FETCHABLE_CONTEXTS)
+    if fetch is not True:
+        extra = [fetch] if isinstance(fetch, str) else list(fetch)
+        if not all(isinstance(url, str) for url in extra):
+            raise TypeError("fetch_contexts must be True, False or a list of context URLs")
+        urls.extend(extra)
+    return frozenset(_lookup_key(url) for url in urls)
+
+
+def may_fetch(url: str, fetch: FetchContexts) -> bool:
+    """True when *fetch* allows downloading the context at *url*."""
+    return _lookup_key(url) in fetchable_urls(fetch)
+
+
 def _load_bundled(name: str) -> Any:
     path = resources.files("crategraph.validators.masp") / "contexts" / name
     return json.loads(path.read_text(encoding="utf-8"))
@@ -96,9 +132,9 @@ def _refused_address(address: str) -> bool:
 def _fetch_allowed(url: str) -> bool:
     """True when *url* is an http(s) URL whose host has only public addresses.
 
-    Crate data chooses the URLs, so fetching must never reach local files or
-    loopback, private, link-local or other non-public network addresses. A
-    host that does not resolve is refused too.
+    Checked for every allowed URL and every redirect, so that a fetch never
+    reaches local files or loopback, private, link-local or other non-public
+    network addresses. A host that does not resolve is refused too.
     """
     try:
         parts = urllib.parse.urlsplit(url)
@@ -141,7 +177,10 @@ def _fetch(url: str) -> Any | None:
     try:
         request = urllib.request.Request(url, headers={"Accept": _ACCEPT})
         with _open(request, timeout=_FETCH_TIMEOUT) as response:
-            document = json.loads(response.read())
+            body = response.read(_MAX_CONTEXT_BYTES + 1)
+        if len(body) > _MAX_CONTEXT_BYTES:
+            return None
+        document = json.loads(body)
     except (OSError, ValueError):
         # URLError, HTTPError (including a refused redirect) and timeouts are
         # OSErrors; a malformed URL or bad JSON is a ValueError.
@@ -151,8 +190,8 @@ def _fetch(url: str) -> Any | None:
 
 
 class _Resolver:
-    def __init__(self, fetch: bool) -> None:
-        self._fetch = fetch
+    def __init__(self, fetch: FetchContexts) -> None:
+        self._fetchable = fetchable_urls(fetch)
         self._unresolved: dict[str, None] = {}
         self._depth = 0
         self._references = 0
@@ -166,7 +205,7 @@ class _Resolver:
         name = _BUNDLED_BY_KEY.get(_lookup_key(url))
         if name is not None:
             document = _load_bundled(name)
-        elif self._fetch:
+        elif _lookup_key(url) in self._fetchable:
             document = copy.deepcopy(_fetch(url))
         else:
             document = None
@@ -257,12 +296,13 @@ class _Resolver:
         return value
 
 
-def resolve_context(context: Any, *, fetch: bool = False) -> ContextResolution:
+def resolve_context(context: Any, *, fetch: FetchContexts = False) -> ContextResolution:
     """Replace every context URL in *context* with the context it names.
 
     Bundled contexts are used first. Other URLs are fetched only when *fetch*
-    is true (and cached for the process); otherwise, or when fetching fails,
-    they are dropped and listed in ``unresolved``. Never raises for a
+    allows them (see :func:`fetchable_urls`), and cached for the process;
+    otherwise, or when fetching fails, they are dropped and listed in
+    ``unresolved``. Never raises for a
     missing or unreachable context; raises ``ValueError`` for one nested or
     referring to others beyond sane limits.
     """
