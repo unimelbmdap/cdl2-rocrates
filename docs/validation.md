@@ -112,5 +112,6 @@ crategraph's validator is a Python port of the [ro-crate-masp](https://github.co
 - There are no domain checks and no checks for undeclared properties.
 - Profiles must be local paths, not URLs.
 - Scoped contexts are not applied. When a term definition in the crate's or profile's context has its own `@context` (a type-scoped or property-scoped context), or an entity in `@graph` carries its own `@context`, terms are still matched using the top-level context only, and the report has one `context` warning for that crate or profile saying so.
+- To stop a malformed or hostile file from tying up your computer, some structures are refused with an error naming the file: a `@context` nested more than 32 levels deep or referring to other contexts more than 100 times, and a profile whose `rdfs:subClassOf` hierarchy is more than 100 classes deep or whose subclass cycles are too tangled to evaluate. Real crates and profiles come nowhere near these limits.
 
 Contributors can regenerate the JavaScript comparison corpus with the harness in `scripts/masp-parity/`.
