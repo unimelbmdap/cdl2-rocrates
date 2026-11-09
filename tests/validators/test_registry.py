@@ -59,12 +59,13 @@ def test_import_crategraph_validators_does_not_import_rdflib():
     code = (
         "import sys, crategraph; "
         "from crategraph.validators import MaspValidator, ValidationReport; "
-        "assert 'rdflib' not in sys.modules and 'validators' not in sys.modules"
+        "assert not {'rdflib', 'regex', 'validators'} & set(sys.modules)"
     )
     subprocess.run([sys.executable, "-c", code], check=True)
 
 
-def test_require_validate_extra_message(monkeypatch):
-    monkeypatch.setitem(sys.modules, "rdflib", None)
+@pytest.mark.parametrize("missing", ["rdflib", "regex", "validators"])
+def test_require_validate_extra_message(monkeypatch, missing):
+    monkeypatch.setitem(sys.modules, missing, None)
     with pytest.raises(ImportError, match=re.escape('pip install "crategraph[validate]"')):
         require_validate_extra()

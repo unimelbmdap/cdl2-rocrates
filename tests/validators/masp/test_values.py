@@ -1,4 +1,5 @@
 import re
+import time
 
 import pytest
 
@@ -140,6 +141,23 @@ def test_unsupported_regex_flag_reported():
     pattern, unsupported = parse_regex_literal("/a/dx")
     assert unsupported == "dx"
     assert pattern.search("a")
+
+
+def test_catastrophic_regex_stops_with_value_error():
+    # regex already avoids backtracking on the classic ``^(a+)+$``; this one it cannot.
+    start = time.perf_counter()
+    with pytest.raises(ValueError, match=r"#pv: a regex took more than 1 s"):
+        matches_property_value("a" * 40 + "!", pv("/^(a|a)*$/"))
+    assert time.perf_counter() - start < 10
+
+
+def test_published_profile_patterns_still_match():
+    # The two regexes the published profiles in the parity corpus use.
+    uri = r"/^(?:[a-zA-Z][a-zA-Z0-9+.-]*:\/\/|(?!(?:#|_:)).+)$/"
+    assert matches_property_value("https://example.org/x", pv(uri))
+    assert matches_property_value("./data.csv", pv(uri))
+    assert not matches_property_value("#local", pv(uri))
+    assert matches_property_value("README.md", pv(r"/^readme\.md$/i"))
 
 
 def test_property_value_literal_id_and_regex_matching():

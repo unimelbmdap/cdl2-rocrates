@@ -7,6 +7,7 @@ def require_validate_extra() -> None:
     """Raise ``ImportError`` if the ``validate`` extra is not installed."""
     try:
         import rdflib  # noqa: F401
+        import regex  # noqa: F401
         import validators  # noqa: F401
     except ImportError as exc:
         msg = (

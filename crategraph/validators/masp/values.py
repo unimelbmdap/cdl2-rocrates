@@ -10,11 +10,14 @@ validator (``isValidInteger``, ``isValidDate``, ``valuesEquivalent``,
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from crategraph.validators.masp.context import normalise_iri
 from crategraph.validators.masp.document import Node, is_reference, literal_of
 from crategraph.validators.masp.profile import ItemListRule, PropertyValueRule
+
+if TYPE_CHECKING:
+    import regex
 
 _RDFS_LITERAL = "http://www.w3.org/2000/01/rdf-schema#Literal"
 _INTEGER_RE = re.compile(r"^[+-]?[0-9]+$")
@@ -24,8 +27,11 @@ _DATE_RE = re.compile(
     r"(?:T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.[0-9]+)?(?:Z|[+-]([0-9]{2}):([0-9]{2}))?)?$"
 )
 _DAYS_IN_MONTH = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
-_FLAG_MAP = {"i": re.I, "m": re.M, "s": re.S}
+_FLAG_NAMES = {"i": "IGNORECASE", "m": "MULTILINE", "s": "DOTALL"}
 _IGNORED_FLAGS = frozenset("gyu")
+# Profile regexes run on crate values, and a badly written or hostile pattern
+# can backtrack for hours; real patterns take microseconds.
+_REGEX_TIMEOUT = 1.0
 
 
 def _is_number(value: Any) -> bool:
@@ -129,13 +135,17 @@ def check_literal(value: Any, range_iri: str) -> bool:
     return False
 
 
-def parse_regex_literal(text: Any) -> tuple[re.Pattern[str], str] | None:
+def parse_regex_literal(text: Any) -> tuple[regex.Pattern[str], str] | None:
     """Parse ``/pattern/flags`` into a compiled pattern and unsupported flags.
 
     Returns ``None`` when *text* is not of that form or the pattern does not
     compile. ``g``, ``y`` and ``u`` are ignored; flags other than ``i``, ``m``,
-    ``s`` and those are returned as a string of unsupported flags.
+    ``s`` and those are returned as a string of unsupported flags. Patterns are
+    compiled with the ``regex`` package, which matches like ``re`` but can stop
+    a match that runs too long.
     """
+    import regex
+
     if not isinstance(text, str) or len(text) < 2 or text[0] != "/":
         return None
     last = text.rfind("/")
@@ -145,13 +155,13 @@ def parse_regex_literal(text: Any) -> tuple[re.Pattern[str], str] | None:
     compiled_flags = 0
     unsupported = ""
     for flag in flags:
-        if flag in _FLAG_MAP:
-            compiled_flags |= _FLAG_MAP[flag]
+        if flag in _FLAG_NAMES:
+            compiled_flags |= getattr(regex, _FLAG_NAMES[flag])
         elif flag not in _IGNORED_FLAGS:
             unsupported += flag
     try:
-        return re.compile(pattern, compiled_flags), unsupported
-    except re.error:
+        return regex.compile(pattern, compiled_flags), unsupported
+    except regex.error:
         return None
 
 
@@ -189,7 +199,7 @@ def matches_property_value(value: Any, rule: PropertyValueRule) -> bool:
         return False
     scalar = _ref_id(value) or value
 
-    regexes: list[re.Pattern[str]] = []
+    regexes: list[regex.Pattern[str]] = []
     literals: list[Any] = []
     for expected in rule.values:
         parsed = parse_regex_literal(expected)
@@ -202,7 +212,15 @@ def matches_property_value(value: Any, rule: PropertyValueRule) -> bool:
         if not isinstance(scalar, str):
             return False
         # Difference 7: search semantics, as JS ``RegExp.test``.
-        if not all(regex.search(scalar) for regex in regexes):
+        try:
+            matched = all(pattern.search(scalar, timeout=_REGEX_TIMEOUT) for pattern in regexes)
+        except TimeoutError:
+            msg = (
+                f"PropertyValue rule {rule.id}: a regex took more than {_REGEX_TIMEOUT:g} s "
+                f"to match {scalar[:80]!r}; the profile's pattern may backtrack badly"
+            )
+            raise ValueError(msg) from None
+        if not matched:
             return False
 
     if not literals:
