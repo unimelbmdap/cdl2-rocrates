@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 from markupsafe import Markup
 
 from crategraph.core.interfaces import Renderer
-from crategraph.renderers._colours import PALETTE, resolve_colour_map
+from crategraph.renderers._colours import resolve_colour_groups
 from crategraph.renderers._edge_width import resolve_edge_widths
 from crategraph.renderers._validation import validate_css_dimension
 
@@ -104,8 +104,36 @@ class SigmaRenderer(Renderer):
         forwarded to ``Graph.layout()`` unchanged; see its docstring for
         the full parameter documentation.
         """
+        return self._graph_to_json_and_legend(
+            graph,
+            colour_by=colour_by,
+            size_by=size_by,
+            edge_width=edge_width,
+            include_properties=include_properties,
+            progress=progress,
+            engine=engine,
+            gravity=gravity,
+            iterations=iterations,
+            layout_settings=layout_settings,
+        )[0]
+
+    def _graph_to_json_and_legend(
+        self,
+        graph: Graph,
+        *,
+        colour_by: str,
+        size_by: str,
+        edge_width: int | float | str | None,
+        include_properties: bool,
+        progress: bool,
+        engine: str | None,
+        gravity: float | None,
+        iterations: int | None,
+        layout_settings: dict[str, Any] | None,
+    ) -> tuple[dict[str, Any], dict[str, str]]:
+        """:meth:`graph_to_json`, plus the legend: ``{colour_by value: hex colour}``."""
         if not graph._entities:
-            return {"nodes": [], "edges": []}
+            return {"nodes": [], "edges": []}, {}
 
         # Pre-compute degrees.
         degrees: dict[str, int] = {}
@@ -113,8 +141,8 @@ class SigmaRenderer(Renderer):
             degrees[eid] = len(graph._neighbours(eid))
         max_degree = max(degrees.values()) if degrees else 0
 
-        # Colour mapping.
-        colour_map = resolve_colour_map(graph, colour_by)
+        # Colour mapping, and the legend built from the same groups.
+        colour_map, legend = resolve_colour_groups(graph, colour_by)
 
         # Compute layout via Graph.layout() (FA2).
         positions = graph.layout(
@@ -172,7 +200,7 @@ class SigmaRenderer(Renderer):
                     edge["size"] = widths[i]
                 edges.append(edge)
 
-        return {"nodes": nodes, "edges": edges}
+        return {"nodes": nodes, "edges": edges}, legend
 
     @staticmethod
     def _load_template(*, variant: str = "full") -> Markup:
@@ -265,7 +293,7 @@ class SigmaRenderer(Renderer):
         validate_css_dimension(height, "height")
         validate_css_dimension(width, "width")
 
-        graph_json = self.graph_to_json(
+        graph_json, legend = self._graph_to_json_and_legend(
             graph,
             colour_by=colour_by,
             size_by=size_by,
@@ -277,10 +305,6 @@ class SigmaRenderer(Renderer):
             iterations=iterations,
             layout_settings=layout_settings,
         )
-
-        # Build type → colour mapping for the legend.
-        types = sorted({e.type for e in graph._entities.values()})
-        type_colours = {t: PALETTE[i % len(PALETTE)] for i, t in enumerate(types)}
 
         config = {"animated": animated, "simple": simple, "precomputed": True}
 
@@ -311,7 +335,7 @@ class SigmaRenderer(Renderer):
         html = template % {
             "graph_data_packed": graph_data_packed,
             "title": graph.title,
-            "type_colours": _safe_json(type_colours),
+            "type_colours": _safe_json(legend),
             "config": _safe_json(config),
             "bundle": bundle,
             "height": height,
