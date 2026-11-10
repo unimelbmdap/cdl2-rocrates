@@ -14,7 +14,7 @@ from crategraph.core.models import Entity, Relationship
 from crategraph.renderers.sigma import SigmaRenderer, _hex_to_rgba
 
 _PACKED_RE = re.compile(r'window\.graphDataPacked\s*=\s*"([^"]+)"')
-_LEGEND_RE = re.compile(r"window\.typeColours\s*=\s*(\{.*?\});")
+_LEGEND_RE = re.compile(r'window\.typeColours\s*=\s*JSON\.parse\(("(?:[^"\\]|\\.)*")\);')
 
 
 def _unpack_graph_data(html: str) -> dict:
@@ -346,7 +346,7 @@ def _legend(html: str) -> dict[str, str]:
     match = _LEGEND_RE.search(html)
     if match is None:
         raise AssertionError("HTML did not contain a window.typeColours assignment")
-    return json.loads(match.group(1))
+    return json.loads(json.loads(match.group(1)))
 
 
 class TestLegend:
@@ -369,6 +369,14 @@ class TestLegend:
         group = {"#a": "passed", "#b": "info", "#c": "(no value)"}
         for node in _unpack_graph_data(html)["nodes"]:
             assert node["color"] == _hex_to_rgba(legend[group[node["id"]]], 0.6)
+
+    def test_legend_keeps_labels_javascript_treats_specially(self):
+        g = Graph()
+        g._add_node(Entity(id="#a", types=["Person"], properties={"status": "__proto__"}))
+        g._add_node(Entity(id="#b", types=["Person"], properties={"status": "</script>"}))
+        html = _render_html(g, colour_by="status")
+        assert set(_legend(html)) == {"__proto__", "</script>"}
+        assert '</script>"' not in html  # still escaped inside the script block
 
     def test_empty_graph_has_empty_legend(self):
         assert _legend(_render_html(Graph())) == {}

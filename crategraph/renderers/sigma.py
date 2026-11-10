@@ -335,7 +335,10 @@ class SigmaRenderer(Renderer):
         html = template % {
             "graph_data_packed": graph_data_packed,
             "title": graph.title,
-            "type_colours": _safe_json(legend),
+            # A JSON string for JSON.parse, not an object literal: legend
+            # labels are data values, and a literal would treat a
+            # ``"__proto__"`` key as the object's prototype.
+            "type_colours": _safe_json(json.dumps(legend)),
             "config": _safe_json(config),
             "bundle": bundle,
             "height": height,
