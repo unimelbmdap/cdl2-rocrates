@@ -113,6 +113,7 @@ def test_explicit_empty_specialization_warns_and_has_no_types():
             "passed": False,
             "rule": "profile",
             "entity_id": "#Empty",
+            "graph_entity": None,
             "property": None,
             "message": "Class rule #Empty does not specify any types via prov:specializationOf",
             "source": "profile.json",
@@ -487,6 +488,7 @@ def test_property_rule_without_name_warns_once():
             "passed": False,
             "rule": "profile",
             "entity_id": "#nameless",
+            "graph_entity": None,
             "property": None,
             "message": "Property rule #nameless does not have a name",
             "source": "profile.json",
@@ -513,6 +515,7 @@ def test_profile_with_unresolved_context_still_parses():
             "passed": False,
             "rule": "context",
             "entity_id": None,
+            "graph_entity": None,
             "property": None,
             "message": (
                 "Profile context https://example.org/unknown-context.jsonld could not be "

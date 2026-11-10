@@ -66,6 +66,23 @@ def test_crate_validate_end_to_end_on_tutorial_nt1():
     assert "raw source" in report.summary()
 
 
+def test_entity_status_covers_every_graph_entity_of_nt1():
+    crate = Crate(str(NT1))
+    status = crate.validate(LDAC_PROFILE).entity_status()
+    assert set(status) == set(crate._entities)
+    assert set(status.values()) <= {"error", "warning", "info", "passed", "unchecked"}
+    assert {"passed", "unchecked"} <= set(status.values())
+    assert crate.metadata["_root_id"] not in status
+    coloured = crate.annotate_entities(validity=lambda e: status[e.id])
+    assert {e.properties["validity"] for e in coloured.entities} == set(status.values())
+
+
+def test_entity_status_from_validate_files_explains_it_needs_a_graph(profile_dir: Path):
+    report = MaspValidator(profile_dir).validate_files([NT1 / "ro-crate-metadata.json"])
+    with pytest.raises(ValueError, match="not made from a graph"):
+        report.entity_status()
+
+
 def test_missing_profile_raises_type_error():
     with pytest.raises(TypeError, match="needs a MASP profile"):
         MaspValidator(None)

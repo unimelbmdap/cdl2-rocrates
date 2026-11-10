@@ -3,32 +3,34 @@
 from __future__ import annotations
 
 import html
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 from crategraph.core.records import _TITLE_STYLE, _WRAP_STYLE, Records
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
-Severity = Literal["error", "warning", "info"]
-
-_GROUPS = {"error": 0, "warning": 1, "info": 2}
-_PASSED_GROUP = 3
+# A validator names its own severities; these are MASP's, most serious first.
+DEFAULT_SEVERITIES = ("error", "warning", "info")
+_PLURALS = {"error": "errors", "warning": "warnings"}
 
 
 def make_row(
     *,
     passed: bool,
-    severity: Severity | None,
+    severity: str | None,
     rule: str | None,
     entity_id: str | None,
     property: str | None,
     message: str,
     source: str | None,
+    graph_entity: str | None = None,
 ) -> dict[str, Any]:
     """Build one report row with columns in the fixed order.
 
     *severity* must be ``None`` for a passed check and set for a failed one.
+    *entity_id* is the entity's id as written in *source*; *graph_entity* is
+    its id in the validated graph, when there is one.
     """
     if passed and severity is not None:
         raise ValueError("A passed row must have severity None")
@@ -39,24 +41,25 @@ def make_row(
         "passed": passed,
         "rule": rule,
         "entity_id": entity_id,
+        "graph_entity": graph_entity,
         "property": property,
         "message": message,
         "source": source,
     }
 
 
-def _group(row: dict[str, Any]) -> int:
-    if row["passed"]:
-        return _PASSED_GROUP
-    return _GROUPS[row["severity"]]
-
-
-def _plural(count: int, noun: str) -> str:
-    return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
+def _phrase(count: int, name: str) -> str:
+    return f"{count} {name if count == 1 else _PLURALS.get(name, name)}"
 
 
 class ValidationReport(Records):
-    """Rows from a validation run, errors first, then warnings, info and passes."""
+    """Rows from a validation run, most serious first and passes last.
+
+    *severities* names the validator's severities, most serious first, and
+    *failing* those that make :attr:`is_valid` false. *entities* lists the ids
+    of the graph that was validated, when there was one; it is what
+    :meth:`entity_status` reports on.
+    """
 
     def __init__(
         self,
@@ -64,33 +67,90 @@ class ValidationReport(Records):
         *,
         profile: str | None = None,
         sources: Sequence[str] = (),
+        severities: Sequence[str] = DEFAULT_SEVERITIES,
+        failing: Iterable[str] = ("error",),
+        entities: Iterable[str] | None = None,
     ) -> None:
-        super().__init__(sorted(rows, key=_group))  # sorted() is stable
+        self.severities = tuple(severities)
+        super().__init__(sorted(rows, key=self._group))  # sorted() is stable
         self.profile = profile
         self.sources = tuple(sources)
+        self.failing = frozenset(failing)
+        self.entities = None if entities is None else tuple(entities)
+
+    def _rank(self, severity: str | None) -> int:
+        """Position of *severity* in :attr:`severities`; unknown ones come after."""
+        try:
+            return self.severities.index(severity)
+        except ValueError:
+            return len(self.severities)
+
+    def _group(self, row: dict[str, Any]) -> int:
+        return len(self.severities) + 1 if row["passed"] else self._rank(row["severity"])
 
     @property
     def is_valid(self) -> bool:
-        """``True`` unless at least one error row is present."""
-        return not any(not r["passed"] and r["severity"] == "error" for r in self)
+        """``True`` unless a failed row has one of the :attr:`failing` severities."""
+        return not any(not r["passed"] and r["severity"] in self.failing for r in self)
 
     def counts(self) -> dict[str, int]:
-        """Return the number of ``error``, ``warning``, ``info`` and ``passed`` rows."""
-        tally = {"error": 0, "warning": 0, "info": 0, "passed": 0}
+        """Return the number of rows for each severity, and of ``passed`` rows."""
+        tally = dict.fromkeys(self.severities, 0)
+        tally["passed"] = 0
         for row in self:
-            tally["passed" if row["passed"] else row["severity"]] += 1
+            key = "passed" if row["passed"] else row["severity"]
+            tally[key] = tally.get(key, 0) + 1
         return tally
 
     def summary(self) -> str:
         """One-line description of what was validated and the outcome."""
-        c = self.counts()
+        counts = self.counts()
         what = ", ".join(self.sources) if self.sources else "crate"
         target = f" against {self.profile}" if self.profile else ""
+        outcome = ", ".join(_phrase(n, name) for name, n in counts.items() if name != "passed")
         return (
             f"Validated {what} (raw source, not the filtered graph){target}: "
-            f"{_plural(c['error'], 'error')}, {_plural(c['warning'], 'warning')}, "
-            f"{c['info']} info, {c['passed']} passed."
+            f"{outcome}, {counts['passed']} passed."
         )
+
+    def entity_status(self) -> dict[str, str]:
+        """Map every entity of the validated graph to the outcome of its checks.
+
+        An entity with failed checks gets the most serious of their
+        severities, one whose checks all passed gets ``"passed"``, and one no
+        check looked at gets ``"unchecked"``. Rows about the crate as a whole,
+        such as a missing class, belong to no entity. To colour or filter
+        the graph by the result::
+
+            status = report.entity_status()
+            view = crate.annotate_entities(validity=lambda e: status[e.id])
+            view.visualise(colour_by="validity")
+
+        Raises ``ValueError`` for a report not made from a graph, such as one
+        from ``MaspValidator.validate_files``.
+        """
+        if self.entities is None:
+            msg = (
+                "This report was not made from a graph, so it has no entities to map "
+                "to; validate with crate.validate(...) to use entity_status()."
+            )
+            raise ValueError(msg)
+        worst: dict[str, str] = {}
+        checked: set[str] = set()
+        for row in self:
+            entity = row.get("graph_entity")
+            if entity is None:
+                continue
+            checked.add(entity)
+            if row["passed"]:
+                continue
+            current = worst.get(entity)
+            if current is None or self._rank(row["severity"]) < self._rank(current):
+                worst[entity] = row["severity"]
+        return {
+            entity: worst.get(entity, "passed" if entity in checked else "unchecked")
+            for entity in self.entities
+        }
 
     def _repr_html_(self) -> str:
         head = (

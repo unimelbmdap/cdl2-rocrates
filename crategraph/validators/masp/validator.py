@@ -13,7 +13,7 @@ from crategraph.validators.masp.document import CrateDocument, is_reference
 from crategraph.validators.masp.engine import ValidationRun
 from crategraph.validators.masp.profile import SCOPED_CONTEXT_WARNING, Profile
 from crategraph.validators.report import ValidationReport, make_row
-from crategraph.validators.sources import crate_metadata_paths
+from crategraph.validators.sources import crate_metadata_paths, link_to_graph
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -65,8 +65,8 @@ class MaspValidator(Validator):
         _warn_experimental()
 
     def validate(self, graph: Graph) -> ValidationReport:
-        """Validate the crate files *graph* was loaded from."""
-        return self.validate_files(crate_metadata_paths(graph))
+        """Validate the crate files *graph* was loaded from, linking rows to its entities."""
+        return link_to_graph(self.validate_files(crate_metadata_paths(graph)), graph)
 
     def validate_files(self, paths: Sequence[str | Path]) -> ValidationReport:
         """Validate each ``ro-crate-metadata.json`` in *paths*."""

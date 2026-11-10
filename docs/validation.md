@@ -32,7 +32,8 @@ The report is a table with one row per check. Errors come first, then warnings, 
 | `severity` | `error`, `warning` or `info` for a failed check; `None` for a pass |
 | `passed` | `True` or `False` |
 | `rule` | The profile rule checked, or `context`, `duplicate-id`, `conformance` or `profile` for checks on the crate and profile themselves |
-| `entity_id` | The entity the row is about, if any |
+| `entity_id` | The entity the row is about, if any, with its `@id` as written in the metadata file |
+| `graph_entity` | The same entity's id in the graph you validated, or `None` (for example the root dataset, whose properties become `crate.metadata`, or an entity you filtered out). In a graph combining several crates, ids are prefixed with the crate's folder name. |
 | `property` | The property the row is about, if any |
 | `message` | A plain-language explanation |
 | `source` | The metadata file the row came from (useful when validating several crates at once) |
@@ -52,6 +53,21 @@ df[df.severity == "error"]           # just the errors
 `info` rows give the detail behind an error. When a class needs at least one instance and none qualifies, the error names each near miss and why it failed, for example ``./: property `license`: missing required property``. The per-property failures behind it appear as `info` rows. A separate `info` row reports whether the crate claims conformance to the profile (through `conformsTo` on the root entity or the metadata descriptor). This is informational because real crates often cite older or sibling profile URIs.
 
 Malformed profiles, unreadable crates and graphs that did not come from an RO-Crate raise an exception (`ValueError`, `FileNotFoundError` or `TypeError`) rather than producing a row.
+
+### Seeing the results on the graph
+
+`entity_status()` gives one outcome per entity of the graph you validated: the most serious severity among its failed checks, `"passed"` if every check on it passed, or `"unchecked"` if no rule in the profile looked at it. Use it with `annotate_entities` to colour or filter the graph:
+
+```python
+report = crate.validate("path/to/profile/")
+status = report.entity_status()
+view = crate.annotate_entities(validity=lambda e: status[e.id])
+
+view.visualise(colour_by="validity")
+view.where(validity="info")          # just the entities with failed checks
+```
+
+Rows about the crate as a whole, such as a required class with no instances, belong to no entity, so read those in the report itself. `"unchecked"` is not the same as `"passed"`: it means the profile has no rule for that kind of entity. `entity_status()` needs a report from `crate.validate(...)`; a report from `MaspValidator.validate_files` has no graph to map to and raises `ValueError`.
 
 ## Bundled contexts
 

@@ -5,7 +5,8 @@ import pytest
 from crategraph import Crate
 from crategraph.core.graph import Graph
 from crategraph.readers.folder import SimpleFolderReader
-from crategraph.validators.sources import crate_metadata_paths
+from crategraph.validators.report import ValidationReport, make_row
+from crategraph.validators.sources import crate_metadata_paths, link_to_graph
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 MINIMAL = FIXTURES / "minimal-crate"
@@ -110,3 +111,46 @@ def test_missing_metadata_file_raises(tmp_path):
     graph = Graph(source=str(tmp_path), metadata={"_source_format": "ro-crate"})
     with pytest.raises(FileNotFoundError, match=r"ro-crate-metadata\.json"):
         crate_metadata_paths(graph)
+
+
+def _report(*rows: tuple[str | None, Path]) -> ValidationReport:
+    return ValidationReport(
+        make_row(
+            passed=True,
+            severity=None,
+            rule="#r",
+            entity_id=raw_id,
+            property=None,
+            message="m",
+            source=str((crate / META).resolve()),
+        )
+        for raw_id, crate in rows
+    )
+
+
+def test_link_to_graph_keeps_single_crate_ids():
+    graph = Crate(str(MINIMAL))
+    root_id = graph.metadata["_root_id"]
+    linked = link_to_graph(
+        _report(("#alice", MINIMAL), (root_id, MINIMAL), ("#nobody", MINIMAL), (None, MINIMAL)),
+        graph,
+    )
+    assert [r["graph_entity"] for r in linked] == ["#alice", None, None, None]
+    assert linked.entities == tuple(graph._entities)
+
+
+def test_link_to_graph_prefixes_combined_crates_by_source():
+    graph = Crate(str(MINIMAL), str(SECOND))
+    linked = link_to_graph(_report(("#bob", MINIMAL), ("#alice", SECOND), ("#bob", SECOND)), graph)
+    assert [r["graph_entity"] for r in linked] == [
+        f"{MINIMAL.name}/#bob",
+        f"{SECOND.name}/#alice",
+        None,  # the second crate has no #bob
+    ]
+
+
+def test_link_to_graph_leaves_filtered_out_entities_unlinked():
+    graph = Crate(str(MINIMAL)).where(name="Alice Smith")
+    linked = link_to_graph(_report(("#alice", MINIMAL), ("#bob", MINIMAL)), graph)
+    assert [r["graph_entity"] for r in linked] == ["#alice", None]
+    assert linked.entities == ("#alice",)

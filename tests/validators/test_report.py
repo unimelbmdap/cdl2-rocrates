@@ -36,6 +36,7 @@ def test_columns_in_fixed_order():
         "passed",
         "rule",
         "entity_id",
+        "graph_entity",
         "property",
         "message",
         "source",
@@ -109,3 +110,54 @@ def test_is_a_records_list():
     report = ValidationReport([_row()])
     assert isinstance(report, Records) and isinstance(report, list)
     assert pd.DataFrame(report).columns.tolist()[0] == "severity"
+
+
+def test_custom_severities_order_count_summarise_and_decide_validity():
+    report = ValidationReport(
+        [
+            _row(severity="suspect", message="s"),
+            _row(passed=True, severity=None, message="p"),
+            _row(severity="broken", message="b"),
+        ],
+        severities=("broken", "suspect"),
+        failing=("broken",),
+    )
+    assert [r["message"] for r in report] == ["b", "s", "p"]
+    assert report.counts() == {"broken": 1, "suspect": 1, "passed": 1}
+    assert report.summary().endswith(": 1 broken, 1 suspect, 1 passed.")
+    assert report.is_valid is False
+    assert ValidationReport([_row(severity="suspect")], failing=("broken",)).is_valid is True
+
+
+def test_entity_status_takes_the_worst_result_per_entity():
+    report = ValidationReport(
+        [
+            _row(severity="info", graph_entity="#a"),
+            _row(severity="error", graph_entity="#a"),
+            _row(passed=True, severity=None, graph_entity="#a"),
+            _row(passed=True, severity=None, graph_entity="#b"),
+            _row(severity="warning", graph_entity="#c"),
+            _row(severity="error", graph_entity=None),  # about the crate as a whole
+        ],
+        entities=["#a", "#b", "#c", "#d"],
+    )
+    assert report.entity_status() == {
+        "#a": "error",
+        "#b": "passed",
+        "#c": "warning",
+        "#d": "unchecked",
+    }
+
+
+def test_entity_status_passes_custom_severities_through():
+    report = ValidationReport(
+        [_row(severity="suspect", graph_entity="#a"), _row(severity="broken", graph_entity="#a")],
+        severities=("broken", "suspect"),
+        entities=["#a"],
+    )
+    assert report.entity_status() == {"#a": "broken"}
+
+
+def test_entity_status_needs_a_graph():
+    with pytest.raises(ValueError, match="not made from a graph"):
+        ValidationReport([_row()]).entity_status()

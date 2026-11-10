@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
+    from crategraph.validators.report import ValidationReport
 
 _METADATA_NAME = "ro-crate-metadata.json"
 
@@ -86,3 +87,57 @@ def crate_metadata_paths(graph: Graph) -> list[Path]:
             raise FileNotFoundError(msg)
         paths.add(path)
     return sorted(paths)
+
+
+def _id_prefixes(graph: Graph) -> dict[Path, str] | str:
+    """How raw ``@id``s become graph ids: one prefix, or one per metadata file.
+
+    A single crate keeps ids as written (prefix ``""``). A combined graph
+    prefixes each crate's ids with the key its metadata is recorded under.
+    """
+    if graph.metadata.get("_source_format") == "ro-crate":
+        return ""
+    return {
+        Path(meta["_source_path"]).resolve(): f"{key}/"
+        for key, meta in graph.metadata.items()
+        if isinstance(meta, dict)
+        and meta.get("_source_format") == "ro-crate"
+        and isinstance(meta.get("_source_path"), str)
+    }
+
+
+def link_to_graph(report: ValidationReport, graph: Graph) -> ValidationReport:
+    """Return *report* with rows mapped to *graph*'s entities, for :meth:`entity_status`.
+
+    For validators that check the raw crate files: each row's ``entity_id`` is
+    the ``@id`` as written in its ``source`` file. ``graph_entity`` is set to
+    the matching id in *graph*, or left ``None`` when the graph has no such
+    entity (such as the root dataset, whose properties become graph metadata,
+    or an entity filtered out).
+    """
+    from crategraph.validators.report import ValidationReport
+
+    ids = graph._entities
+    prefixes = _id_prefixes(graph)
+
+    def graph_id(row: dict) -> str | None:
+        raw_id, source = row.get("entity_id"), row.get("source")
+        if raw_id is None:
+            return None
+        if isinstance(prefixes, str):
+            prefix = prefixes
+        elif source is not None and Path(source).resolve() in prefixes:
+            prefix = prefixes[Path(source).resolve()]
+        else:
+            return None
+        candidate = prefix + raw_id
+        return candidate if candidate in ids else None
+
+    return ValidationReport(
+        [dict(row, graph_entity=graph_id(row)) for row in report],
+        profile=report.profile,
+        sources=report.sources,
+        severities=report.severities,
+        failing=report.failing,
+        entities=ids,
+    )
