@@ -378,6 +378,13 @@ class TestLegend:
         assert set(_legend(html)) == {"__proto__", "</script>"}
         assert '</script>"' not in html  # still escaped inside the script block
 
+    def test_colour_map_sets_node_and_legend_colours(self):
+        html = _render_html(_build_graph(), colour_map={"Person": "#d62728"})
+        legend = _legend(html)
+        assert legend["Person"] == "#d62728"
+        for node in _unpack_graph_data(html)["nodes"]:
+            assert node["color"] == _hex_to_rgba(legend[node["entityType"]], 0.6)
+
     def test_empty_graph_has_empty_legend(self):
         assert _legend(_render_html(Graph())) == {}
 

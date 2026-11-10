@@ -12,7 +12,7 @@ from html import escape
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Mapping, Sequence
     from typing import TextIO
 
     from crategraph.core.graph import Graph
@@ -257,6 +257,7 @@ def visualise(
     *,
     renderer: str = "2d",
     colour_by: str = "type",
+    colour_map: Mapping[Any, str] | None = None,
     size_by: str = "connections",
     edge_width: int | float | str | None = None,
     height: str = "100vh",
@@ -280,6 +281,10 @@ def visualise(
         colour_by: Property to colour nodes by (default ``"type"``).
             Any entity property or attribute works. ``"community"``
             auto-computes Louvain communities if not already present.
+        colour_map: Colours for particular ``colour_by`` values, as hex
+            strings: ``{"error": "#d62728", "passed": "#2ca02c"}``. Values
+            not listed keep their usual palette colours, and the 2D legend
+            shows the colours used. Keys are compared as strings.
         size_by: ``"connections"`` (default) scales node size by degree.
         edge_width: Per-edge width control. ``None`` (default) keeps
             each renderer's own behaviour. A number sets every edge to
@@ -322,6 +327,11 @@ def visualise(
             stacklevel=2,
         )
 
+    # Check colours before any layout work, so a typo fails fast.
+    from crategraph.renderers._colours import normalise_colour_map
+
+    normalise_colour_map(colour_map)
+
     target = graph.collapse_edges() if collapse_edges else graph
 
     if renderer == "2d":
@@ -360,6 +370,7 @@ def visualise(
     return impl.render(
         target,
         colour_by=colour_by,
+        colour_map=colour_map,
         size_by=size_by,
         edge_width=edge_width,
         height=height,

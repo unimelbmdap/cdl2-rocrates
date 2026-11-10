@@ -9,11 +9,13 @@ from typing import TYPE_CHECKING, Any
 from markupsafe import Markup
 
 from crategraph.core.interfaces import Renderer
-from crategraph.renderers._colours import resolve_colour_map
+from crategraph.renderers._colours import normalise_colour_map, resolve_entity_colours
 from crategraph.renderers._edge_width import resolve_edge_widths
 from crategraph.renderers._validation import validate_css_dimension
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from crategraph.core.graph import Graph
 
 
@@ -40,6 +42,7 @@ class ForceGraph3DRenderer(Renderer):
         graph: Graph,
         *,
         colour_by: str = "type",
+        colour_map: Mapping[Any, str] | None = None,
         size_by: str = "connections",
         edge_width: int | float | str | None = None,
     ) -> dict[str, Any]:
@@ -61,7 +64,7 @@ class ForceGraph3DRenderer(Renderer):
                     size_values[eid] = 0.0
 
         # Colour mapping.
-        colour_map = resolve_colour_map(graph, colour_by)
+        entity_colours = resolve_entity_colours(graph, colour_by, colour_map)
 
         # Build nodes.
         nodes = []
@@ -75,7 +78,7 @@ class ForceGraph3DRenderer(Renderer):
                     "id": eid,
                     "name": entity.name,
                     "val": val,
-                    "color": colour_map.get(eid, "#45B7D1"),
+                    "color": entity_colours.get(eid, "#45B7D1"),
                     "degree": degree,
                     "properties": properties,
                 }
@@ -116,6 +119,7 @@ class ForceGraph3DRenderer(Renderer):
         graph: Graph,
         *,
         colour_by: str = "type",
+        colour_map: Mapping[Any, str] | None = None,
         size_by: str = "connections",
         edge_width: int | float | str | None = None,
         height: str = "100vh",
@@ -130,6 +134,8 @@ class ForceGraph3DRenderer(Renderer):
             colour_by: Property to colour nodes by (default ``"type"``).
                 Any entity property or attribute works. ``"community"``
                 auto-computes Louvain communities if not already present.
+            colour_map: Colours for particular ``colour_by`` values, such as
+                ``{"error": "#d62728"}``. Other values keep their palette colours.
             size_by: ``"connections"`` (default) scales node size by degree.
             edge_width: Per-edge link width. ``None`` (default) keeps
                 the existing ``0.4 + 2*log1p(weight)`` auto-width. A
@@ -146,6 +152,7 @@ class ForceGraph3DRenderer(Renderer):
         Returns an ``IPython.display.HTML`` object for notebook display,
         or the filepath string if *filepath* was provided.
         """
+        normalise_colour_map(colour_map)  # fail fast, even for an empty graph
         import json
 
         validate_css_dimension(height, "height")
@@ -154,6 +161,7 @@ class ForceGraph3DRenderer(Renderer):
         graph_json = self._graph_to_json(
             graph,
             colour_by=colour_by,
+            colour_map=colour_map,
             size_by=size_by,
             edge_width=edge_width,
         )

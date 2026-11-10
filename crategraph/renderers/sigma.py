@@ -9,11 +9,13 @@ from typing import TYPE_CHECKING, Any
 from markupsafe import Markup
 
 from crategraph.core.interfaces import Renderer
-from crategraph.renderers._colours import resolve_colour_groups
+from crategraph.renderers._colours import normalise_colour_map, resolve_colour_groups
 from crategraph.renderers._edge_width import resolve_edge_widths
 from crategraph.renderers._validation import validate_css_dimension
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from crategraph.core.graph import Graph
 
 
@@ -89,6 +91,7 @@ class SigmaRenderer(Renderer):
         graph: Graph,
         *,
         colour_by: str = "type",
+        colour_map: Mapping[Any, str] | None = None,
         size_by: str = "connections",
         edge_width: int | float | str | None = None,
         include_properties: bool = True,
@@ -107,6 +110,7 @@ class SigmaRenderer(Renderer):
         return self._graph_to_json_and_legend(
             graph,
             colour_by=colour_by,
+            colour_map=colour_map,
             size_by=size_by,
             edge_width=edge_width,
             include_properties=include_properties,
@@ -122,6 +126,7 @@ class SigmaRenderer(Renderer):
         graph: Graph,
         *,
         colour_by: str,
+        colour_map: Mapping[Any, str] | None,
         size_by: str,
         edge_width: int | float | str | None,
         include_properties: bool,
@@ -142,7 +147,7 @@ class SigmaRenderer(Renderer):
         max_degree = max(degrees.values()) if degrees else 0
 
         # Colour mapping, and the legend built from the same groups.
-        colour_map, legend = resolve_colour_groups(graph, colour_by)
+        entity_colours, legend = resolve_colour_groups(graph, colour_by, colour_map)
 
         # Compute layout via Graph.layout() (FA2).
         positions = graph.layout(
@@ -159,7 +164,7 @@ class SigmaRenderer(Renderer):
             degree = degrees.get(eid, 0)
             size = _node_size(degree, max_degree) if size_by == "connections" else 6.0
 
-            hex_colour = colour_map.get(eid, "#45B7D1")
+            hex_colour = entity_colours.get(eid, "#45B7D1")
             x, y = positions[eid]
 
             node: dict[str, Any] = {
@@ -179,7 +184,7 @@ class SigmaRenderer(Renderer):
         # Build a lookup for source node hex colours (for edge colouring).
         node_hex: dict[str, str] = {}
         for eid in graph._entities:
-            node_hex[eid] = colour_map.get(eid, "#45B7D1")
+            node_hex[eid] = entity_colours.get(eid, "#45B7D1")
 
         # Resolve per-edge widths (None = sigma bundle applies its own default).
         widths = resolve_edge_widths(graph._relationships, edge_width)
@@ -235,6 +240,7 @@ class SigmaRenderer(Renderer):
         graph: Graph,
         *,
         colour_by: str = "type",
+        colour_map: Mapping[Any, str] | None = None,
         size_by: str = "connections",
         edge_width: int | float | str | None = None,
         height: str = "100vh",
@@ -255,6 +261,9 @@ class SigmaRenderer(Renderer):
         Args:
             colour_by: Property to colour nodes by (default ``"type"``).
                 ``"community"`` auto-computes Louvain communities.
+            colour_map: Colours for particular ``colour_by`` values, such as
+                ``{"error": "#d62728"}``. Other values keep their palette
+                colours, and the legend shows the colours used.
             size_by: ``"connections"`` (default) scales node size by degree.
             edge_width: Per-edge width. ``None`` (default) uses the sigma
                 bundle's built-in edge size (``0.3``). A number sets every
@@ -288,6 +297,7 @@ class SigmaRenderer(Renderer):
         Returns an ``IPython.display.HTML`` object for notebook display,
         or the filepath string if *filepath* was provided.
         """
+        normalise_colour_map(colour_map)  # fail fast, even for an empty graph
         import json
 
         validate_css_dimension(height, "height")
@@ -296,6 +306,7 @@ class SigmaRenderer(Renderer):
         graph_json, legend = self._graph_to_json_and_legend(
             graph,
             colour_by=colour_by,
+            colour_map=colour_map,
             size_by=size_by,
             edge_width=edge_width,
             include_properties=include_properties and not simple,

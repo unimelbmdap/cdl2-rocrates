@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import re
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from crategraph.core.graph import Graph
     from crategraph.core.models import Entity
 
-# 15 distinct, accessible-ish colours used by resolve_colour_map().
+# 15 distinct, accessible-ish colours used by resolve_colour_groups().
 PALETTE = [
     "#4e79a7",
     "#f28e2b",
@@ -82,19 +84,59 @@ def _resolve_group(entity: Entity, colour_by: str) -> str:
     return "(no value)"
 
 
-def resolve_colour_map(graph: Graph, colour_by: str) -> dict[str, str]:
+_HEX_COLOUR = re.compile(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})")
+
+
+def normalise_colour_map(colour_map: Mapping[Any, str] | None) -> dict[str, str]:
+    """Check a user ``colour_map`` and return it as ``{group value: "#rrggbb"}``.
+
+    Keys are values of ``colour_by``; they are compared as strings, the way
+    group values are, so ``{2020: ...}`` matches a ``2020`` year. Values must
+    be hex colours (``"#d62728"`` or ``"#d22"``). Raises ``ValueError`` for
+    anything else, and ``TypeError`` if *colour_map* is not a mapping, so a
+    typo fails before any layout work.
+    """
+    if colour_map is None:
+        return {}
+    if not isinstance(colour_map, Mapping):
+        msg = (
+            "colour_map must map colour_by values to hex colours, such as "
+            f"{{'Person': '#d62728'}}; got {type(colour_map).__name__}"
+        )
+        raise TypeError(msg)
+    normalised: dict[str, str] = {}
+    for value, colour in colour_map.items():
+        if not isinstance(colour, str) or not _HEX_COLOUR.fullmatch(colour):
+            msg = (
+                f"colour_map colour {colour!r} for {value!r} is not a hex colour such as '#d62728'"
+            )
+            raise ValueError(msg)
+        digits = colour[1:].lower()
+        if len(digits) == 3:
+            digits = "".join(c * 2 for c in digits)
+        normalised[str(value)] = f"#{digits}"
+    return normalised
+
+
+def resolve_entity_colours(
+    graph: Graph, colour_by: str, colour_map: Mapping[Any, str] | None = None
+) -> dict[str, str]:
     """Build ``{entity_id: hex_colour}`` for every entity in *graph*.
 
     See :func:`resolve_colour_groups`, which also returns the legend.
     """
-    return resolve_colour_groups(graph, colour_by)[0]
+    return resolve_colour_groups(graph, colour_by, colour_map)[0]
 
 
-def resolve_colour_groups(graph: Graph, colour_by: str) -> tuple[dict[str, str], dict[str, str]]:
+def resolve_colour_groups(
+    graph: Graph, colour_by: str, colour_map: Mapping[Any, str] | None = None
+) -> tuple[dict[str, str], dict[str, str]]:
     """Build ``{entity_id: hex_colour}`` and the matching ``{group value: hex_colour}``.
 
     The second mapping is the legend: one entry per value of *colour_by*
-    present in *graph*, with the colour its entities are drawn in.
+    present in *graph*, with the colour its entities are drawn in. Values
+    named in *colour_map* get its colour; the rest keep the palette colour
+    they would have had without it.
 
     Resolves each entity's group value generically: built-in Entity
     attributes (``type``, ``source``, ``name``, ``id``) take priority
@@ -104,6 +146,7 @@ def resolve_colour_groups(graph: Graph, colour_by: str) -> tuple[dict[str, str],
     Special case: ``colour_by="community"`` auto-computes Louvain
     communities when no entity already has a ``"community"`` property.
     """
+    chosen = normalise_colour_map(colour_map)
     if not graph._entities:
         return {}, {}
 
@@ -115,5 +158,5 @@ def resolve_colour_groups(graph: Graph, colour_by: str) -> tuple[dict[str, str],
 
     groups = {eid: _resolve_group(e, colour_by) for eid, e in graph._entities.items()}
     unique = sorted(set(groups.values()))
-    val_to_colour = {v: PALETTE[i % len(PALETTE)] for i, v in enumerate(unique)}
+    val_to_colour = {v: chosen.get(v, PALETTE[i % len(PALETTE)]) for i, v in enumerate(unique)}
     return {eid: val_to_colour[g] for eid, g in groups.items()}, val_to_colour
