@@ -32,6 +32,11 @@ _IGNORED_FLAGS = frozenset("gyu")
 # Profile regexes run on crate values, and a badly written or hostile pattern
 # can backtrack for hours; real patterns take microseconds.
 _REGEX_TIMEOUT = 1.0
+# ``regex`` builds counted repeats eagerly, so ``a{10000000}`` alone takes
+# seconds and hundreds of megabytes to compile; real patterns are short.
+_MAX_REGEX_LENGTH = 1_000
+_MAX_REGEX_REPEAT = 1_000
+_REPEAT_COUNT = re.compile(r"\{(\d+)(?:,(\d*))?\}")
 
 
 def _is_number(value: Any) -> bool:
@@ -141,8 +146,8 @@ def parse_regex_literal(text: Any) -> tuple[regex.Pattern[str], str] | None:
     Returns ``None`` when *text* is not of that form or the pattern does not
     compile. ``g``, ``y`` and ``u`` are ignored; flags other than ``i``, ``m``,
     ``s`` and those are returned as a string of unsupported flags. Patterns are
-    compiled with the ``regex`` package, which matches like ``re`` but can stop
-    a match that runs too long.
+    compiled with the ``regex`` package, which can stop a match that runs too
+    long; ``ValueError`` is raised for one too large or deep to compile safely.
     """
     import regex
 
@@ -159,10 +164,19 @@ def parse_regex_literal(text: Any) -> tuple[regex.Pattern[str], str] | None:
             compiled_flags |= getattr(regex, _FLAG_NAMES[flag])
         elif flag not in _IGNORED_FLAGS:
             unsupported += flag
+    if len(pattern) > _MAX_REGEX_LENGTH or any(
+        int(count) > _MAX_REGEX_REPEAT
+        for match in _REPEAT_COUNT.finditer(pattern)
+        for count in match.groups()
+        if count
+    ):
+        raise ValueError(f"Profile regex {text[:80]!r} is too long or repeats too much to run")
     try:
         return regex.compile(pattern, compiled_flags), unsupported
     except regex.error:
         return None
+    except RecursionError:
+        raise ValueError(f"Profile regex {text[:80]!r} nests too deeply to run") from None
 
 
 def _same(a: Any, b: Any) -> bool:

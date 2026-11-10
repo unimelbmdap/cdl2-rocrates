@@ -151,6 +151,23 @@ def test_catastrophic_regex_stops_with_value_error():
     assert time.perf_counter() - start < 10
 
 
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        "/a{10000000}/",
+        "/a{2,5000}/",
+        "/" + "(" * 600 + "a" + ")" * 600 + "/",
+        "/" + "a" * 1001 + "/",
+    ],
+    ids=["huge-repeat", "huge-range", "deep-nesting", "too-long"],
+)
+def test_oversized_regex_raises_value_error_before_compiling(pattern):
+    start = time.perf_counter()
+    with pytest.raises(ValueError, match="Profile regex"):
+        parse_regex_literal(pattern)
+    assert time.perf_counter() - start < 1
+
+
 def test_published_profile_patterns_still_match():
     # The two regexes the published profiles in the parity corpus use.
     uri = r"/^(?:[a-zA-Z][a-zA-Z0-9+.-]*:\/\/|(?!(?:#|_:)).+)$/"
