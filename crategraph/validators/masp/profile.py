@@ -136,6 +136,7 @@ class Profile:
         self._loose_property_rules: dict[str, PropertyRule] = {}
         self._cycles: dict[str, frozenset[str]] | None = None
         self._summaries: dict[tuple[str, frozenset[str]], tuple[bool, tuple[str, ...]]] = {}
+        self._cyclic_summaries = 0
         self._vocabulary_values: dict[str, list[str]] = {}
         self._domain_members: dict[str, list[str]] = {}
         self._parse()
@@ -407,7 +408,8 @@ class Profile:
             graph = nx.DiGraph()
             for node in self.document.nodes.values():
                 graph.add_edges_from((node.id, p) for p in self._parent_class_ids(node.id))
-            if nx.dag_longest_path_length(nx.condensation(graph)) > _MAX_CLASS_DEPTH:
+            # The longest path counts edges, one fewer than the classes on it.
+            if nx.dag_longest_path_length(nx.condensation(graph)) >= _MAX_CLASS_DEPTH:
                 raise self._too_deep()
             self._cycles = {
                 member: frozenset(component)
@@ -433,14 +435,21 @@ class Profile:
         """
         if class_id in visited:
             return False, ()
-        if len(visited) > _MAX_CLASS_DEPTH:
+        if len(visited) >= _MAX_CLASS_DEPTH:
             # Only reachable inside a long cycle; deep chains fail up front.
             raise self._too_deep()
         key = (class_id, visited & self._cycle_members().get(class_id, frozenset()))
         if key not in self._summaries:
-            if len(self._summaries) >= _MAX_ANCESTOR_SUMMARIES:
-                msg = f"{self.document.source}: rdfs:subClassOf cycles are too tangled to evaluate"
-                raise ValueError(msg)
+            if key[1]:
+                # Only work that depends on the path through a cycle can grow
+                # beyond one summary per class, so only it is budgeted.
+                if self._cyclic_summaries >= _MAX_ANCESTOR_SUMMARIES:
+                    msg = (
+                        f"{self.document.source}: rdfs:subClassOf cycles are too tangled "
+                        "to evaluate"
+                    )
+                    raise ValueError(msg)
+                self._cyclic_summaries += 1
             parents = self._parent_class_ids(class_id)
             if not parents:
                 summary: tuple[bool, tuple[str, ...]] = (True, ())

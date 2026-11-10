@@ -288,6 +288,26 @@ def test_overly_deep_class_hierarchy_raises_value_error():
             parse(*declared)
 
 
+def _chain(length: int) -> list[dict]:
+    classes = [{"@id": "#c0", "@type": "rdfs:Class"}]
+    classes += [
+        {"@id": f"#c{i}", "@type": "rdfs:Class", "rdfs:subClassOf": {"@id": f"#c{i - 1}"}}
+        for i in range(1, length)
+    ]
+    return classes
+
+
+def test_class_depth_limit_counts_classes():
+    assert len(parse(*_chain(100)).ancestor_class_ids("#c99")) == 99
+    with pytest.raises(ValueError, match="more than 100 classes deep"):
+        parse(*_chain(101))
+
+
+def test_many_unrelated_classes_are_not_mistaken_for_tangled_cycles():
+    profile = parse(*[{"@id": f"#c{i}", "@type": "rdfs:Class"} for i in range(10_001)])
+    assert len(profile.classes) == 10_001
+
+
 def test_long_class_cycle_raises_value_error():
     size = 1100
     ring = [
