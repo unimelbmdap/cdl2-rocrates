@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from crategraph.core.interfaces import Renderer
-from crategraph.renderers._colours import resolve_entity_colours
+from crategraph.renderers._colours import normalise_colour_map, resolve_entity_colours
 from crategraph.renderers._edge_width import resolve_edge_widths
 
 if TYPE_CHECKING:
@@ -78,6 +78,7 @@ class SvgRenderer(Renderer):
             An ``IPython.display.SVG`` object (for notebook display) or the
             *filepath* string if a file was written.
         """
+        normalise_colour_map(colour_map)  # fail fast, even for an empty graph
         # Accept CSS strings from visualise() — fall back to defaults.
         if not isinstance(width, (int, float)):
             width = DEFAULT_WIDTH

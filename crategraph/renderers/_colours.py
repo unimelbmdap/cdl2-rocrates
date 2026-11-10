@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from crategraph.core.graph import Graph
     from crategraph.core.models import Entity
 
@@ -85,7 +84,7 @@ def _resolve_group(entity: Entity, colour_by: str) -> str:
     return "(no value)"
 
 
-_HEX_COLOUR = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+_HEX_COLOUR = re.compile(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})")
 
 
 def normalise_colour_map(colour_map: Mapping[Any, str] | None) -> dict[str, str]:
@@ -94,13 +93,20 @@ def normalise_colour_map(colour_map: Mapping[Any, str] | None) -> dict[str, str]
     Keys are values of ``colour_by``; they are compared as strings, the way
     group values are, so ``{2020: ...}`` matches a ``2020`` year. Values must
     be hex colours (``"#d62728"`` or ``"#d22"``). Raises ``ValueError`` for
-    anything else, so a typo fails before any layout work.
+    anything else, and ``TypeError`` if *colour_map* is not a mapping, so a
+    typo fails before any layout work.
     """
-    if not colour_map:
+    if colour_map is None:
         return {}
+    if not isinstance(colour_map, Mapping):
+        msg = (
+            "colour_map must map colour_by values to hex colours, such as "
+            f"{{'Person': '#d62728'}}; got {type(colour_map).__name__}"
+        )
+        raise TypeError(msg)
     normalised: dict[str, str] = {}
     for value, colour in colour_map.items():
-        if not isinstance(colour, str) or not _HEX_COLOUR.match(colour):
+        if not isinstance(colour, str) or not _HEX_COLOUR.fullmatch(colour):
             msg = (
                 f"colour_map colour {colour!r} for {value!r} is not a hex colour such as '#d62728'"
             )

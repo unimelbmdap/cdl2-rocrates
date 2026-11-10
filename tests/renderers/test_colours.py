@@ -136,7 +136,9 @@ class TestColourMap:
         _, legend = resolve_colour_groups(_build_graph(), "location", {"Perth": "#010203"})
         assert "Perth" not in legend
 
-    @pytest.mark.parametrize("colour", ["red", "#12345", "#gggggg", "123456", 5, None])
+    @pytest.mark.parametrize(
+        "colour", ["red", "#12345", "#gggggg", "123456", "#abc\n", " #abc", 5, None]
+    )
     def test_non_hex_colours_raise_value_error(self, colour):
         with pytest.raises(ValueError, match="not a hex colour"):
             normalise_colour_map({"Sydney": colour})
@@ -150,3 +152,23 @@ class TestColourMap:
         monkeypatch.setattr(Graph, "layout", no_layout)
         with pytest.raises(ValueError, match="not a hex colour"):
             g.visualise(colour_map={"Sydney": "red"})
+
+    @pytest.mark.parametrize("colour_map", [[], [("Person", "#abc")], "Person"])
+    def test_non_mapping_colour_map_raises_type_error(self, colour_map):
+        with pytest.raises(TypeError, match="colour_map must map"):
+            normalise_colour_map(colour_map)
+        with pytest.raises(TypeError, match="colour_map must map"):
+            _build_graph().visualise(renderer="3d", colour_map=colour_map)
+
+    @pytest.mark.parametrize("renderer", ["sigma", "svg", "forcegraph3d", "pyvis"])
+    def test_every_renderer_checks_colours_even_for_an_empty_graph(self, renderer):
+        if renderer == "pyvis":
+            pytest.importorskip("pyvis")
+        module = __import__(f"crategraph.renderers.{renderer}", fromlist=["*"])
+        cls = next(
+            getattr(module, name)
+            for name in dir(module)
+            if name.endswith("Renderer") and getattr(module, name).__module__ == module.__name__
+        )
+        with pytest.raises(ValueError, match="not a hex colour"):
+            cls().render(Graph(), colour_map={"Person": "red"})

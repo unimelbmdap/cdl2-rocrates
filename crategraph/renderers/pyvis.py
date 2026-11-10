@@ -12,7 +12,7 @@ from markupsafe import escape
 
 from crategraph.core.interfaces import Renderer
 from crategraph.core.layout_engines import NoLayoutEngineError
-from crategraph.renderers._colours import resolve_entity_colours
+from crategraph.renderers._colours import normalise_colour_map, resolve_entity_colours
 from crategraph.renderers._edge_width import resolve_edge_widths
 
 if TYPE_CHECKING:
@@ -129,6 +129,7 @@ class PyvisRenderer(Renderer):
         Returns the ``pyvis.network.Network`` object (or the filepath string
         if *filepath* was provided).
         """
+        normalise_colour_map(colour_map)  # fail fast, even for an empty graph
         try:
             from pyvis.network import Network
         except ImportError:

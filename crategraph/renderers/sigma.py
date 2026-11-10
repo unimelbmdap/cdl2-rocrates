@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 from markupsafe import Markup
 
 from crategraph.core.interfaces import Renderer
-from crategraph.renderers._colours import resolve_colour_groups
+from crategraph.renderers._colours import normalise_colour_map, resolve_colour_groups
 from crategraph.renderers._edge_width import resolve_edge_widths
 from crategraph.renderers._validation import validate_css_dimension
 
@@ -297,6 +297,7 @@ class SigmaRenderer(Renderer):
         Returns an ``IPython.display.HTML`` object for notebook display,
         or the filepath string if *filepath* was provided.
         """
+        normalise_colour_map(colour_map)  # fail fast, even for an empty graph
         import json
 
         validate_css_dimension(height, "height")
