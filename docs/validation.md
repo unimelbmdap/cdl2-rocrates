@@ -72,7 +72,7 @@ report = crate.validate(
 )
 ```
 
-Fetched contexts are cached for the rest of the Python session. Even for allowed URLs, only `http` and `https` addresses on the public internet are fetched: hosts that resolve to private or local network addresses (loopback, private ranges, link-local and similar) are refused, the same check applies to every redirect, at most five redirects are followed, and a context larger than 2 MB is ignored. A context that is not allowed or cannot be fetched is reported as unresolved, and the warning says how to allow it.
+Fetched contexts are cached for the rest of the Python session. An allowed context is always fetched from the URL as it appears in the allowed list, so the LDaC contexts are fetched over `https` however a crate spells them. Only addresses on the public internet are fetched: hosts that resolve to private or local network addresses (loopback, private ranges, link-local and similar) are refused. Redirects must use `https` and stay on the same host or go to a host the LDaC contexts use (`w3id.org`, `purl.archive.org`, `raw.githubusercontent.com`); at most five are followed. A context larger than 2 MB, or one that takes more than a minute to download, is ignored. If one of your own contexts redirects elsewhere, list its final URL instead. A context that is not allowed or cannot be fetched is reported as unresolved, and the warning says how to allow it.
 
 ## Differences from the JavaScript validator
 
@@ -86,7 +86,7 @@ crategraph's validator is a Python port of the [ro-crate-masp](https://github.co
 | 4 | Entities that refer to each other | Terminates; a pair already being checked is assumed to pass, and results do not depend on traversal order | Can recurse forever |
 | 5 | Malformed profile or unreadable crate | Raises an exception; a profile with no root or no schema `ResourceDescriptor` raises `ValueError` | Returns an error result with rule `exception`, or silently yields zero rules |
 | 6 | Conformance claim | New `info` row checking `conformsTo` against the profile and its conformance indicators | Not checked |
-| 7 | Regular expressions | `/pattern/flags` is translated to Python and run with the [`regex`](https://pypi.org/project/regex/) package, which matches like Python's `re`: `i`, `m`, `s` apply, `g`, `y`, `u` are ignored, other flags warn. Python's `\w` and `\d` are Unicode-aware, and `$` also matches before a trailing newline | JavaScript regular expression semantics |
+| 7 | Regular expressions | `/pattern/flags` is translated to Python and run with the [`regex`](https://pypi.org/project/regex/) package, which follows Python's `re` closely (a few Unicode character classes differ slightly): `i`, `m`, `s` apply, `g`, `y`, `u` are ignored, other flags warn. Python's `\w` and `\d` are Unicode-aware, and `$` also matches before a trailing newline | JavaScript regular expression semantics |
 | 8 | URL validity | Uses the `validators` package | Uses the WHATWG `URL` parser, so edge cases may differ |
 | 9 | Property matching | By expanded IRI, so a key matches however the crate's context spells it (see below) | By compact string, ignoring `@vocab` |
 | 10 | Context that cannot be resolved | A `context` warning row | Silently dropped |
@@ -112,6 +112,6 @@ crategraph's validator is a Python port of the [ro-crate-masp](https://github.co
 - There are no domain checks and no checks for undeclared properties.
 - Profiles must be local paths, not URLs.
 - Scoped contexts are not applied. When a term definition in the crate's or profile's context has its own `@context` (a type-scoped or property-scoped context), or an entity in `@graph` carries its own `@context`, terms are still matched using the top-level context only, and the report has one `context` warning for that crate or profile saying so.
-- To stop a malformed or hostile file from tying up your computer, some structures are refused with an error naming the file: a `@context` nested more than 32 levels deep or referring to other contexts more than 100 times, a profile whose `rdfs:subClassOf` hierarchy is more than 100 classes deep or whose subclass cycles are too tangled to evaluate, and a profile regular expression that takes more than a second to check a single value (a sign of a pattern that backtracks badly). Real crates and profiles come nowhere near these limits.
+- To stop a malformed or hostile file from tying up your computer, some structures are refused with an error naming the file: a `@context` nested more than 32 levels deep or referring to other contexts more than 100 times, a profile whose `rdfs:subClassOf` hierarchy is more than 100 classes deep or whose subclass cycles are too tangled to evaluate, and a profile regular expression that is longer than 1,000 characters, repeats something more than 1,000 times (such as `a{5000}`), nests too deeply, or takes more than a second to check a single value (a sign of a pattern that backtracks badly). Real crates and profiles come nowhere near these limits.
 
 Contributors can regenerate the JavaScript comparison corpus with the harness in `scripts/masp-parity/`.
