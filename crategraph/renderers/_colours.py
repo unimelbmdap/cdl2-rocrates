@@ -85,6 +85,17 @@ def _resolve_group(entity: Entity, colour_by: str) -> str:
 def resolve_colour_map(graph: Graph, colour_by: str) -> dict[str, str]:
     """Build ``{entity_id: hex_colour}`` for every entity in *graph*.
 
+    See :func:`resolve_colour_groups`, which also returns the legend.
+    """
+    return resolve_colour_groups(graph, colour_by)[0]
+
+
+def resolve_colour_groups(graph: Graph, colour_by: str) -> tuple[dict[str, str], dict[str, str]]:
+    """Build ``{entity_id: hex_colour}`` and the matching ``{group value: hex_colour}``.
+
+    The second mapping is the legend: one entry per value of *colour_by*
+    present in *graph*, with the colour its entities are drawn in.
+
     Resolves each entity's group value generically: built-in Entity
     attributes (``type``, ``source``, ``name``, ``id``) take priority
     over data properties with the same name, then falls back to
@@ -94,7 +105,7 @@ def resolve_colour_map(graph: Graph, colour_by: str) -> dict[str, str]:
     communities when no entity already has a ``"community"`` property.
     """
     if not graph._entities:
-        return {}
+        return {}, {}
 
     # Auto-compute communities if needed.
     if colour_by == "community" and not any(
@@ -105,4 +116,4 @@ def resolve_colour_map(graph: Graph, colour_by: str) -> dict[str, str]:
     groups = {eid: _resolve_group(e, colour_by) for eid, e in graph._entities.items()}
     unique = sorted(set(groups.values()))
     val_to_colour = {v: PALETTE[i % len(PALETTE)] for i, v in enumerate(unique)}
-    return {eid: val_to_colour[g] for eid, g in groups.items()}
+    return {eid: val_to_colour[g] for eid, g in groups.items()}, val_to_colour
