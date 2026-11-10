@@ -428,3 +428,13 @@ class TestGraphVisualise3D:
             filepath = str(Path(tmpdir) / "merged.html")
             result = merged.visualise(renderer="3d", filepath=filepath)
             assert result == filepath
+
+
+def test_colour_map_sets_node_colours():
+    g = _build_graph()
+    data = ForceGraph3DRenderer()._graph_to_json(
+        g, colour_by="type", colour_map={"Person": "#d62728"}
+    )
+    colours = {n["id"]: n["color"] for n in data["nodes"]}
+    person = [e for e, ent in g._entities.items() if ent.type == "Person"]
+    assert person and all(colours[e] == "#d62728" for e in person)

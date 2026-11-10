@@ -711,6 +711,13 @@ relationships, filtering and transforming the graph, and visualising the result.
     crate.visualise(colour_by="community", size_by="year", filepath="umpc-styled.html")
     ```
 
+    To choose the colour of particular values, pass `colour_map`; other values keep their usual
+    colours, and the legend shows the colours used:
+
+    ```python
+    crate.visualise(colour_by="type", colour_map={"Person": "#d62728"}, filepath="umpc-people.html")
+    ```
+
     For crates with images, `gallery()` lays the image-bearing entities out as a thumbnail grid
     (UMPC holds documents rather than images, so see
     [Building a Thumbnail Gallery](building-a-thumbnail-gallery.md) for a worked example):

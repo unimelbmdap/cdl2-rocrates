@@ -12,10 +12,12 @@ from markupsafe import escape
 
 from crategraph.core.interfaces import Renderer
 from crategraph.core.layout_engines import NoLayoutEngineError
-from crategraph.renderers._colours import resolve_colour_map
+from crategraph.renderers._colours import resolve_entity_colours
 from crategraph.renderers._edge_width import resolve_edge_widths
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from crategraph.core.graph import Graph
 
 
@@ -80,6 +82,7 @@ class PyvisRenderer(Renderer):
         graph: Graph,
         *,
         colour_by: str = "type",
+        colour_map: Mapping[Any, str] | None = None,
         size_by: str = "connections",
         edge_width: int | float | str | None = None,
         height: str = "100vh",
@@ -99,6 +102,8 @@ class PyvisRenderer(Renderer):
             colour_by: Property to colour nodes by (default ``"type"``).
                 Any entity property or attribute works. ``"community"``
                 auto-computes Louvain communities if not already present.
+            colour_map: Colours for particular ``colour_by`` values, such as
+                ``{"error": "#d62728"}``. Other values keep their palette colours.
             size_by: ``"connections"`` (default) scales node size by degree.
             edge_width: Per-edge width. ``None`` (default) keeps the
                 existing ``1 + 2*log1p(weight)`` auto-width. A number
@@ -141,7 +146,7 @@ class PyvisRenderer(Renderer):
         )
 
         # Colour mapping.
-        colour_map = resolve_colour_map(graph, colour_by)
+        entity_colours = resolve_entity_colours(graph, colour_by, colour_map)
 
         # Try server-side layout; fall back to client-side physics.
         positions = _try_layout(
@@ -173,7 +178,7 @@ class PyvisRenderer(Renderer):
             if len(str(label)) > 40:
                 label = str(label)[:37] + "..."
 
-            colour = colour_map.get(eid, "#bab0ac")
+            colour = entity_colours.get(eid, "#bab0ac")
             size = _node_size(int(size_values.get(eid, 0)), int(max_size_val))
 
             # Tooltip with type and properties.

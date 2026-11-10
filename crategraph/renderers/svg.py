@@ -8,10 +8,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from crategraph.core.interfaces import Renderer
-from crategraph.renderers._colours import resolve_colour_map
+from crategraph.renderers._colours import resolve_entity_colours
 from crategraph.renderers._edge_width import resolve_edge_widths
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from crategraph.core.graph import Graph
 
 # Default display size (CSS pixels).  The internal coordinate space is
@@ -33,6 +35,7 @@ class SvgRenderer(Renderer):
         graph: Graph,
         *,
         colour_by: str = "type",
+        colour_map: Mapping[Any, str] | None = None,
         edge_width: int | float | str | None = None,
         width: int | str = DEFAULT_WIDTH,
         height: int | str = DEFAULT_HEIGHT,
@@ -50,6 +53,8 @@ class SvgRenderer(Renderer):
             graph: The graph to render.
             colour_by: Entity attribute or property used to assign colours.
                 ``"type"`` (default) colours by primary type.
+            colour_map: Colours for particular ``colour_by`` values, such as
+                ``{"error": "#d62728"}``. Other values keep their palette colours.
             edge_width: Per-edge stroke width. ``None`` (default) keeps
                 the existing ``1 + 3*(weight/max_weight)`` auto-width.
                 A number sets every edge to that pixel width (compensated
@@ -116,11 +121,11 @@ class SvgRenderer(Renderer):
         )
         positions = _scale_positions(raw_positions, pad=pad, width=vb_w, height=vb_h)
         _resolve_overlaps(positions, radii, width=vb_w, height=vb_h, pad=pad)
-        colour_map = resolve_colour_map(graph, colour_by)
+        entity_colours = resolve_entity_colours(graph, colour_by, colour_map)
         svg = _build_svg(
             graph,
             positions,
-            colour_map,
+            entity_colours,
             radii=radii,
             display_width=width,
             display_height=height,
@@ -271,7 +276,7 @@ def _node_radius(count: int, max_count: int, *, scale: float = 1.0) -> float:
 def _build_svg(
     graph: Graph,
     positions: dict[str, tuple[float, float]],
-    colour_map: dict[str, str],
+    entity_colours: dict[str, str],
     *,
     radii: dict[str, float],
     display_width: int,
@@ -328,7 +333,7 @@ def _build_svg(
         if pos is None:
             continue
         r = radii.get(eid, 16.0)
-        colour = colour_map.get(eid, "#bab0ac")
+        colour = entity_colours.get(eid, "#bab0ac")
 
         # Label: prefer explicit label property, fall back to name or id.
         raw_label = entity.properties.get("label") or entity.properties.get("name") or eid

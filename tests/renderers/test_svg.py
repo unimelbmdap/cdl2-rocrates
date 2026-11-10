@@ -214,3 +214,11 @@ class TestEdgeWidth:
             round((1.0 + 2.0 * math.log1p(1)) * 2.0, 1),
         ]
         assert widths == expected
+
+
+def test_colour_map_reaches_the_svg_through_visualise(tmp_path):
+    g = _build_graph()
+    out = g.visualise(
+        renderer="svg", colour_map={"Person": "#d62728"}, filepath=str(tmp_path / "g.svg")
+    )
+    assert 'fill="#d62728"' in Path(out).read_text()

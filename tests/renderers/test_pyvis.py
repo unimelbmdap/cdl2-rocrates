@@ -284,3 +284,11 @@ class TestEdgeWidth:
             1 + 2 * math.log1p(5),
             1 + 2 * math.log1p(20),
         ]
+
+
+def test_colour_map_sets_node_colours():
+    g = _build_graph()
+    result = PyvisRenderer().render(g, colour_map={"Person": "#d62728"})
+    person = {e for e, ent in g._entities.items() if ent.type == "Person"}
+    colours = {n["id"]: n["color"] for n in result.nodes}
+    assert person and all(colours[e] == "#d62728" for e in person)
