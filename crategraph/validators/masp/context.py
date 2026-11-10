@@ -21,6 +21,7 @@ import ipaddress
 import json
 import re
 import socket
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -40,15 +41,21 @@ BUNDLED_CONTEXTS: dict[str, str] = {
 # Remote contexts that ``fetch=True`` may download. They are not bundled because
 # the only licence found for them is GPL-3.0 (see ``contexts/README.md``).
 FETCHABLE_CONTEXTS: tuple[str, ...] = (
-    "http://purl.archive.org/language-data-commons/context.json",
+    "https://purl.archive.org/language-data-commons/context.json",
     "https://w3id.org/ldac/context",
 )
+# Hosts the allowed contexts redirect to. Any other redirect must stay on the
+# host that sent it.
+_TRUSTED_REDIRECT_HOSTS = frozenset({"w3id.org", "purl.archive.org", "raw.githubusercontent.com"})
 
 # ``False``, ``True`` (the known contexts) or extra URLs to allow as well.
 FetchContexts = bool | str | Iterable[str]
 
 _FETCH_TIMEOUT = 30
+_FETCH_DEADLINE = 60
 _MAX_CONTEXT_BYTES = 2_000_000
+_READ_CHUNK = 65_536
+_clock = time.monotonic
 _MAX_REDIRECTS = 5
 # Real contexts nest a few levels and refer to a handful of others; these bound
 # what a malformed or hostile document can make the resolver do.
@@ -83,21 +90,23 @@ def _lookup_key(url: str) -> str:
 _BUNDLED_BY_KEY = {_lookup_key(url): name for url, name in BUNDLED_CONTEXTS.items()}
 
 
-def fetchable_urls(fetch: FetchContexts) -> frozenset[str]:
-    """Lookup keys of the context URLs that *fetch* allows downloading.
+def fetchable_urls(fetch: FetchContexts) -> dict[str, str]:
+    """The context URLs that *fetch* allows downloading, keyed by lookup key.
 
     ``False`` allows none, ``True`` the :data:`FETCHABLE_CONTEXTS`, and a URL
-    or list of URLs those plus the URLs given.
+    or list of URLs those plus the URLs given. Each value is the URL that is
+    actually fetched, spelled as allowed rather than as a crate writes it, so
+    a crate cannot turn an allowed ``https`` URL into a plain ``http`` request.
     """
     if fetch is False:
-        return frozenset()
+        return {}
     urls = list(FETCHABLE_CONTEXTS)
     if fetch is not True:
         extra = [fetch] if isinstance(fetch, str) else list(fetch)
         if not all(isinstance(url, str) for url in extra):
             raise TypeError("fetch_contexts must be True, False or a list of context URLs")
         urls.extend(extra)
-    return frozenset(_lookup_key(url) for url in urls)
+    return {_lookup_key(url): url for url in urls}
 
 
 def may_fetch(url: str, fetch: FetchContexts) -> bool:
@@ -152,13 +161,27 @@ def _fetch_allowed(url: str) -> bool:
     return bool(addresses) and not any(_refused_address(a) for a in addresses)
 
 
+def _redirect_allowed(current: str, target: str) -> bool:
+    """True for a redirect to ``https`` on the same host or a trusted one, at a public address."""
+    try:
+        parts = urllib.parse.urlsplit(target)
+        here = urllib.parse.urlsplit(current).hostname
+    except ValueError:
+        return False
+    if parts.scheme.lower() != "https":
+        return False
+    if parts.hostname != here and parts.hostname not in _TRUSTED_REDIRECT_HOSTS:
+        return False
+    return _fetch_allowed(target)
+
+
 class _GuardedRedirectHandler(urllib.request.HTTPRedirectHandler):
-    """Follow at most a few redirects, and only to addresses we may fetch."""
+    """Follow at most a few redirects, and only those :func:`_redirect_allowed` accepts."""
 
     max_redirections = _MAX_REDIRECTS
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        if not _fetch_allowed(newurl):
+        if not _redirect_allowed(req.full_url, newurl):
             raise urllib.error.HTTPError(newurl, code, "redirect refused", headers, fp)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
@@ -168,17 +191,31 @@ def _open(request: urllib.request.Request, timeout: float) -> Any:
     return opener.open(request, timeout=timeout)
 
 
+def _read_capped(response: Any, deadline: float) -> bytes | None:
+    """Read *response*, or return ``None`` past the size cap or the deadline."""
+    read = getattr(response, "read1", response.read)  # returns as data arrives
+    chunks: list[bytes] = []
+    size = 0
+    while chunk := read(_READ_CHUNK):
+        size += len(chunk)
+        if size > _MAX_CONTEXT_BYTES or _clock() > deadline:
+            return None
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
 def _fetch(url: str) -> Any | None:
     """Fetch the document at *url*, or return ``None`` on any failure."""
     if url in _FETCH_CACHE:
         return _FETCH_CACHE[url]
     if not _fetch_allowed(url):
         return None
+    deadline = _clock() + _FETCH_DEADLINE
     try:
         request = urllib.request.Request(url, headers={"Accept": _ACCEPT})
         with _open(request, timeout=_FETCH_TIMEOUT) as response:
-            body = response.read(_MAX_CONTEXT_BYTES + 1)
-        if len(body) > _MAX_CONTEXT_BYTES:
+            body = _read_capped(response, deadline)
+        if body is None:
             return None
         document = json.loads(body)
     except (OSError, ValueError):
@@ -192,6 +229,7 @@ def _fetch(url: str) -> Any | None:
 class _Resolver:
     def __init__(self, fetch: FetchContexts) -> None:
         self._fetchable = fetchable_urls(fetch)
+        self._failed: set[str] = set()
         self._unresolved: dict[str, None] = {}
         self._depth = 0
         self._references = 0
@@ -202,11 +240,14 @@ class _Resolver:
 
     def _document_context(self, url: str) -> Any | None:
         """Return the ``@context`` value of the document behind *url*."""
-        name = _BUNDLED_BY_KEY.get(_lookup_key(url))
+        key = _lookup_key(url)
+        name = _BUNDLED_BY_KEY.get(key)
         if name is not None:
             document = _load_bundled(name)
-        elif _lookup_key(url) in self._fetchable:
-            document = copy.deepcopy(_fetch(url))
+        elif key in self._fetchable and key not in self._failed:
+            document = copy.deepcopy(_fetch(self._fetchable[key]))
+            if document is None:
+                self._failed.add(key)  # do not retry within one resolution
         else:
             document = None
         if not isinstance(document, dict) or _CONTEXT not in document:

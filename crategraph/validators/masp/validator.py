@@ -48,6 +48,8 @@ class MaspValidator(Validator):
         self, profile: str | Path | None = None, *, fetch_contexts: FetchContexts = False
     ) -> None:
         require_validate_extra()
+        if not isinstance(fetch_contexts, (bool, str)):
+            fetch_contexts = tuple(fetch_contexts)  # a generator would be used up
         fetchable_urls(fetch_contexts)  # reject a malformed option before any work
         if profile is None:
             raise TypeError("kind='masp' needs a MASP profile: crate.validate('path/to/profile')")

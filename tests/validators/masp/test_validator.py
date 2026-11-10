@@ -159,6 +159,12 @@ def test_known_context_row_suggests_fetch_contexts_true(profile_dir: Path, tmp_p
     assert "pass fetch_contexts=True to fetch it" in row["message"]
 
 
+def test_fetch_contexts_generator_is_kept_for_every_crate(profile_dir: Path):
+    url = "https://example.org/custom.jsonld"
+    validator = MaspValidator(profile_dir, fetch_contexts=(u for u in [url]))
+    assert validator.fetch_contexts == (url,)
+
+
 def test_malformed_fetch_contexts_rejected_before_loading(profile_dir: Path):
     with pytest.raises(TypeError, match="list of context URLs"):
         MaspValidator(profile_dir, fetch_contexts=[None])

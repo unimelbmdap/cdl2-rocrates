@@ -354,13 +354,28 @@ def _serve_web(monkeypatch, routes) -> _FakeWeb:
 DOCUMENT = {"@context": {"ex": "http://ex.org/"}}
 
 
-def test_redirect_to_public_host_is_followed(monkeypatch):
+@pytest.mark.parametrize(
+    "final",
+    ["https://example.org/moved/ctx.jsonld", "https://raw.githubusercontent.com/o/r/ctx.json"],
+)
+def test_redirect_to_same_or_trusted_host_is_followed(monkeypatch, final):
     start = "https://example.org/ctx.jsonld"
-    final = "https://cdn.example.net/ctx.jsonld"
     web = _serve_web(monkeypatch, {start: (302, final), final: (200, DOCUMENT)})
     res = resolve_context(start, fetch=[start])
     assert res.unresolved == ()
     assert web.requested == [start, final]
+
+
+@pytest.mark.parametrize(
+    "target",
+    ["https://attacker.example.net/ctx.jsonld", "http://example.org/plain/ctx.jsonld"],
+    ids=["other-host", "plain-http"],
+)
+def test_redirect_off_host_or_to_plain_http_is_refused(monkeypatch, target):
+    start = "https://example.org/ctx.jsonld"
+    web = _serve_web(monkeypatch, {start: (302, target), target: (200, DOCUMENT)})
+    assert resolve_context(start, fetch=[start]).unresolved == (start,)
+    assert web.requested == [start]
 
 
 @pytest.mark.parametrize(
@@ -575,13 +590,23 @@ def test_tutorial_nt1_reports_only_the_unbundled_ldac_contexts(monkeypatch):
 # --- which contexts may be fetched ------------------------------------------
 
 
-@pytest.mark.parametrize("url", LDAC_CONTEXTS)
-def test_fetch_true_fetches_the_known_ldac_contexts(monkeypatch, url):
+@pytest.mark.parametrize(
+    ("written", "fetched"),
+    [
+        (
+            "http://purl.archive.org/language-data-commons/context.json",
+            "https://purl.archive.org/language-data-commons/context.json",
+        ),
+        ("https://w3id.org/ldac/context", "https://w3id.org/ldac/context"),
+        ("http://w3id.org/ldac/context//", "https://w3id.org/ldac/context"),
+    ],
+)
+def test_fetch_true_fetches_the_known_ldac_contexts_over_https(monkeypatch, written, fetched):
     calls = []
     monkeypatch.setattr(context_module, "_open", _fake_response(DOCUMENT, calls))
-    res = resolve_context(url, fetch=True)
+    res = resolve_context(written, fetch=True)
     assert res.unresolved == ()
-    assert [request.full_url for request, _ in calls] == [url]
+    assert [request.full_url for request, _ in calls] == [fetched]
 
 
 @pytest.mark.parametrize(
@@ -614,6 +639,27 @@ def test_fetch_accepts_a_single_url(monkeypatch):
 def test_fetch_rejects_non_string_urls():
     with pytest.raises(TypeError, match="list of context URLs"):
         resolve_context([], fetch=[5])
+
+
+def test_slow_context_download_is_abandoned(monkeypatch):
+    clock = iter([0.0, 61.0])  # the deadline is set at 0; the first chunk arrives at 61 s
+    monkeypatch.setattr(context_module, "_clock", lambda: next(clock))
+    monkeypatch.setattr(context_module, "_open", _fake_response(DOCUMENT))
+    url = "https://example.org/ctx.jsonld"
+    assert resolve_context(url, fetch=[url]).unresolved == (url,)
+
+
+def test_failed_fetch_is_not_retried_within_one_resolution(monkeypatch):
+    calls = []
+
+    def failing(request, timeout=None):
+        calls.append(request.full_url)
+        raise urllib.error.URLError("unreachable")
+
+    monkeypatch.setattr(context_module, "_open", failing)
+    url = "https://example.org/ctx.jsonld"
+    assert resolve_context([url, url, url], fetch=[url]).unresolved == (url,)
+    assert calls == [url]
 
 
 def test_oversized_context_is_unresolved(monkeypatch):
