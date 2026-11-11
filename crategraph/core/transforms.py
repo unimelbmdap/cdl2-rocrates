@@ -172,9 +172,9 @@ def _join_values(
 ) -> dict[str, Mapping[str, Any]]:
     """Return the entries of *values* whose ids are in *graph*.
 
-    Raises ``TypeError`` unless *values* maps ids to mappings of fields,
-    and ``ValueError`` if none of its ids is in the graph (almost always
-    the wrong ids).
+    Raises ``TypeError`` unless *values* maps ids to mappings of
+    string field names, and ``ValueError`` if none of its ids is in the
+    graph (almost always the wrong ids).
     """
     if not isinstance(values, Mapping):
         msg = (
@@ -187,6 +187,12 @@ def _join_values(
             msg = (
                 f"annotate_entities: the fields for {entity_id!r} must be a mapping; "
                 f"got {type(entity_fields).__name__}"
+            )
+            raise TypeError(msg)
+        if not all(isinstance(name, str) for name in entity_fields):
+            msg = (
+                f"annotate_entities: field names must be strings; got "
+                f"{list(entity_fields)!r} for {entity_id!r}"
             )
             raise TypeError(msg)
     joined = {eid: fields for eid, fields in values.items() if eid in graph._entities}

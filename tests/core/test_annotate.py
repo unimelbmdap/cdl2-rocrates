@@ -158,7 +158,11 @@ def test_annotate_empty_mapping_is_a_no_op() -> None:
 
 @pytest.mark.parametrize(
     ("values", "match"),
-    [([("#alice", {"x": 1})], "mapping of entity id"), ({"#alice": 3}, "'#alice'")],
+    [
+        ([("#alice", {"x": 1})], "mapping of entity id"),
+        ({"#alice": 3}, "'#alice'"),
+        ({"#alice": {0: 42}}, "field names"),
+    ],
 )
 def test_annotate_mapping_of_the_wrong_shape_raises(values, match) -> None:
     with pytest.raises(TypeError, match=match):
