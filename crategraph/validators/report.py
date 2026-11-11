@@ -113,18 +113,19 @@ class ValidationReport(Records):
             f"{outcome}, {counts['passed']} passed."
         )
 
-    def entity_status(self) -> dict[str, str]:
+    def entity_status(self) -> dict[str, dict[str, Any]]:
         """Map every entity of the validated graph to the outcome of its checks.
 
-        An entity with failed checks gets the most serious of their
-        severities, one whose checks all passed gets ``"passed"``, and one no
-        check looked at gets ``"unchecked"``. Rows about the crate as a whole,
-        such as a missing class, belong to no entity. To colour or filter
-        the graph by the result::
+        Each entity gets ``validation_status`` and ``validation_messages``.
+        The status is the most serious severity among its failed checks,
+        ``"passed"`` if all its checks passed, or ``"unchecked"`` if no
+        check looked at it. The messages are its failed checks, most serious
+        first, each as ``"severity · message"``. Rows about the
+        crate as a whole, such as a missing class, belong to no entity. To
+        colour or filter the graph by the result::
 
-            status = report.entity_status()
-            view = crate.annotate_entities(validity=lambda e: status[e.id])
-            view.visualise(colour_by="validity")
+            view = crate.annotate_entities(report.entity_status())
+            view.visualise(colour_by="validation_status")
 
         Raises ``ValueError`` for a report not made from a graph, such as one
         from ``MaspValidator.validate_files``.
@@ -136,19 +137,26 @@ class ValidationReport(Records):
             )
             raise ValueError(msg)
         worst: dict[str, str] = {}
+        messages: dict[str, list[str]] = {}
         checked: set[str] = set()
-        for row in self:
+        for row in self:  # most serious first
             entity = row.get("graph_entity")
             if entity is None:
                 continue
             checked.add(entity)
             if row["passed"]:
                 continue
+            messages.setdefault(entity, []).append(f"{row['severity']} · {row['message']}")
             current = worst.get(entity)
             if current is None or self._rank(row["severity"]) < self._rank(current):
                 worst[entity] = row["severity"]
         return {
-            entity: worst.get(entity, "passed" if entity in checked else "unchecked")
+            entity: {
+                "validation_status": worst.get(
+                    entity, "passed" if entity in checked else "unchecked"
+                ),
+                "validation_messages": messages.get(entity, []),
+            }
             for entity in self.entities
         }
 

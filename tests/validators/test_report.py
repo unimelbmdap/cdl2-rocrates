@@ -132,8 +132,8 @@ def test_custom_severities_order_count_summarise_and_decide_validity():
 def test_entity_status_takes_the_worst_result_per_entity():
     report = ValidationReport(
         [
-            _row(severity="info", graph_entity="#a"),
-            _row(severity="error", graph_entity="#a"),
+            _row(severity="info", graph_entity="#a", message="Property `name`: too short"),
+            _row(severity="error", graph_entity="#a", message="Property `license`: missing"),
             _row(passed=True, severity=None, graph_entity="#a"),
             _row(passed=True, severity=None, graph_entity="#b"),
             _row(severity="warning", graph_entity="#c"),
@@ -141,12 +141,20 @@ def test_entity_status_takes_the_worst_result_per_entity():
         ],
         entities=["#a", "#b", "#c", "#d"],
     )
-    assert report.entity_status() == {
+    status = report.entity_status()
+    assert {eid: fields["validation_status"] for eid, fields in status.items()} == {
         "#a": "error",
         "#b": "passed",
         "#c": "warning",
         "#d": "unchecked",
     }
+    assert status["#a"]["validation_messages"] == [
+        "error · Property `license`: missing",
+        "info · Property `name`: too short",
+    ]
+    assert status["#b"]["validation_messages"] == []
+    assert status["#c"]["validation_messages"] == ["warning · m"]
+    assert status["#d"]["validation_messages"] == []
 
 
 def test_entity_status_passes_custom_severities_through():
@@ -155,7 +163,7 @@ def test_entity_status_passes_custom_severities_through():
         severities=("broken", "suspect"),
         entities=["#a"],
     )
-    assert report.entity_status() == {"#a": "broken"}
+    assert report.entity_status()["#a"]["validation_status"] == "broken"
 
 
 def test_entity_status_needs_a_graph():

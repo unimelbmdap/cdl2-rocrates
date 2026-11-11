@@ -70,11 +70,14 @@ def test_entity_status_covers_every_graph_entity_of_nt1():
     crate = Crate(str(NT1))
     status = crate.validate(LDAC_PROFILE).entity_status()
     assert set(status) == set(crate._entities)
-    assert set(status.values()) <= {"error", "warning", "info", "passed", "unchecked"}
-    assert {"passed", "unchecked"} <= set(status.values())
+    outcomes = {fields["validation_status"] for fields in status.values()}
+    assert outcomes <= {"error", "warning", "info", "passed", "unchecked"}
+    assert {"passed", "unchecked"} <= outcomes
     assert crate.metadata["_root_id"] not in status
-    coloured = crate.annotate_entities(validity=lambda e: status[e.id])
-    assert {e.properties["validity"] for e in coloured.entities} == set(status.values())
+    coloured = crate.annotate_entities(status)
+    assert {e.properties["validation_status"] for e in coloured.entities} == outcomes
+    failed = [e for e in coloured.entities if e.properties["validation_status"] == "info"]
+    assert failed and all(e.properties["validation_messages"] for e in failed)
 
 
 def test_entity_status_from_validate_files_explains_it_needs_a_graph(profile_dir: Path):

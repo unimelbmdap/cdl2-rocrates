@@ -56,15 +56,19 @@ Malformed profiles, unreadable crates and graphs that did not come from an RO-Cr
 
 ### Seeing the results on the graph
 
-`entity_status()` gives one outcome per entity of the graph you validated: the most serious severity among its failed checks, `"passed"` if every check on it passed, or `"unchecked"` if no rule in the profile looked at it. Use it with `annotate_entities` to colour or filter the graph:
+`entity_status()` gives two fields for every entity of the graph you validated:
+
+- `validation_status`: the most serious severity among its failed checks, `"passed"` if every check on it passed, or `"unchecked"` if no rule in the profile looked at it.
+- `validation_messages`: its failed checks, most serious first, such as ``"info · Property `encodingFormat`: ..."``. Empty when nothing failed.
+
+It is keyed by entity id, so `annotate_entities` puts both fields straight onto the graph, to colour, filter or click on:
 
 ```python
 report = crate.validate("path/to/profile/")
-status = report.entity_status()
-view = crate.annotate_entities(validity=lambda e: status[e.id])
+view = crate.annotate_entities(report.entity_status())
 
-view.visualise(colour_by="validity")
-view.where(validity="info")          # just the entities with failed checks
+view.visualise(colour_by="validation_status")    # click a node to see its messages
+view.where(validation_status="info")             # just the entities with failed checks
 ```
 
 Rows about the crate as a whole, such as a required class with no instances, belong to no entity, so read those in the report itself. `"unchecked"` is not the same as `"passed"`: it means the profile has no rule for that kind of entity. `entity_status()` needs a report from `crate.validate(...)`; a report from `MaspValidator.validate_files` has no graph to map to and raises `ValueError`.
