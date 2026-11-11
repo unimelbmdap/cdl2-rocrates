@@ -180,6 +180,14 @@ With `copy=True` (the default), the returned graph is a fully detached deep copy
 
 With `copy=False`, the returned `MultiDiGraph` is still rebuilt, but the original `Entity` and `Relationship` objects are attached directly. Only use this when you need lower copy overhead and can guarantee you will not mutate those objects or their nested properties.
 
+To put results back on the graph, pass them to `annotate_entities` as a mapping of entity id to fields. Node ids in the NetworkX graph are the entity ids:
+
+```python
+centrality = nx.betweenness_centrality(crate.to_networkx())
+ranked = crate.annotate_entities({eid: {"betweenness": c} for eid, c in centrality.items()})
+ranked.entity_records(["label", "betweenness"])
+```
+
 ## Attribute Flattening Rules
 
 GraphML and CSV both require scalar attribute values (`str`, `int`, `float`, `bool`). The shared flattening module (`crategraph.writers._flatten`) converts rich `Entity` and `Relationship` objects to flat dicts before writing.

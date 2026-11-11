@@ -185,3 +185,15 @@ df.to_csv("people.csv", index=False)
 ## Next steps
 
 There's a companion to `entity_records()` called `relationship_records()` that does the same thing for the edges. It's useful when you want a table of who-knows-whom or who-is-affiliated-with-whom. And once you've written a CSV, you can bring it back into Python at any point with `pd.read_csv("people.csv")` for further analysis.
+
+Results can go the other way too. If you work something out in pandas, put it back on the graph with `annotate_entities`, as a mapping of entity id to new fields, and then filter or colour by it like any other property:
+
+```python
+df["age_in_2000"] = 2000 - df["birth_year"]
+aged = people.annotate_entities(df.set_index("id")[["age_in_2000"]].to_dict("index"))
+aged.where(age_in_2000=(30, 39)).entity_records(["label", "age_in_2000"])
+```
+
+```
+[{'label': 'Elena Marchetti', 'age_in_2000': 38}, {'label': 'Tom Pereira', 'age_in_2000': 32}]
+```

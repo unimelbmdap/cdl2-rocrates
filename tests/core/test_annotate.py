@@ -126,3 +126,81 @@ def test_provenance_survives_collapse_edges() -> None:
 def test_provenance_dropped_by_merge_nodes() -> None:
     g = _g().annotate_entities(org=lambda e: "x")
     assert "org" not in g.merge_nodes(by="type").derived_fields
+
+
+# --- joining a mapping of entity id -> fields --------------------------------
+
+
+def test_annotate_mapping_adds_fields_only_to_listed_entities_in_the_graph() -> None:
+    tagged = _g().annotate_entities(
+        {"#alice": {"community": 3, "rank": 0.5}, "#bob": {"community": 1}, "#nobody": {"x": 2}}
+    )
+    assert tagged._entities["#alice"].properties["community"] == 3
+    assert tagged._entities["#alice"].properties["rank"] == 0.5
+    assert tagged._entities["#bob"].properties["community"] == 1
+    assert "community" not in tagged._entities["#acme"].properties
+    assert "#nobody" not in tagged._entities
+    assert tagged.derived_fields["community"] is None
+    assert tagged.derived_fields["rank"] is None
+
+
+def test_annotate_mapping_with_no_matching_ids_raises() -> None:
+    with pytest.raises(ValueError, match="none of the 2 ids"):
+        _g().annotate_entities({"#nobody": {"x": 1}, "#ghost": {"x": 2}})
+
+
+def test_annotate_empty_mapping_is_a_no_op() -> None:
+    g = _g()
+    assert (
+        g.annotate_entities({})._entities["#alice"].properties == g._entities["#alice"].properties
+    )
+
+
+@pytest.mark.parametrize(
+    ("values", "match"),
+    [
+        ([("#alice", {"x": 1})], "mapping of entity id"),
+        ({"#alice": 3}, "'#alice'"),
+        ({"#alice": {0: 42}}, "field names"),
+    ],
+)
+def test_annotate_mapping_of_the_wrong_shape_raises(values, match) -> None:
+    with pytest.raises(TypeError, match=match):
+        _g().annotate_entities(values)
+
+
+def test_annotate_mapping_combines_with_keyword_fields_and_wins_a_clash() -> None:
+    tagged = _g().annotate_entities(
+        {"#alice": {"community": 3, "flag": False}}, flag=lambda e: True
+    )
+    assert tagged._entities["#alice"].properties["community"] == 3
+    assert tagged._entities["#alice"].properties["flag"] is False
+    assert tagged._entities["#bob"].properties["flag"] is True
+
+
+def test_annotate_mapping_overwrites_existing_properties() -> None:
+    tagged = _g().annotate_entities({"#alice": {"name": "Renamed"}})
+    assert tagged._entities["#alice"].properties["name"] == "Renamed"
+
+
+def test_annotate_mapping_leaves_the_source_graph_unchanged() -> None:
+    g = _g()
+    g.annotate_entities({"#alice": {"community": 3}})
+    assert "community" not in g._entities["#alice"].properties
+
+
+def test_annotate_mapping_supports_where_and_survives_expand() -> None:
+    tagged = _g().annotate_entities({"#alice": {"community": 3}, "#bob": {"community": 1}})
+    assert [e.id for e in tagged.where(community=3).entities] == ["#alice"]
+    out = tagged.select(id="#bob").expand()
+    assert out._entities["#bob"].properties["community"] == 1
+
+
+def test_annotate_keyword_named_values_still_works() -> None:
+    tagged = _g().annotate_entities(values=lambda e: "v")
+    assert tagged._entities["#alice"].properties["values"] == "v"
+
+
+def test_annotate_mapping_passed_by_keyword_says_to_pass_it_first() -> None:
+    with pytest.raises(TypeError, match="first argument"):
+        _g().annotate_entities(values={"#alice": {"x": 1}})

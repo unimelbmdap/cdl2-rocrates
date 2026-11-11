@@ -1095,20 +1095,40 @@ class Graph:
         """
         return transforms.convert_dates(self, start=start, end=end, parser=parser, report=report)
 
-    def annotate_entities(self, **fields: Callable[[EntityView], Any]) -> Graph:
-        """Derive a property per entity from callables; returns a new Graph.
+    def annotate_entities(
+        self,
+        values: Mapping[str, Mapping[str, Any]] | None = None,
+        /,
+        **fields: Callable[[EntityView], Any],
+    ) -> Graph:
+        """Add properties to entities, computed or ready-made; returns a new Graph.
 
         Each keyword argument names a new property; its callable receives
         an :class:`EntityView` over the source graph and returns the value
         for that entity. Callables are independent — fields in one call
-        do not see each other. Added field names are recorded in
-        :attr:`derived_fields` so derived columns stay distinguishable
-        from native crate metadata, and overlapping names overwrite
-        existing properties on the returned graph.
+        do not see each other.
 
-        Chain :meth:`where` straight after to filter on the new fields.
+        To attach values worked out elsewhere (in pandas, networkx or a
+        spreadsheet), pass a mapping of entity id to fields instead, or
+        as well. Each entity in the mapping gets its fields as
+        properties; entities not in it are left as they are, and ids the
+        graph does not have are skipped.
+
+        Added field names are recorded in :attr:`derived_fields` so
+        derived columns stay distinguishable from native crate metadata,
+        and overlapping names overwrite existing properties on the
+        returned graph. Chain :meth:`where` straight after to filter on
+        the new fields.
 
         Args:
+            values: ``{entity id: {field: value, ...}}``, passed as the
+                first argument (not as ``values=``). Ids are the graph's
+                own, including any crate prefix in a multi-crate graph;
+                raises ``ValueError`` if none of them is in the graph. A
+                field also given as a keyword takes the mapping's value.
+                Values are stored as given, so gaps pandas fills with
+                ``NaN`` stay ``NaN``; drop them first if they should
+                mean no value.
             **fields: ``name=callable`` pairs. Each callable takes an
                 ``EntityView`` and returns the value to attach as
                 ``name``. Use ``.related(rel)``, ``.has(rel)``,
@@ -1122,8 +1142,11 @@ class Graph:
                 is_plain_text=lambda e: "File" in e.types and e.id.endswith("-plain.txt"),
             )
             reports = tagged.where(genre="Report", is_plain_text=True)
+
+            notes = pd.read_csv("notes.csv")  # one row per entity, with an "id" column
+            noted = crate.annotate_entities(notes.set_index("id").to_dict("index"))
         """
-        return transforms.annotate_entities(self, **fields)
+        return transforms.annotate_entities(self, values, **fields)
 
     def annotate_relationships(
         self,

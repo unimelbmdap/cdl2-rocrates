@@ -737,3 +737,12 @@ relationships, filtering and transforming the graph, and visualising the result.
     ```python
     crate.to_networkx()    # -> NetworkX MultiDiGraph with 4270 nodes and 12601 edges
     ```
+
+    ... and put what NetworkX works out back onto the graph, keyed by entity id:
+
+    ```python
+    import networkx as nx
+
+    centrality = nx.betweenness_centrality(crate.to_networkx())
+    crate.annotate_entities({eid: {"betweenness": c} for eid, c in centrality.items()})
+    ```

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import warnings
 from collections import Counter, defaultdict, deque
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
@@ -98,16 +98,31 @@ def merge_nodes(graph: Graph, *, by: str) -> Graph:
     return merged
 
 
-def annotate_entities(graph: Graph, **fields: Callable[[EntityView], Any]) -> Graph:
+def annotate_entities(
+    graph: Graph,
+    values: Mapping[str, Mapping[str, Any]] | None = None,
+    /,
+    **fields: Callable[[EntityView], Any],
+) -> Graph:
     """Return a new graph with a derived property per entity.
 
     Two-phase and order-independent: every callable is evaluated
     against an ``EntityView`` over the *source* graph (fields in one
     call do not see each other), then the new graph is built. A
-    callable error is re-raised with field + entity id context. New
-    field names are recorded in ``derived_fields``.
+    callable error is re-raised with field + entity id context.
+    *values* maps entity ids to ready-made fields, added after the
+    callables' (so they win a clash). New field names are recorded in
+    ``derived_fields``.
     """
     from crategraph.core.views import EntityView
+
+    if isinstance(fields.get("values"), Mapping):
+        msg = (
+            "annotate_entities: pass the mapping as the first argument, not as values=: "
+            "annotate_entities(mapping)"
+        )
+        raise TypeError(msg)
+    joined = _join_values(graph, values) if values is not None else {}
 
     new_entities: dict[str, Entity] = {}
     for eid, entity in graph._entities.items():
@@ -123,6 +138,7 @@ def annotate_entities(graph: Graph, **fields: Callable[[EntityView], Any]) -> Gr
                     f"entity {entity.id!r}: {exc!r}{hint}"
                 )
                 raise RuntimeError(msg) from exc
+        derived.update(joined.get(eid, {}))
         new_entities[eid] = Entity(
             id=entity.id,
             types=entity.types,
@@ -138,6 +154,7 @@ def annotate_entities(graph: Graph, **fields: Callable[[EntityView], Any]) -> Gr
     result._derived_fields = {
         **result._derived_fields,
         **_callable_descriptors(fields),
+        **{name: None for entity_fields in joined.values() for name in entity_fields},
     }
     # annotate_entities is a whole-graph transform over ALL entities, so
     # the result is the new authoritative full-graph baseline. expand()
@@ -148,6 +165,46 @@ def annotate_entities(graph: Graph, **fields: Callable[[EntityView], Any]) -> Gr
     # own root).
     result._root = result
     return result
+
+
+def _join_values(
+    graph: Graph, values: Mapping[str, Mapping[str, Any]]
+) -> dict[str, Mapping[str, Any]]:
+    """Return the entries of *values* whose ids are in *graph*.
+
+    Raises ``TypeError`` unless *values* maps ids to mappings of
+    string field names, and ``ValueError`` if none of its ids is in the
+    graph (almost always the wrong ids).
+    """
+    if not isinstance(values, Mapping):
+        msg = (
+            "annotate_entities takes a mapping of entity id to fields, such as "
+            f"{{'#alice': {{'community': 3}}}}; got {type(values).__name__}"
+        )
+        raise TypeError(msg)
+    for entity_id, entity_fields in values.items():
+        if not isinstance(entity_fields, Mapping):
+            msg = (
+                f"annotate_entities: the fields for {entity_id!r} must be a mapping; "
+                f"got {type(entity_fields).__name__}"
+            )
+            raise TypeError(msg)
+        if not all(isinstance(name, str) for name in entity_fields):
+            msg = (
+                f"annotate_entities: field names must be strings; got "
+                f"{list(entity_fields)!r} for {entity_id!r}"
+            )
+            raise TypeError(msg)
+    joined = {eid: fields for eid, fields in values.items() if eid in graph._entities}
+    if values and not joined:
+        sample = ", ".join(repr(key) for key in list(values)[:3])
+        msg = (
+            f"annotate_entities: none of the {len(values)} ids in the mapping is an entity "
+            f"of this graph (for example {sample}); check they are the graph's ids, "
+            "including any crate prefix in a multi-crate graph"
+        )
+        raise ValueError(msg)
+    return joined
 
 
 def annotate_relationships(
