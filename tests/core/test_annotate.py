@@ -195,3 +195,8 @@ def test_annotate_mapping_supports_where_and_survives_expand() -> None:
 def test_annotate_keyword_named_values_still_works() -> None:
     tagged = _g().annotate_entities(values=lambda e: "v")
     assert tagged._entities["#alice"].properties["values"] == "v"
+
+
+def test_annotate_mapping_passed_by_keyword_says_to_pass_it_first() -> None:
+    with pytest.raises(TypeError, match="first argument"):
+        _g().annotate_entities(values={"#alice": {"x": 1}})

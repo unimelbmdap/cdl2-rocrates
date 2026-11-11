@@ -116,6 +116,12 @@ def annotate_entities(
     """
     from crategraph.core.views import EntityView
 
+    if isinstance(fields.get("values"), Mapping):
+        msg = (
+            "annotate_entities: pass the mapping as the first argument, not as values=: "
+            "annotate_entities(mapping)"
+        )
+        raise TypeError(msg)
     joined = _join_values(graph, values) if values is not None else {}
 
     new_entities: dict[str, Entity] = {}
